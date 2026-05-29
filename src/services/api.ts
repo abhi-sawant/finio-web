@@ -1,20 +1,37 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'https://api.finio.slowatcoding.com';
 
-async function apiFetch<T = unknown>(
-  path: string,
-  options?: RequestInit & { token?: string },
-): Promise<T> {
+interface ApiFetchOptions extends Omit<RequestInit, 'headers'> {
+  token?: string;
+  headers?: Record<string, string>;
+}
+
+async function apiFetch<T = unknown>(path: string, options?: ApiFetchOptions): Promise<T> {
   const { token, ...fetchOptions } = options ?? {};
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...((fetchOptions.headers as Record<string, string>) ?? {}),
+    ...(fetchOptions.headers ?? {}),
   };
 
   const res = await fetch(`${BASE_URL}${path}`, { ...fetchOptions, headers });
-  const data = await res.json().catch(() => ({}));
+
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    if (!res.ok) throw new Error(`Request failed (${res.status})`);
+    data = {};
+  }
+
   if (!res.ok) {
-    throw new Error((data as { error?: string }).error ?? `Request failed (${res.status})`);
+    const message =
+      data &&
+      typeof data === 'object' &&
+      'error' in data &&
+      typeof (data as Record<string, unknown>).error === 'string'
+        ? (data as { error: string }).error
+        : `Request failed (${res.status})`;
+    throw new Error(message);
   }
   return data as T;
 }

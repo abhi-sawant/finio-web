@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Repeat } from 'lucide-react';
 import { formatCurrency, formatTime } from '@/utils/formatters';
 import type { Transaction, Category, Account, Currency } from '@/types';
@@ -10,7 +11,7 @@ interface TransactionItemProps {
   onClick?: () => void;
 }
 
-export function TransactionItem({
+export const TransactionItem = memo(function TransactionItem({
   transaction,
   categories,
   accounts,
@@ -73,4 +74,4 @@ export function TransactionItem({
       </p>
     </button>
   );
-}
+});

@@ -34,7 +34,6 @@ export default function ForgotPassword() {
   return (
     <div className="flex min-h-screen flex-col justify-center px-6 py-12">
       <div className="mx-auto w-full max-w-sm">
-
         <div className="mb-8 text-center">
           <h1 className="text-foreground text-2xl font-bold">Forgot Password</h1>
           <p className="text-muted-foreground mt-2">

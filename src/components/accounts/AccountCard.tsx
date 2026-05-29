@@ -1,5 +1,6 @@
+import { memo } from 'react';
 import { formatCurrency } from '@/utils/formatters';
-import { useFinanceStore } from '@/store/useFinanceStore';
+import { useCurrency } from '@/store/useFinanceStore';
 import type { Account } from '@/types';
 import {
   Trash2,
@@ -43,13 +44,13 @@ interface AccountCardProps {
   onDelete?: () => void;
 }
 
-export function AccountCard({
+export const AccountCard = memo(function AccountCard({
   account,
   variant = 'horizontal',
   onClick,
   onDelete,
 }: AccountCardProps) {
-  const currency = useFinanceStore((s) => s.settings.currency);
+  const currency = useCurrency();
 
   const isCredit = account.type === 'credit';
   const utilization =
@@ -145,4 +146,4 @@ export function AccountCard({
       </p>
     </div>
   );
-}
+});

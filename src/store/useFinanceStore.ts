@@ -352,3 +352,13 @@ export const useFinanceStore = create<FinanceStore>()(
     },
   ),
 );
+
+// ─── Granular selectors (prevent unnecessary re-renders) ─────────────
+export const useAccounts = () => useFinanceStore((s) => s.accounts);
+export const useTransactions = () => useFinanceStore((s) => s.transactions);
+export const useCategories = () => useFinanceStore((s) => s.categories);
+export const useLabels = () => useFinanceStore((s) => s.labels);
+export const useBudgets = () => useFinanceStore((s) => s.budgets);
+export const useRecurring = () => useFinanceStore((s) => s.recurring);
+export const useSettings = () => useFinanceStore((s) => s.settings);
+export const useCurrency = () => useFinanceStore((s) => s.settings.currency);

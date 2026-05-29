@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { Search, Filter, X, Download } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatDate } from '@/utils/formatters';
@@ -17,9 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { TransactionType } from '@/types';
+import type { Transaction, TransactionType } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
+
+type VirtualRow = { kind: 'header'; date: string } | { kind: 'tx'; tx: Transaction };
 
 export default function Transactions() {
   const navigate = useNavigate();
@@ -34,6 +37,9 @@ export default function Transactions() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Ref to the scrollable <main> element for the virtualizer
+  const scrollRef = useRef<HTMLElement>(null);
 
   const filtered = useMemo(() => {
     const catMap = new Map(categories.map((c) => [c.id, c.name.toLowerCase()]));
@@ -64,7 +70,25 @@ export default function Transactions() {
     });
   }, [transactions, search, typeFilter, accountFilter, categories, fromDate, toDate]);
 
-  const grouped = useMemo(() => groupTransactionsByDate(filtered), [filtered]);
+  // Flatten grouped transactions into a single array for the virtualizer
+  const virtualRows = useMemo<VirtualRow[]>(() => {
+    const groups = groupTransactionsByDate(filtered);
+    const rows: VirtualRow[] = [];
+    for (const group of groups) {
+      rows.push({ kind: 'header', date: group.date });
+      for (const tx of group.transactions) {
+        rows.push({ kind: 'tx', tx });
+      }
+    }
+    return rows;
+  }, [filtered]);
+
+  const virtualizer = useVirtualizer({
+    count: virtualRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) => (virtualRows[index].kind === 'header' ? 28 : 68),
+    overscan: 8,
+  });
 
   const hasActiveFilters =
     typeFilter !== 'all' || accountFilter !== 'all' || !!fromDate || !!toDate;
@@ -84,6 +108,13 @@ export default function Transactions() {
     URL.revokeObjectURL(url);
     toast.success(`Exported ${filtered.length} transactions`);
   };
+
+  const handleNavigate = useCallback(
+    (id: string) => navigate(`/edit-transaction/${id}`),
+    [navigate],
+  );
+
+  const items = virtualizer.getVirtualItems();
 
   return (
     <>
@@ -115,7 +146,7 @@ export default function Transactions() {
           </Button>
         </div>
       </Header>
-      <Main>
+      <Main ref={scrollRef}>
         {/* Search */}
         <div className="relative">
           <Search
@@ -158,7 +189,9 @@ export default function Transactions() {
               </Label>
               <Select value={accountFilter} onValueChange={(v) => setAccountFilter(v ?? 'all')}>
                 <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
-                  <SelectValue>{accounts.find((a) => a.id === accountFilter)?.name || 'All Accounts'}</SelectValue>
+                  <SelectValue>
+                    {accounts.find((a) => a.id === accountFilter)?.name || 'All Accounts'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Accounts</SelectItem>
@@ -175,19 +208,11 @@ export default function Transactions() {
                 <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                   From
                 </Label>
-                <DatePicker
-                  value={fromDate}
-                  onChange={setFromDate}
-                  placeholder="Start date"
-                />
+                <DatePicker value={fromDate} onChange={setFromDate} placeholder="Start date" />
               </div>
               <div>
                 <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">To</Label>
-                <DatePicker
-                  value={toDate}
-                  onChange={setToDate}
-                  placeholder="End date"
-                />
+                <DatePicker value={toDate} onChange={setToDate} placeholder="End date" />
               </div>
             </div>
             {hasActiveFilters && (
@@ -208,31 +233,40 @@ export default function Transactions() {
         )}
 
         {/* Transaction List */}
-        {grouped.length === 0 ? (
+        {virtualRows.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-muted-foreground">No transactions found</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {grouped.map((group) => (
-              <div key={group.date}>
-                <p className="text-muted-foreground mb-2 text-xs font-medium">
-                  {formatDate(group.date)}
-                </p>
-                <div className="space-y-2">
-                  {group.transactions.map((tx) => (
-                    <TransactionItem
-                      key={tx.id}
-                      transaction={tx}
-                      categories={categories}
-                      accounts={accounts}
-                      currency={currency}
-                      onClick={() => navigate(`/edit-transaction/${tx.id}`)}
-                    />
-                  ))}
+          <div style={{ height: `${virtualizer.getTotalSize()}px` }} className="relative w-full">
+            {items.map((virtualItem) => {
+              const row = virtualRows[virtualItem.index];
+              return (
+                <div
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  style={{ transform: `translateY(${virtualItem.start}px)` }}
+                  className="absolute top-0 left-0 w-full"
+                >
+                  {row.kind === 'header' ? (
+                    <p className="text-muted-foreground pb-2 text-xs font-medium">
+                      {formatDate(row.date)}
+                    </p>
+                  ) : (
+                    <div className="pb-2">
+                      <TransactionItem
+                        transaction={row.tx}
+                        categories={categories}
+                        accounts={accounts}
+                        currency={currency}
+                        onClick={() => handleNavigate(row.tx.id)}
+                      />
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Main>

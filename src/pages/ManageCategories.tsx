@@ -5,12 +5,7 @@ import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { CategoryType } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -121,8 +116,13 @@ export default function ManageCategories() {
         </div>
 
         {/* Form Dialog */}
-        <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); }}>
-          <DialogContent className="bg-card w-11/12 top-1/4 mx-auto rounded-2xl">
+        <Dialog
+          open={open}
+          onOpenChange={(v) => {
+            if (!v) resetForm();
+          }}
+        >
+          <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-2xl">
             <DialogHeader>
               <DialogTitle>{editId ? 'Edit Category' : 'Add Category'}</DialogTitle>
             </DialogHeader>

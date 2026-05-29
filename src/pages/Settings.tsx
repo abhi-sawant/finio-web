@@ -297,7 +297,7 @@ export default function Settings() {
         {/* Preferences */}
         <div className="card-elevated divide-border divide-y rounded-2xl">
           <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3 w-32">
+            <div className="flex w-32 items-center gap-3">
               <span className="text-lg">{currencySymbols[settings.currency]}</span>
               <span className="text-sm font-medium">Currency</span>
             </div>
@@ -320,7 +320,7 @@ export default function Settings() {
             </Select>
           </div>
           <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3 w-32">
+            <div className="flex w-32 items-center gap-3">
               <Palette size={18} className="text-muted-foreground" />
               <span className="text-sm font-medium">Theme</span>
             </div>
@@ -329,9 +329,7 @@ export default function Settings() {
               onValueChange={(v) => updateSettings({ theme: v as Theme })}
             >
               <SelectTrigger className="bg-muted h-auto rounded-lg border-0 px-3 py-1.5">
-                <SelectValue>
-                  {themes.find((t) => t.value === settings.theme)?.label}
-                </SelectValue>
+                <SelectValue>{themes.find((t) => t.value === settings.theme)?.label}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {themes.map((t) => (
