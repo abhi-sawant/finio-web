@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Plus, Trash2, Target } from 'lucide-react';
+import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency } from '@/utils/formatters';
@@ -172,10 +173,18 @@ export default function Budgets() {
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex min-w-0 items-center gap-2">
                       <div
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                         style={{ backgroundImage: `linear-gradient(135deg, ${color}, ${color}cc)` }}
                       >
-                        {label.charAt(0)}
+                        {isOverall ? (
+                          <Target size={16} color="white" />
+                        ) : (
+                          <CategoryIcon
+                            icon={cat?.icon ?? 'circle-ellipsis'}
+                            size={16}
+                            color="white"
+                          />
+                        )}
                       </div>
                       <p className="truncate text-sm font-medium">{label}</p>
                     </div>

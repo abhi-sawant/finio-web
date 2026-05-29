@@ -27,6 +27,7 @@ import {
 } from '@/utils/calculations';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { AccountCard } from '@/components/accounts/AccountCard';
+import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
@@ -169,12 +170,12 @@ export default function Dashboard() {
             {stats.topCategory && (
               <div className="card-elevated col-span-2 flex items-center gap-3 rounded-2xl p-3">
                 <div
-                  className="flex h-10 w-10 items-center justify-center rounded-full font-bold text-white"
+                  className="flex h-10 w-10 items-center justify-center rounded-full"
                   style={{
                     backgroundImage: `linear-gradient(135deg, ${stats.topCategory.category.color}, ${stats.topCategory.category.color}cc)`,
                   }}
                 >
-                  {stats.topCategory.category.name.charAt(0)}
+                  <CategoryIcon icon={stats.topCategory.category.icon} size={18} color="white" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-muted-foreground text-[10px] tracking-wide uppercase">

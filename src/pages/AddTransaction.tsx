@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft, Trash2 } from 'lucide-react';
+import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { toLocalDateTimeInputValue } from '@/utils/formatters';
@@ -253,12 +254,12 @@ export default function AddTransaction() {
                     }
                   >
                     <div
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
+                      className="flex h-8 w-8 items-center justify-center rounded-full"
                       style={{
                         backgroundImage: `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)`,
                       }}
                     >
-                      {cat.name.charAt(0).toUpperCase()}
+                      <CategoryIcon icon={cat.icon} size={16} color="white" />
                     </div>
                     <span className="line-clamp-2 text-[10px] leading-tight">{cat.name}</span>
                   </button>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react';
+import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -175,10 +176,10 @@ export default function ManageCategories() {
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
+                  className="flex h-8 w-8 items-center justify-center rounded-full"
                   style={{ backgroundColor: cat.color }}
                 >
-                  {cat.name.charAt(0)}
+                  <CategoryIcon icon={cat.icon} size={16} color="white" />
                 </div>
                 <div>
                   <p className="text-sm font-medium">{cat.name}</p>
