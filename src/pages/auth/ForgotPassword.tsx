@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -32,16 +32,8 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="bg-background flex min-h-screen flex-col justify-center px-6 py-12">
+    <div className="flex min-h-screen flex-col justify-center px-6 py-12">
       <div className="mx-auto w-full max-w-sm">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/login')}
-          className="text-muted-foreground hover:text-foreground mb-8 flex h-auto items-center gap-1 p-0 hover:bg-transparent"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to login
-        </Button>
 
         <div className="mb-8 text-center">
           <h1 className="text-foreground text-2xl font-bold">Forgot Password</h1>

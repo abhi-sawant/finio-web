@@ -5,6 +5,12 @@ import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { CategoryType } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -31,7 +37,7 @@ export default function ManageCategories() {
   const updateCategory = useFinanceStore((s) => s.updateCategory);
   const deleteCategory = useFinanceStore((s) => s.deleteCategory);
 
-  const [showForm, setShowForm] = useState(false);
+  const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [type, setType] = useState<CategoryType>('expense');
@@ -53,7 +59,7 @@ export default function ManageCategories() {
     setType(cat.type);
     setColor(cat.color);
     setIcon(cat.icon);
-    setShowForm(true);
+    setOpen(true);
   };
 
   const handleSubmit = () => {
@@ -67,7 +73,7 @@ export default function ManageCategories() {
   };
 
   const resetForm = () => {
-    setShowForm(false);
+    setOpen(false);
     setEditId(null);
     setName('');
     setType('expense');
@@ -88,7 +94,7 @@ export default function ManageCategories() {
           size="icon"
           onClick={() => {
             resetForm();
-            setShowForm(true);
+            setOpen(true);
           }}
           className="text-primary h-9 w-9"
         >
@@ -114,58 +120,63 @@ export default function ManageCategories() {
           ))}
         </div>
 
-        {/* Form */}
-        {showForm && (
-          <div className="bg-card border-border space-y-3 rounded-xl border p-4">
-            <Input
-              type="text"
-              placeholder="Category name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="bg-muted h-auto rounded-lg px-3 py-2"
-            />
-            <div className="flex gap-2">
-              {(['expense', 'income', 'both'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setType(t)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize ${
-                    type === t
-                      ? 'bg-grad-primary text-white shadow'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
+        {/* Form Dialog */}
+        <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); }}>
+          <DialogContent className="bg-card w-11/12 top-1/4 mx-auto rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>{editId ? 'Edit Category' : 'Add Category'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Input
+                type="text"
+                placeholder="Category name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-muted h-auto rounded-lg px-3 py-2"
+              />
+              <div className="flex gap-2">
+                {(['expense', 'income', 'both'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setType(t)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize ${
+                      type === t
+                        ? 'bg-grad-primary text-white shadow'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {categoryColors.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setColor(c)}
+                    className={`h-7 w-7 rounded-full ${color === c ? 'ring-primary scale-110 ring-2 ring-offset-2' : ''}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSubmit}
+                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
                 >
-                  {t}
-                </button>
-              ))}
+                  {editId ? 'Update' : 'Add'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={resetForm}
+                  className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {categoryColors.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setColor(c)}
-                  className={`h-7 w-7 rounded-full ${color === c ? 'ring-primary scale-110 ring-2 ring-offset-2' : ''}`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSubmit}
-                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
-              >
-                {editId ? 'Update' : 'Add'}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={resetForm}
-                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* List */}
         <div className="space-y-2">

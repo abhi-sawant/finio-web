@@ -142,7 +142,9 @@ export default function Recurring() {
             />
             <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
               <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
-                <SelectValue placeholder="Account" />
+                <SelectValue placeholder="Account">
+                  {accounts.find((a) => a.id === accountId)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {accounts.map((a) => (
@@ -154,7 +156,9 @@ export default function Recurring() {
             </Select>
             <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? '')}>
               <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
-                <SelectValue placeholder="Category" />
+                <SelectValue placeholder="Category">
+                  {filteredCategories.find((c) => c.id === categoryId)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {filteredCategories.map((c) => (
@@ -173,7 +177,7 @@ export default function Recurring() {
             />
             <Select value={frequency} onValueChange={(v) => setFrequency(v as RecurrenceFrequency)}>
               <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
-                <SelectValue />
+                <SelectValue placeholder="Frequency">{FREQ_LABEL[frequency]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {(Object.keys(FREQ_LABEL) as RecurrenceFrequency[]).map((f) => (

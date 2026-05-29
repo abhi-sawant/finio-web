@@ -33,6 +33,16 @@ import type { Currency, Theme } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
+const currencySymbols: Record<Currency, string> = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  JPY: '¥',
+  CAD: '$',
+  AUD: '$',
+};
+
 const currencies: { value: Currency; label: string }[] = [
   { value: 'INR', label: '₹ INR' },
   { value: 'USD', label: '$ USD' },
@@ -287,8 +297,8 @@ export default function Settings() {
         {/* Preferences */}
         <div className="card-elevated divide-border divide-y rounded-2xl">
           <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-lg">💱</span>
+            <div className="flex items-center gap-3 w-32">
+              <span className="text-lg">{currencySymbols[settings.currency]}</span>
               <span className="text-sm font-medium">Currency</span>
             </div>
             <Select
@@ -296,7 +306,9 @@ export default function Settings() {
               onValueChange={(v) => updateSettings({ currency: v as Currency })}
             >
               <SelectTrigger className="bg-muted h-auto rounded-lg border-0 px-3 py-1.5">
-                <SelectValue />
+                <SelectValue>
+                  {currencySymbols[settings.currency]} {settings.currency}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {currencies.map((c) => (
@@ -308,7 +320,7 @@ export default function Settings() {
             </Select>
           </div>
           <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-32">
               <Palette size={18} className="text-muted-foreground" />
               <span className="text-sm font-medium">Theme</span>
             </div>
@@ -317,7 +329,9 @@ export default function Settings() {
               onValueChange={(v) => updateSettings({ theme: v as Theme })}
             >
               <SelectTrigger className="bg-muted h-auto rounded-lg border-0 px-3 py-1.5">
-                <SelectValue />
+                <SelectValue>
+                  {themes.find((t) => t.value === settings.theme)?.label}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {themes.map((t) => (

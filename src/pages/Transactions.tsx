@@ -7,6 +7,7 @@ import { formatDate } from '@/utils/formatters';
 import { groupTransactionsByDate, transactionsToCsv } from '@/utils/calculations';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -157,7 +158,7 @@ export default function Transactions() {
               </Label>
               <Select value={accountFilter} onValueChange={(v) => setAccountFilter(v ?? 'all')}>
                 <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
-                  <SelectValue />
+                  <SelectValue>{accounts.find((a) => a.id === accountFilter)?.name || 'All Accounts'}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Accounts</SelectItem>
@@ -174,20 +175,18 @@ export default function Transactions() {
                 <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                   From
                 </Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="bg-muted h-auto rounded-lg px-3 py-2"
+                  onChange={setFromDate}
+                  placeholder="Start date"
                 />
               </div>
               <div>
                 <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">To</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="bg-muted h-auto rounded-lg px-3 py-2"
+                  onChange={setToDate}
+                  placeholder="End date"
                 />
               </div>
             </div>

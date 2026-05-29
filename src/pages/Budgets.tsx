@@ -100,7 +100,7 @@ export default function Budgets() {
                 onValueChange={(v) => setCategoryId(v === '__overall__' || v === null ? '' : v)}
               >
                 <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
-                  <SelectValue />
+                  <SelectValue>{categoryId === '' ? 'Overall (all expenses)' : expenseCategories.find((c) => c.id === categoryId)?.name}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__overall__">Overall (all expenses)</SelectItem>
