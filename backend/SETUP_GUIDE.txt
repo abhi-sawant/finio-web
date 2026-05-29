@@ -1,0 +1,416 @@
+================================================================================
+  FINIO BACKEND – COMPLETE SETUP GUIDE FOR MILESWEB CPANEL
+  (No prior PHP or cPanel experience required)
+================================================================================
+
+WHAT YOU WILL HAVE AT THE END:
+  • A live API at https://api.yourdomain.com
+  • MySQL database with two tables (users, backups)
+  • Full auth: register, email verify, login, forgot/reset password
+  • Backup storage: one JSON file per user per day
+  • Everything running on your existing MilesWeb shared hosting plan
+
+TIME NEEDED: ~45 minutes
+
+================================================================================
+  STEP 1 — Create the MySQL database
+================================================================================
+
+1. Log in to your MilesWeb cPanel account.
+   (URL is usually: https://yourdomain.com:2083  or  https://server.milesweb.in:2083)
+
+2. In the cPanel dashboard, scroll down to the "Databases" section.
+   Click "MySQL® Databases".
+
+3. Under "Create New Database":
+   - In the "New Database" field, type:  finio
+   - Click "Create Database".
+   - Note the FULL name shown (it will be like:  johndoe_finio).
+     Write it down.
+
+4. Scroll down to "MySQL Users" > "Add New User":
+   - Username:  finiouser
+   - Password:  create a strong password (click "Password Generator" if you want)
+   - Write this password down. You will need it in Step 5.
+   - Click "Create User".
+   - The full username will be like:  johndoe_finiouser.
+
+5. Scroll down to "Add User to Database":
+   - User dropdown:  select johndoe_finiouser
+   - Database dropdown:  select johndoe_finio
+   - Click "Add".
+   - On the privileges page, click "ALL PRIVILEGES", then "Make Changes".
+
+================================================================================
+  STEP 2 — Import the database schema
+================================================================================
+
+1. In cPanel, scroll to the "Databases" section.
+   Click "phpMyAdmin".
+
+2. In the left sidebar, click on your database name (johndoe_finio).
+
+3. Click the "Import" tab at the top.
+
+4. Click "Choose File", then select the file:
+     fina/backend/schema.sql
+   (from this project on your Mac)
+
+5. Scroll down. Make sure "Format" says "SQL".
+   Click "Go" (or "Import") at the bottom.
+
+6. You should see a green success message.
+   In the left sidebar, you will now see two tables: users and backups.
+
+================================================================================
+  STEP 3 — Create a subdomain for the API
+================================================================================
+
+1. In cPanel, scroll to the "Domains" section.
+   Click "Domains" (or "Subdomains" if you see that instead).
+
+2. Click "Create A New Domain" (or "Add Subdomain").
+
+3. Enter:
+   - Domain / Subdomain:  api
+   - This will create:  api.yourdomain.com
+
+4. For the Document Root (the folder the subdomain points to):
+   - cPanel will suggest:  public_html/api
+   - Accept this default.
+
+5. Click "Submit" (or "Create").
+
+6. Wait 5–10 minutes for DNS to propagate before testing.
+
+================================================================================
+  STEP 4 — Generate a random secret for JWT signing
+================================================================================
+
+1. In cPanel, scroll to the "Advanced" section.
+   Click "Terminal" (it opens a command-line terminal in your browser).
+
+2. Type this command and press Enter:
+     openssl rand -hex 32
+
+3. It will print a 64-character random string like:
+     a3f2e1b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1
+
+4. Copy this ENTIRE string. You will paste it into the config file in Step 5.
+
+================================================================================
+  STEP 5 — Create the email account for sending emails
+================================================================================
+
+1. In cPanel, scroll to "Email" section.
+   Click "Email Accounts".
+
+2. Click "Create" (or "+ Create").
+   - Username:  noreply
+   - Domain:    yourdomain.com  (select from dropdown)
+   - Password:  create a strong password and write it down
+
+3. Click "Create + Stay".
+
+4. Note the SMTP settings you will need:
+   - Host:      mail.yourdomain.com
+   - Port:      465 (SSL)  or  587 (TLS) — try 465 first
+   - Username:  noreply@yourdomain.com
+   - Password:  the one you just created
+
+================================================================================
+  STEP 6 — Create the config file and backup folder on the server
+================================================================================
+
+1. In cPanel Terminal, first find your home directory name:
+     echo $HOME
+   It will print something like:  /home/johndoe
+
+2. Create the backup storage folder (OUTSIDE public_html so it's not web-accessible):
+     mkdir -p ~/finio-backups
+     chmod 750 ~/finio-backups
+
+3. Create the config folder:
+     mkdir -p ~/finio-config
+
+4. Open the built-in File Manager in cPanel (search "File Manager" in cPanel).
+
+5. In File Manager, click the "Go Up" button (or navigate) until you see your
+   home directory. You should see folders like: public_html, mail, logs, etc.
+   You should now also see: finio-backups and finio-config (you just created them).
+
+6. Click into the "finio-config" folder.
+
+7. Click "New File" in the toolbar. Name it:  config.php
+
+8. Right-click the newly created config.php → "Edit".
+   A text editor will open.
+
+9. Copy the ENTIRE contents of:  fina/backend/config.example.php
+   Paste it into the editor.
+
+10. Now REPLACE all the placeholder values:
+
+    'CPANEL_USER_finio'      →  johndoe_finio   (your actual DB name from Step 1)
+    'CPANEL_USER_finiouser'  →  johndoe_finiouser
+    'YOUR_DB_PASSWORD'       →  the DB password you created in Step 1
+    'CHANGE_THIS_TO_...'     →  the 64-char secret from Step 4
+    'mail.yourdomain.com'    →  mail.yourdomain.com  (replace yourdomain)
+    'noreply@yourdomain.com' →  your actual noreply email
+    'YOUR_EMAIL_PASSWORD'    →  the email password from Step 5
+    'CPANEL_USER'            →  johndoe  (just your cPanel username, no underscore)
+    'https://api.yourdomain.com' → your actual subdomain URL
+
+11. Click "Save Changes".
+
+================================================================================
+  STEP 7 — Upload the backend files
+================================================================================
+
+METHOD A: Using cPanel File Manager (easiest, no software needed)
+
+1. On your Mac, open Terminal (not VS Code terminal — the macOS one).
+   Run this command to create a zip:
+     cd /Users/abhishek/Documents/fina
+     zip -r backend.zip backend/ --exclude "backend/vendor/*"
+
+2. In cPanel File Manager, navigate to:  public_html/api/
+   (This folder was created automatically in Step 3 when you made the subdomain)
+
+3. Click "Upload" in the toolbar.
+   Upload the backend.zip file.
+
+4. After upload, right-click backend.zip → "Extract".
+   - Extract to:  /public_html/api/
+   - Click "Extract File(s)".
+
+5. You now have /public_html/api/backend/ — but we need the contents
+   of backend/ to be DIRECTLY in public_html/api/.
+   
+   In the File Manager, go into public_html/api/backend/.
+   Select all files/folders (Ctrl+A or tick the checkbox at the top).
+   Click "Move" in the toolbar.
+   Move to:  /public_html/api
+   Click "Move Files".
+
+6. Delete the now-empty backend/ folder and the backend.zip file.
+
+7. Final structure inside public_html/api/ should look like:
+     public_html/api/
+       public/
+         .htaccess
+         index.php
+       src/
+         Config.php
+         Database.php
+         Router.php
+         helpers.php
+         controllers/
+           AuthController.php
+           BackupController.php
+           UserController.php
+         middleware/
+           AuthMiddleware.php
+       composer.json
+       schema.sql
+       config.example.php
+
+METHOD B: FTP (if you have FileZilla or similar)
+   - Host: ftp.yourdomain.com  (or yourdomain.com)
+   - Username/password: your cPanel credentials
+   - Upload everything in backend/ → into public_html/api/
+   - Skip the vendor/ folder if it exists (we'll install it in Step 8)
+
+================================================================================
+  STEP 8 — Install Composer dependencies (installs php-jwt and PHPMailer)
+================================================================================
+
+1. In cPanel Terminal, run:
+     cd ~/public_html/api
+     curl -sS https://getcomposer.org/installer | php
+
+   This downloads composer.phar to your current directory.
+
+2. Install the dependencies:
+     php composer.phar install --no-dev
+
+   It will create a vendor/ folder. This takes about a minute.
+
+3. Check everything installed ok:
+     ls vendor/
+   You should see:  autoload.php  composer/  firebase/  phpmailer/
+
+================================================================================
+  STEP 9 — Fix the subdomain to point to the public/ subfolder
+================================================================================
+
+By default, api.yourdomain.com points to public_html/api/.
+But our index.php is inside public_html/api/public/.
+We need to point the subdomain root to the public/ folder.
+
+OPTION A — Change the subdomain document root (recommended):
+
+1. In cPanel → "Subdomains" (or "Domains").
+2. Find api.yourdomain.com and click "Edit".
+3. Change Document Root from:  public_html/api
+                          to:  public_html/api/public
+4. Click "Change".
+
+OPTION B — Add a redirect .htaccess to public_html/api/.htaccess:
+
+1. In File Manager, go to public_html/api/.
+2. Create a new file:  .htaccess
+3. Paste this into it:
+     RewriteEngine On
+     RewriteRule ^(.*)$ public/$1 [L]
+4. Save.
+
+(OPTION A is cleaner. Use OPTION B only if cPanel doesn't let you edit the root.)
+
+================================================================================
+  STEP 10 — Test the API
+================================================================================
+
+You can test from your Mac Terminal using curl.
+Replace api.yourdomain.com with your actual subdomain.
+
+---- Test 1: Register a new user ----
+
+curl -X POST https://api.yourdomain.com/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John","email":"john@example.com","password":"secret1234"}'
+
+Expected response:
+  {"message":"Account created. Please check your email to verify your account."}
+
+---- Test 2: Log in ----
+(First go to your email and click the verification link, then:)
+
+curl -X POST https://api.yourdomain.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"secret1234"}'
+
+Expected response:
+  {"token":"eyJ...","user":{"id":1,"name":"John","email":"john@example.com"}}
+
+Copy the token value. You will use it in the next test.
+
+---- Test 3: Upload a dummy backup ----
+Replace YOUR_TOKEN with the token from Test 2.
+
+curl -X POST https://api.yourdomain.com/backup/upload \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"test":true,"data":"hello"}'
+
+Expected response:
+  {"message":"Backup uploaded successfully.","backup_date":"...","file_size":24}
+
+---- Test 4: Fetch latest backup ----
+
+curl https://api.yourdomain.com/backup/latest \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+Expected: the JSON you just uploaded.
+
+================================================================================
+  STEP 11 — (Optional) SSL certificate
+================================================================================
+
+MilesWeb usually auto-provisions Let's Encrypt SSL for subdomains.
+In cPanel → "SSL/TLS" → "Manage SSL Sites" — check if api.yourdomain.com already
+has a certificate. If not, use "AutoSSL" (cPanel → "SSL/TLS" → "Run AutoSSL").
+
+Your API URL must use https:// (not http://) for security.
+
+================================================================================
+  TROUBLESHOOTING
+================================================================================
+
+PROBLEM: 500 Server Error on all requests
+SOLUTION: Check that config.php exists at ~/finio-config/config.php
+          and that all values are filled in correctly (no placeholder text left).
+          In cPanel Terminal: cat ~/finio-config/config.php
+
+PROBLEM: "Route not found" on every request
+SOLUTION: mod_rewrite may not be enabled, or the .htaccess isn't being read.
+          In cPanel → "Apache Handlers" or contact MilesWeb support to confirm
+          mod_rewrite is enabled for your account.
+
+PROBLEM: Emails not being received
+SOLUTION: Try port 587 (TLS) instead of 465 (SSL) in config.php.
+          Also check your spam folder.
+          In cPanel Terminal you can test with:
+            php -r "mail('your@email.com','Test','Test');"
+
+PROBLEM: "Database connection failed"
+SOLUTION: Double-check the db.name, db.user, db.password in config.php.
+          Database host on shared hosting is always: localhost
+
+PROBLEM: vendor/ folder is missing
+SOLUTION: Re-run:  cd ~/public_html/api && php composer.phar install --no-dev
+
+PROBLEM: composer.phar command not found
+SOLUTION: You may need to specify the PHP version:
+            /usr/local/php83/bin/php composer.phar install --no-dev
+          Run "php -v" to see which version is active.
+
+================================================================================
+  FILE STRUCTURE SUMMARY (on the server)
+================================================================================
+
+/home/dtajsuww/                        ← your cPanel home directory
+  finio-config/
+    config.php                     ← Your secrets — NEVER web-accessible
+  finio-backups/
+    1/
+      2026-02-28.json              ← User ID 1's backup for Feb 28
+      2026-02-27.json
+    2/
+      2026-02-28.json              ← User ID 2's backup
+  api.finio.slowatcoding.com/      ← MilesWeb creates subdomain folders HERE
+    .htaccess                      ← forwards requests into public/
+    public/
+      .htaccess
+      index.php
+    src/
+      Config.php
+      Database.php
+      Router.php
+      helpers.php
+      controllers/
+        AuthController.php
+        BackupController.php
+        UserController.php
+      middleware/
+        AuthMiddleware.php
+    vendor/                        ← Created by composer install
+    composer.json
+    composer.phar
+
+================================================================================
+  API REFERENCE (for when you wire up the app)
+================================================================================
+
+BASE URL: https://api.yourdomain.com
+
+POST   /auth/register          body: { name, email, password }
+POST   /auth/verify-otp        body: { email, otp }
+POST   /auth/resend-otp        body: { email }
+POST   /auth/login             body: { email, password } → { token, user }
+POST   /auth/forgot-password   body: { email }
+POST   /auth/reset-password    body: { email, otp, password }
+
+All routes below require:  Authorization: Bearer <token>
+
+POST   /backup/upload          body: <raw store JSON>
+GET    /backup/latest          → raw store JSON
+GET    /backup/list            → { backups: [{backup_date, file_size, created_at}] }
+GET    /backup/{date}          → raw store JSON for that date (YYYY-MM-DD)
+DELETE /backup/{date}
+
+GET    /user/me                → { user: {id, name, email, created_at} }
+PUT    /user/me                body: { name?, current_password?, new_password? }
+DELETE /user/me                body: { password }  ← permanent account deletion
+
+================================================================================

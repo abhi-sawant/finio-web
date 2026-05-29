@@ -1,0 +1,23 @@
+{
+  "name": "finio/backend",
+  "description": "Finio personal finance app – PHP backend",
+  "require": {
+    "php": "^8.0",
+    "firebase/php-jwt": "^6.10",
+    "phpmailer/phpmailer": "^6.9"
+  },
+  "autoload": {
+    "psr-4": {
+      "Finio\\": "src/"
+    },
+    "files": [
+      "src/helpers.php"
+    ]
+  },
+  "config": {
+    "audit": {
+      "abandoned": "report",
+      "block-insecure": false
+    }
+  }
+}

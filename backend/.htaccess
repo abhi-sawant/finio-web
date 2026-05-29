@@ -1,0 +1,11 @@
+Options -Indexes
+
+RewriteEngine On
+
+# If the request is already targeting a real file or directory, pass it through
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route all requests directly to public/index.php
+# Avoids chaining two .htaccess files which is unreliable on shared hosting
+RewriteRule ^(.*)$ public/index.php [L,QSA]
