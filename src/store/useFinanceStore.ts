@@ -192,7 +192,9 @@ export const useFinanceStore = create<FinanceStore>()(
             labels: state.labels.filter((l) => l.id !== id),
             transactions: anyHasLabel
               ? state.transactions.map((t) =>
-                  t.labels.includes(id) ? { ...t, labels: t.labels.filter((lId) => lId !== id) } : t,
+                  t.labels.includes(id)
+                    ? { ...t, labels: t.labels.filter((lId) => lId !== id) }
+                    : t,
                 )
               : state.transactions,
           };
@@ -207,10 +209,7 @@ export const useFinanceStore = create<FinanceStore>()(
         };
         set((state) => ({
           // Replace any existing budget for the same category (only one per category)
-          budgets: [
-            ...state.budgets.filter((b) => b.categoryId !== budget.categoryId),
-            budget,
-          ],
+          budgets: [...state.budgets.filter((b) => b.categoryId !== budget.categoryId), budget],
         }));
       },
 
@@ -353,4 +352,3 @@ export const useFinanceStore = create<FinanceStore>()(
     },
   ),
 );
-

@@ -34,8 +34,8 @@ export function IncomeExpenseBar() {
   if (!hasData) return null;
 
   return (
-    <div className="rounded-2xl p-4 card-elevated">
-      <h3 className="text-sm font-semibold mb-3">Income vs Expenses</h3>
+    <div className="card-elevated rounded-2xl p-4">
+      <h3 className="mb-3 text-sm font-semibold">Income vs Expenses</h3>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} barGap={4} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -67,17 +67,16 @@ export function IncomeExpenseBar() {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex gap-4 mt-2 justify-center">
+      <div className="mt-2 flex justify-center gap-4">
         <div className="flex items-center gap-1.5 text-xs">
-          <div className="w-2.5 h-2.5 rounded-full bg-grad-success" />
+          <div className="bg-grad-success h-2.5 w-2.5 rounded-full" />
           <span className="text-muted-foreground">Income</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs">
-          <div className="w-2.5 h-2.5 rounded-full bg-grad-danger" />
+          <div className="bg-grad-danger h-2.5 w-2.5 rounded-full" />
           <span className="text-muted-foreground">Expenses</span>
         </div>
       </div>
     </div>
   );
 }
-

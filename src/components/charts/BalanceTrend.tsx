@@ -1,5 +1,13 @@
 import { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { subDays, format } from 'date-fns';
 import { formatCurrency } from '@/utils/formatters';
@@ -39,8 +47,8 @@ export function BalanceTrend() {
   if (!hasData) return null;
 
   return (
-    <div className="rounded-2xl p-4 card-elevated">
-      <h3 className="text-sm font-semibold mb-3">30-Day Balance Trend</h3>
+    <div className="card-elevated rounded-2xl p-4">
+      <h3 className="mb-3 text-sm font-semibold">30-Day Balance Trend</h3>
       <div className="h-44">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -64,11 +72,16 @@ export function BalanceTrend() {
               formatter={(v) => formatCurrency(Number(v) || 0, currency)}
               labelStyle={{ color: 'var(--muted-foreground)' }}
             />
-            <Line type="monotone" dataKey="balance" stroke="url(#balanceStroke)" strokeWidth={3} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="balance"
+              stroke="url(#balanceStroke)"
+              strokeWidth={3}
+              dot={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
 }
-

@@ -14,10 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  getCurrentMonthTransactions,
-  computeBudgetStatuses,
-} from '@/utils/calculations';
+import { getCurrentMonthTransactions, computeBudgetStatuses } from '@/utils/calculations';
+import Header from '@/components/ui/header';
+import Main from '@/components/ui/main';
 
 export default function Budgets() {
   const navigate = useNavigate();
@@ -65,10 +64,15 @@ export default function Budgets() {
   };
 
   return (
-    <div className="min-h-dvh bg-background max-w-md mx-auto">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-border safe-top">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full">
+      <Header>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-9 w-9 rounded-full"
+        >
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-base font-semibold">Budgets</h1>
@@ -76,55 +80,65 @@ export default function Budgets() {
           variant="ghost"
           size="icon"
           onClick={() => setShowForm((v) => !v)}
-          className="w-9 h-9 text-primary rounded-full hover:bg-primary/10"
+          className="text-primary hover:bg-primary/10 h-9 w-9 rounded-full"
           aria-label="Add budget"
         >
           <Plus size={20} />
         </Button>
-      </div>
+      </Header>
 
-      <div className="px-4 py-4 space-y-4">
+      <Main>
         {showForm && (
-          <div className="rounded-2xl p-4 card-elevated space-y-3">
+          <div className="card-elevated space-y-3 rounded-2xl p-4">
             <div>
-              <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Scope</Label>
+              <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+                Scope
+              </Label>
               <Select
                 value={categoryId === '' ? '__overall__' : categoryId}
                 onValueChange={(v) => setCategoryId(v === '__overall__' || v === null ? '' : v)}
               >
-                <SelectTrigger className="w-full h-auto px-3 py-2 bg-muted rounded-lg">
+                <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__overall__">Overall (all expenses)</SelectItem>
                   {expenseCategories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Monthly Limit</Label>
+              <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+                Monthly Limit
+              </Label>
               <Input
                 type="number"
                 inputMode="decimal"
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="h-auto px-3 py-2 bg-muted rounded-lg"
+                className="bg-muted h-auto rounded-lg px-3 py-2"
               />
             </div>
             <div className="flex gap-2">
               <Button
                 onClick={handleSubmit}
-                className="flex-1 h-auto py-2 bg-grad-primary text-white rounded-lg text-sm font-medium shadow-glow-primary"
+                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
               >
                 Save
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => { setShowForm(false); setAmount(''); setCategoryId(''); }}
-                className="h-auto px-4 py-2 bg-muted text-muted-foreground rounded-lg text-sm font-medium"
+                onClick={() => {
+                  setShowForm(false);
+                  setAmount('');
+                  setCategoryId('');
+                }}
+                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </Button>
@@ -133,14 +147,14 @@ export default function Budgets() {
         )}
 
         {sortedStatuses.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-14 h-14 rounded-full bg-grad-primary-soft flex items-center justify-center mx-auto mb-3">
+          <div className="py-12 text-center">
+            <div className="bg-grad-primary-soft mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full">
               <Target size={22} className="text-primary" />
             </div>
             <p className="text-muted-foreground mb-4">No budgets yet</p>
             <Button
               onClick={() => setShowForm(true)}
-              className="h-auto bg-grad-primary text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-glow-primary"
+              className="bg-grad-primary shadow-glow-primary h-auto rounded-xl px-5 py-2.5 text-sm font-medium text-white"
             >
               Create your first budget
             </Button>
@@ -154,16 +168,16 @@ export default function Budgets() {
               const label = isOverall ? 'Overall Expenses' : (cat?.name ?? 'Unknown');
 
               return (
-                <div key={s.budget.id} className="rounded-2xl p-4 card-elevated">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 min-w-0">
+                <div key={s.budget.id} className="card-elevated rounded-2xl p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex min-w-0 items-center gap-2">
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
                         style={{ backgroundImage: `linear-gradient(135deg, ${color}, ${color}cc)` }}
                       >
                         {label.charAt(0)}
                       </div>
-                      <p className="text-sm font-medium truncate">{label}</p>
+                      <p className="truncate text-sm font-medium">{label}</p>
                     </div>
                     <Button
                       variant="ghost"
@@ -171,21 +185,26 @@ export default function Budgets() {
                       onClick={() => {
                         if (confirm(`Delete budget for "${label}"?`)) deleteBudget(s.budget.id);
                       }}
-                      className="w-7 h-7"
+                      className="h-7 w-7"
                       aria-label="Delete"
                     >
                       <Trash2 size={13} className="text-destructive" />
                     </Button>
                   </div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className={`${s.isOver ? 'text-rose-500 font-medium' : 'text-muted-foreground'}`}>
-                      {formatCurrency(s.spent, currency)} of {formatCurrency(s.budget.amount, currency)}
+                  <div className="mb-1.5 flex justify-between text-xs">
+                    <span
+                      className={`${s.isOver ? 'font-medium text-rose-500' : 'text-muted-foreground'}`}
+                    >
+                      {formatCurrency(s.spent, currency)} of{' '}
+                      {formatCurrency(s.budget.amount, currency)}
                     </span>
-                    <span className={`font-medium ${s.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}>
+                    <span
+                      className={`font-medium ${s.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
+                    >
                       {Math.round(s.percent)}%
                     </span>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="bg-muted h-2 overflow-hidden rounded-full">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
@@ -193,12 +212,12 @@ export default function Budgets() {
                         backgroundImage: s.isOver
                           ? 'var(--grad-danger)'
                           : s.percent > 80
-                          ? 'var(--grad-warning)'
-                          : `linear-gradient(90deg, ${color}, ${color}cc)`,
+                            ? 'var(--grad-warning)'
+                            : `linear-gradient(90deg, ${color}, ${color}cc)`,
                       }}
                     />
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                  <p className="text-muted-foreground mt-1.5 text-[11px]">
                     {s.isOver
                       ? `Over by ${formatCurrency(-s.remaining, currency)}`
                       : `${formatCurrency(s.remaining, currency)} left this month`}
@@ -208,7 +227,7 @@ export default function Budgets() {
             })}
           </div>
         )}
-      </div>
-    </div>
+      </Main>
+    </>
   );
 }

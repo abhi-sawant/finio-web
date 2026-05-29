@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
-  ArrowLeft, Trash2,
-  Landmark, PiggyBank, Banknote, CreditCard, TrendingUp, Wallet,
+  ArrowLeft,
+  Trash2,
+  Landmark,
+  PiggyBank,
+  Banknote,
+  CreditCard,
+  TrendingUp,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
@@ -10,14 +16,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { AccountType, Currency } from '@/types';
+import Header from '@/components/ui/header';
+import Main from '@/components/ui/main';
 
 const TYPE_ICONS: Record<string, LucideIcon> = {
-  'landmark': Landmark,
+  landmark: Landmark,
   'piggy-bank': PiggyBank,
-  'banknote': Banknote,
+  banknote: Banknote,
   'credit-card': CreditCard,
   'trending-up': TrendingUp,
-  'wallet': Wallet,
+  wallet: Wallet,
 };
 
 const accountTypes: { value: AccountType; label: string; icon: string }[] = [
@@ -30,8 +38,16 @@ const accountTypes: { value: AccountType; label: string; icon: string }[] = [
 ];
 
 const accountColors = [
-  '#6C63FF', '#ef4444', '#f97316', '#f59e0b', '#22c55e',
-  '#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899',
+  '#6C63FF',
+  '#ef4444',
+  '#f97316',
+  '#f59e0b',
+  '#22c55e',
+  '#10b981',
+  '#06b6d4',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
 ];
 
 export default function AddAccount() {
@@ -49,7 +65,7 @@ export default function AddAccount() {
   const [type, setType] = useState<AccountType>(existing?.type ?? 'checking');
   const [balance, setBalance] = useState(existing?.balance?.toString() ?? '0');
   const [color, setColor] = useState(existing?.color ?? accountColors[0]);
-  const [currency, setCurrency] = useState<Currency>(existing?.currency ?? settings.currency);
+  const [currency] = useState<Currency>(existing?.currency ?? settings.currency);
   const [creditLimit, setCreditLimit] = useState(existing?.creditLimit?.toString() ?? '');
 
   const handleSubmit = () => {
@@ -62,7 +78,7 @@ export default function AddAccount() {
       color,
       icon: existing?.icon ?? accountTypes.find((t) => t.value === type)?.icon ?? 'landmark',
       currency,
-      creditLimit: type === 'credit' ? (parseFloat(creditLimit) || undefined) : undefined,
+      creditLimit: type === 'credit' ? parseFloat(creditLimit) || undefined : undefined,
     };
 
     if (existing) {
@@ -74,59 +90,81 @@ export default function AddAccount() {
   };
 
   const handleDelete = () => {
-    if (existing && confirm(`Delete "${existing.name}"? All associated transactions will be deleted.`)) {
+    if (
+      existing &&
+      confirm(`Delete "${existing.name}"? All associated transactions will be deleted.`)
+    ) {
       deleteAccount(existing.id);
       navigate(-1);
     }
   };
 
   return (
-    <div className="min-h-dvh bg-background max-w-md mx-auto">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-border">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="w-9 h-9">
+      <Header>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-9 w-9">
           <ArrowLeft size={20} />
         </Button>
-        <h1 className="text-base font-semibold">
-          {existing ? 'Edit Account' : 'Add Account'}
-        </h1>
+        <h1 className="text-base font-semibold">{existing ? 'Edit Account' : 'Add Account'}</h1>
         {existing ? (
-          <Button variant="ghost" size="icon" onClick={handleDelete} className="w-9 h-9 text-destructive">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            className="text-destructive h-9 w-9"
+          >
             <Trash2 size={18} />
           </Button>
         ) : (
           <div className="w-9" />
         )}
-      </div>
+      </Header>
 
-      <div className="px-4 py-6 space-y-5">
+      <Main>
         {/* Name */}
         <div>
-          <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Account Name</Label>
+          <Label
+            htmlFor="accountName"
+            className="text-muted-foreground mb-1.5 block text-xs font-medium"
+          >
+            Account Name
+          </Label>
           <Input
+            id="accountName"
             type="text"
             placeholder="e.g., HDFC Savings"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="h-auto px-4 py-3 bg-card rounded-xl"
+            className="bg-card h-auto rounded-xl px-4 py-3"
           />
         </div>
 
         {/* Type */}
         <div>
-          <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Account Type</Label>
+          <Label
+            htmlFor="accountType"
+            className="text-muted-foreground mb-1.5 block text-xs font-medium"
+          >
+            Account Type
+          </Label>
           <div className="grid grid-cols-3 gap-2">
             {accountTypes.map((t) => (
               <button
                 key={t.value}
                 onClick={() => setType(t.value)}
-                className={`p-3 rounded-xl border text-center transition-colors ${
-                  type === t.value
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border bg-card'
+                className={`rounded-xl border p-3 text-center transition-colors ${
+                  type === t.value ? 'border-primary bg-primary/10' : 'border-border bg-card'
                 }`}
               >
-                {(() => { const Icon = TYPE_ICONS[t.icon]; return Icon ? <Icon size={20} className="mx-auto mb-1" /> : <span className="text-lg block mb-1">{t.icon}</span>; })()}
+                {(() => {
+                  const Icon = TYPE_ICONS[t.icon];
+                  return Icon ? (
+                    <Icon size={20} className="mx-auto mb-1" />
+                  ) : (
+                    <span className="mb-1 block text-lg">{t.icon}</span>
+                  );
+                })()}
                 <span className="text-xs">{t.label}</span>
               </button>
             ))}
@@ -135,44 +173,59 @@ export default function AddAccount() {
 
         {/* Balance */}
         <div>
-          <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+          <Label
+            htmlFor="accountBalance"
+            className="text-muted-foreground mb-1.5 block text-xs font-medium"
+          >
             {type === 'credit' ? 'Current Balance (negative = owed)' : 'Current Balance'}
           </Label>
           <Input
+            id="accountBalance"
             type="number"
             inputMode="decimal"
             placeholder="0"
             value={balance}
             onChange={(e) => setBalance(e.target.value)}
-            className="h-auto px-4 py-3 bg-card rounded-xl"
+            className="bg-card h-auto rounded-xl px-4 py-3"
           />
         </div>
 
         {/* Credit Limit */}
         {type === 'credit' && (
           <div>
-            <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Credit Limit</Label>
+            <Label
+              htmlFor="creditLimit"
+              className="text-muted-foreground mb-1.5 block text-xs font-medium"
+            >
+              Credit Limit
+            </Label>
             <Input
+              id="creditLimit"
               type="number"
               inputMode="decimal"
               placeholder="e.g., 100000"
               value={creditLimit}
               onChange={(e) => setCreditLimit(e.target.value)}
-              className="h-auto px-4 py-3 bg-card rounded-xl"
+              className="bg-card h-auto rounded-xl px-4 py-3"
             />
           </div>
         )}
 
         {/* Color */}
         <div>
-          <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Color</Label>
-          <div className="flex gap-2 flex-wrap">
+          <Label
+            htmlFor="accountColor"
+            className="text-muted-foreground mb-1.5 block text-xs font-medium"
+          >
+            Color
+          </Label>
+          <div className="flex flex-wrap gap-4">
             {accountColors.map((c) => (
               <button
                 key={c}
                 onClick={() => setColor(c)}
-                className={`w-8 h-8 rounded-full transition-transform ${
-                  color === c ? 'scale-125 ring-2 ring-offset-2 ring-primary' : ''
+                className={`h-8 w-8 rounded-full transition-transform ${
+                  color === c ? 'ring-primary scale-110 ring-1 ring-offset-1' : ''
                 }`}
                 style={{ backgroundColor: c }}
               />
@@ -184,11 +237,11 @@ export default function AddAccount() {
         <Button
           onClick={handleSubmit}
           disabled={!name.trim()}
-          className="w-full h-auto py-3.5 bg-grad-primary text-white shadow-glow-primary rounded-xl font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {existing ? 'Update Account' : 'Add Account'}
         </Button>
-      </div>
-    </div>
+      </Main>
+    </>
   );
 }

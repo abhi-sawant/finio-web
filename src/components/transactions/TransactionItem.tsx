@@ -10,7 +10,13 @@ interface TransactionItemProps {
   onClick?: () => void;
 }
 
-export function TransactionItem({ transaction, categories, accounts, currency, onClick }: TransactionItemProps) {
+export function TransactionItem({
+  transaction,
+  categories,
+  accounts,
+  currency,
+  onClick,
+}: TransactionItemProps) {
   const category = categories.find((c) => c.id === transaction.categoryId);
   const account = accounts.find((a) => a.id === transaction.accountId);
   const toAccount = transaction.toAccountId
@@ -21,15 +27,15 @@ export function TransactionItem({ transaction, categories, accounts, currency, o
     transaction.type === 'income'
       ? ArrowDownLeft
       : transaction.type === 'expense'
-      ? ArrowUpRight
-      : ArrowLeftRight;
+        ? ArrowUpRight
+        : ArrowLeftRight;
 
   const amountColor =
     transaction.type === 'income'
       ? 'text-emerald-500'
       : transaction.type === 'expense'
-      ? 'text-rose-500'
-      : 'text-sky-500';
+        ? 'text-rose-500'
+        : 'text-sky-500';
 
   const amountPrefix =
     transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '';
@@ -39,22 +45,22 @@ export function TransactionItem({ transaction, categories, accounts, currency, o
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 card-elevated rounded-2xl text-left active:scale-[0.98] transition-all hover:shadow-md"
+      className="card-elevated flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-all hover:shadow-md active:scale-[0.98]"
     >
       <div
-        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
         style={{ backgroundImage: `linear-gradient(135deg, ${tint}26, ${tint}10)` }}
       >
         <TypeIcon size={16} style={{ color: tint }} />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate flex items-center gap-1.5">
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 truncate text-sm font-medium">
           {transaction.note || category?.name || 'Transaction'}
           {transaction.recurringId && (
             <Repeat size={12} className="text-muted-foreground" aria-label="Recurring" />
           )}
         </p>
-        <p className="text-xs text-muted-foreground truncate">
+        <p className="text-muted-foreground truncate text-xs">
           {transaction.type === 'transfer' && toAccount
             ? `${account?.name ?? '?'} → ${toAccount.name}`
             : (account?.name ?? 'Unknown account')}
@@ -68,4 +74,3 @@ export function TransactionItem({ transaction, categories, accounts, currency, o
     </button>
   );
 }
-

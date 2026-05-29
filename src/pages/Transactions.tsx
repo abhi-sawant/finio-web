@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { TransactionType } from '@/types';
+import Header from '@/components/ui/header';
+import Main from '@/components/ui/main';
 
 export default function Transactions() {
   const navigate = useNavigate();
@@ -83,16 +85,16 @@ export default function Transactions() {
   };
 
   return (
-    <div className="px-4 py-6 space-y-4">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <Header>
         <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="icon"
             onClick={handleExportCsv}
-            className="w-9 h-9 rounded-full bg-card hover:bg-muted"
+            className="bg-card hover:bg-muted h-9 w-9 rounded-full"
             aria-label="Export CSV"
           >
             <Download size={16} />
@@ -101,9 +103,9 @@ export default function Transactions() {
             variant={hasActiveFilters ? 'default' : 'outline'}
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className={`w-9 h-9 rounded-full transition-all ${
+            className={`h-9 w-9 rounded-full transition-all ${
               hasActiveFilters
-                ? 'bg-grad-primary text-white border-transparent shadow-glow-primary'
+                ? 'bg-grad-primary shadow-glow-primary border-transparent text-white'
                 : 'bg-card'
             }`}
             aria-label="Toggle filters"
@@ -111,121 +113,130 @@ export default function Transactions() {
             <Filter size={16} />
           </Button>
         </div>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
-        <Input
-          type="text"
-          placeholder="Search notes or categories..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-auto w-full pl-9 pr-4 py-2.5 bg-card rounded-xl"
-        />
-      </div>
-
-      {/* Filters */}
-      {showFilters && (
-        <div className="space-y-3 card-elevated rounded-2xl p-3">
-          <div>
-            <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Type</Label>
-            <div className="flex gap-2 flex-wrap">
-              {(['all', 'expense', 'income', 'transfer'] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setTypeFilter(type)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
-                    typeFilter === type
-                      ? 'bg-grad-primary text-white shadow'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Account</Label>
-            <Select value={accountFilter} onValueChange={(v) => setAccountFilter(v ?? 'all')}>
-              <SelectTrigger className="w-full h-auto px-3 py-2 bg-muted rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Accounts</SelectItem>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">From</Label>
-              <Input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="h-auto px-3 py-2 bg-muted rounded-lg"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">To</Label>
-              <Input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="h-auto px-3 py-2 bg-muted rounded-lg"
-              />
-            </div>
-          </div>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setTypeFilter('all');
-                setAccountFilter('all');
-                setFromDate('');
-                setToDate('');
-              }}
-              className="h-auto p-0 flex items-center gap-1 text-xs text-destructive font-medium hover:bg-transparent hover:text-destructive"
-            >
-              <X size={12} /> Clear filters
-            </Button>
-          )}
+      </Header>
+      <Main>
+        {/* Search */}
+        <div className="relative">
+          <Search
+            size={16}
+            className="text-muted-foreground absolute top-1/2 left-3 z-10 -translate-y-1/2"
+          />
+          <Input
+            type="text"
+            placeholder="Search notes or categories..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-card h-auto w-full rounded-xl py-2.5 pr-4 pl-9"
+          />
         </div>
-      )}
 
-      {/* Transaction List */}
-      {grouped.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No transactions found</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {grouped.map((group) => (
-            <div key={group.date}>
-              <p className="text-xs font-medium text-muted-foreground mb-2 sticky top-0 bg-background/80 backdrop-blur py-1 z-10">
-                {formatDate(group.date)}
-              </p>
-              <div className="space-y-2">
-                {group.transactions.map((tx) => (
-                  <TransactionItem
-                    key={tx.id}
-                    transaction={tx}
-                    categories={categories}
-                    accounts={accounts}
-                    currency={currency}
-                    onClick={() => navigate(`/edit-transaction/${tx.id}`)}
-                  />
+        {/* Filters */}
+        {showFilters && (
+          <div className="card-elevated space-y-3 rounded-2xl p-3">
+            <div>
+              <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Type</Label>
+              <div className="flex flex-wrap gap-2">
+                {(['all', 'expense', 'income', 'transfer'] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setTypeFilter(type)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-all ${
+                      typeFilter === type
+                        ? 'bg-grad-primary text-white shadow'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {type}
+                  </button>
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+            <div>
+              <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+                Account
+              </Label>
+              <Select value={accountFilter} onValueChange={(v) => setAccountFilter(v ?? 'all')}>
+                <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Accounts</SelectItem>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+                  From
+                </Label>
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="bg-muted h-auto rounded-lg px-3 py-2"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">To</Label>
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="bg-muted h-auto rounded-lg px-3 py-2"
+                />
+              </div>
+            </div>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setTypeFilter('all');
+                  setAccountFilter('all');
+                  setFromDate('');
+                  setToDate('');
+                }}
+                className="text-destructive hover:text-destructive flex h-auto items-center gap-1 p-0 text-xs font-medium hover:bg-transparent"
+              >
+                <X size={12} /> Clear filters
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Transaction List */}
+        {grouped.length === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground">No transactions found</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {grouped.map((group) => (
+              <div key={group.date}>
+                <p className="text-muted-foreground mb-2 text-xs font-medium">
+                  {formatDate(group.date)}
+                </p>
+                <div className="space-y-2">
+                  {group.transactions.map((tx) => (
+                    <TransactionItem
+                      key={tx.id}
+                      transaction={tx}
+                      categories={categories}
+                      accounts={accounts}
+                      currency={currency}
+                      onClick={() => navigate(`/edit-transaction/${tx.id}`)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Main>
+    </>
   );
 }
-

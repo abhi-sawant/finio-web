@@ -77,45 +77,48 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-center px-6 py-12 bg-background">
+    <div className="bg-background flex min-h-screen flex-col justify-center px-6 py-12">
       <div className="mx-auto w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Reset Password</h1>
+        <div className="mb-8 text-center">
+          <h1 className="text-foreground text-2xl font-bold">Reset Password</h1>
           <p className="text-muted-foreground mt-2">
-            Enter the OTP sent to <span className="font-medium text-foreground">{email}</span> and your new password.
+            Enter the OTP sent to <span className="text-foreground font-medium">{email}</span> and
+            your new password.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label className="text-sm font-medium text-foreground mb-2 block">OTP Code</Label>
+            <Label className="text-foreground mb-2 block text-sm font-medium">OTP Code</Label>
             <div className="flex justify-center gap-2" onPaste={handlePaste}>
               {otp.map((digit, i) => (
                 <Input
                   key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
+                  ref={(el) => {
+                    inputRefs.current[i] = el;
+                  }}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleChange(i, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="w-12 h-14 text-center text-xl font-bold rounded-xl bg-card"
+                  className="bg-card h-14 w-12 rounded-xl text-center text-xl font-bold"
                 />
               ))}
             </div>
           </div>
 
           <div>
-            <Label className="text-sm font-medium text-foreground mb-2 block">New Password</Label>
+            <Label className="text-foreground mb-2 block text-sm font-medium">New Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+              <Lock className="text-muted-foreground absolute top-1/2 left-3 z-10 h-5 w-5 -translate-y-1/2" />
               <Input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Min 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-auto w-full pl-11 pr-11 py-3 rounded-xl bg-card"
+                className="bg-card h-auto w-full rounded-xl py-3 pr-11 pl-11"
                 autoComplete="new-password"
               />
               <Button
@@ -123,9 +126,9 @@ export default function ResetPassword() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
+                className="text-muted-foreground absolute top-1/2 right-1 -translate-y-1/2 hover:bg-transparent"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </Button>
             </div>
           </div>
@@ -133,7 +136,7 @@ export default function ResetPassword() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-auto py-3 rounded-xl bg-grad-primary text-white font-semibold shadow-glow-primary disabled:opacity-50"
+            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3 font-semibold text-white disabled:opacity-50"
           >
             {loading ? 'Resetting...' : 'Reset Password'}
           </Button>

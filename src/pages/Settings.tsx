@@ -1,8 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  ChevronRight, User, Palette, Tag, FolderOpen, Download, Upload, RotateCcw,
-  LogIn, LogOut, Cloud, CloudUpload, Target, Repeat,
+  ChevronRight,
+  User,
+  Palette,
+  Tag,
+  FolderOpen,
+  Download,
+  Upload,
+  RotateCcw,
+  LogIn,
+  LogOut,
+  Cloud,
+  CloudUpload,
+  Target,
+  Repeat,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -18,6 +30,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Currency, Theme } from '@/types';
+import Header from '@/components/ui/header';
+import Main from '@/components/ui/main';
 
 const currencies: { value: Currency; label: string }[] = [
   { value: 'INR', label: '₹ INR' },
@@ -165,209 +179,221 @@ export default function Settings() {
   };
 
   return (
-    <div className="px-4 pb-6 safe-top">
-      <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+    <>
+      <Header>
+        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+      </Header>
 
-      {/* Account */}
-      <div className="card-elevated rounded-2xl divide-y divide-border overflow-hidden">
-        {token && user ? (
-          <>
-            <div className="p-4 flex items-center gap-3 bg-grad-primary-soft">
-              <div className="w-11 h-11 rounded-full bg-grad-primary flex items-center justify-center shadow-glow-primary">
-                <User size={18} className="text-white" />
+      <Main>
+        {/* Account */}
+        <div className="card-elevated divide-border divide-y overflow-hidden rounded-2xl">
+          {token && user ? (
+            <>
+              <div className="bg-grad-primary-soft flex items-center gap-3 p-4">
+                <div className="bg-grad-primary shadow-glow-primary flex h-11 w-11 items-center justify-center rounded-full">
+                  <User size={18} className="text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{user.name}</p>
+                  <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-              </div>
-            </div>
-            <button onClick={handleLogout} className="w-full p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors">
-              <LogOut size={18} className="text-destructive" />
-              <span className="text-sm font-medium text-destructive">Sign Out</span>
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => navigate('/login')}
-            className="w-full p-4 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-grad-primary flex items-center justify-center shadow-glow-primary">
-                <LogIn size={16} className="text-white" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-medium">Sign In</p>
-                <p className="text-xs text-muted-foreground">Sync your data across devices</p>
-              </div>
-            </div>
-            <ChevronRight size={16} className="text-muted-foreground" />
-          </button>
-        )}
-      </div>
-
-      {/* Cloud Backup */}
-      {token && (
-        <div className="card-elevated rounded-2xl divide-y divide-border">
-          <button
-            onClick={handleCloudBackup}
-            disabled={backingUp}
-            className="w-full p-4 flex items-center gap-3 disabled:opacity-60"
-          >
-            <CloudUpload size={18} className="text-muted-foreground" />
-            <div className="text-left flex-1">
-              <span className="text-sm font-medium block">
-                {backingUp ? 'Backing up...' : 'Backup to Cloud'}
-              </span>
-              {lastBackupAt && (
-                <span className="text-xs text-muted-foreground">
-                  Last: {new Date(lastBackupAt).toLocaleString()}
-                </span>
-              )}
-            </div>
-          </button>
-          <button
-            onClick={handleCloudRestore}
-            disabled={restoring}
-            className="w-full p-4 flex items-center gap-3 disabled:opacity-60"
-          >
-            <Cloud size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">
-              {restoring ? 'Restoring...' : 'Restore from Cloud'}
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* Profile name */}
-      <div className="card-elevated rounded-2xl divide-y divide-border">
-        <div className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-grad-primary-soft flex items-center justify-center">
-            <User size={18} className="text-primary" />
-          </div>
-          {editingName ? (
-            <Input
-              autoFocus
-              value={nameValue}
-              onChange={(e) => setNameValue(e.target.value)}
-              onBlur={() => handleNameSave(nameValue)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleNameSave(nameValue);
-              }}
-              className="flex-1 h-auto bg-muted border-0 px-3 py-1.5 rounded-lg"
-            />
+              <button
+                onClick={handleLogout}
+                className="hover:bg-muted/50 flex w-full items-center gap-3 p-4 transition-colors"
+              >
+                <LogOut size={18} className="text-destructive" />
+                <span className="text-destructive text-sm font-medium">Sign Out</span>
+              </button>
+            </>
           ) : (
-            <button onClick={() => setEditingName(true)} className="flex-1 text-left">
-              <p className="text-sm font-medium">{settings.userName}</p>
-              <p className="text-xs text-muted-foreground">Tap to edit name</p>
+            <button
+              onClick={() => navigate('/login')}
+              className="flex w-full items-center justify-between p-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-grad-primary shadow-glow-primary flex h-10 w-10 items-center justify-center rounded-full">
+                  <LogIn size={16} className="text-white" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium">Sign In</p>
+                  <p className="text-muted-foreground text-xs">Sync your data across devices</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-muted-foreground" />
             </button>
           )}
         </div>
-      </div>
 
-      {/* Preferences */}
-      <div className="card-elevated rounded-2xl divide-y divide-border">
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-lg">💱</span>
-            <span className="text-sm font-medium">Currency</span>
+        {/* Cloud Backup */}
+        {token && (
+          <div className="card-elevated divide-border divide-y rounded-2xl">
+            <button
+              onClick={handleCloudBackup}
+              disabled={backingUp}
+              className="flex w-full items-center gap-3 p-4 disabled:opacity-60"
+            >
+              <CloudUpload size={18} className="text-muted-foreground" />
+              <div className="flex-1 text-left">
+                <span className="block text-sm font-medium">
+                  {backingUp ? 'Backing up...' : 'Backup to Cloud'}
+                </span>
+                {lastBackupAt && (
+                  <span className="text-muted-foreground text-xs">
+                    Last: {new Date(lastBackupAt).toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </button>
+            <button
+              onClick={handleCloudRestore}
+              disabled={restoring}
+              className="flex w-full items-center gap-3 p-4 disabled:opacity-60"
+            >
+              <Cloud size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">
+                {restoring ? 'Restoring...' : 'Restore from Cloud'}
+              </span>
+            </button>
           </div>
-          <Select
-            value={settings.currency}
-            onValueChange={(v) => updateSettings({ currency: v as Currency })}
-          >
-            <SelectTrigger className="h-auto bg-muted border-0 px-3 py-1.5 rounded-lg">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {currencies.map((c) => (
-                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        )}
+
+        {/* Profile name */}
+        <div className="card-elevated divide-border divide-y rounded-2xl">
+          <div className="flex items-center gap-3 p-4">
+            <div className="bg-grad-primary-soft flex h-10 w-10 items-center justify-center rounded-full">
+              <User size={18} className="text-primary" />
+            </div>
+            {editingName ? (
+              <Input
+                autoFocus
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                onBlur={() => handleNameSave(nameValue)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleNameSave(nameValue);
+                }}
+                className="bg-muted h-auto flex-1 rounded-lg border-0 px-3 py-1.5"
+              />
+            ) : (
+              <button onClick={() => setEditingName(true)} className="flex-1 text-left">
+                <p className="text-sm font-medium">{settings.userName}</p>
+                <p className="text-muted-foreground text-xs">Tap to edit name</p>
+              </button>
+            )}
+          </div>
         </div>
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Palette size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">Theme</span>
+
+        {/* Preferences */}
+        <div className="card-elevated divide-border divide-y rounded-2xl">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">💱</span>
+              <span className="text-sm font-medium">Currency</span>
+            </div>
+            <Select
+              value={settings.currency}
+              onValueChange={(v) => updateSettings({ currency: v as Currency })}
+            >
+              <SelectTrigger className="bg-muted h-auto rounded-lg border-0 px-3 py-1.5">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Select
-            value={settings.theme}
-            onValueChange={(v) => updateSettings({ theme: v as Theme })}
-          >
-            <SelectTrigger className="h-auto bg-muted border-0 px-3 py-1.5 rounded-lg">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {themes.map((t) => (
-                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <Palette size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">Theme</span>
+            </div>
+            <Select
+              value={settings.theme}
+              onValueChange={(v) => updateSettings({ theme: v as Theme })}
+            >
+              <SelectTrigger className="bg-muted h-auto rounded-lg border-0 px-3 py-1.5">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {themes.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
 
-      {/* Manage */}
-      <div className="card-elevated rounded-2xl divide-y divide-border">
-        <button
-          onClick={() => navigate('/budgets')}
-          className="w-full p-4 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <Target size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">Budgets</span>
-          </div>
-          <ChevronRight size={16} className="text-muted-foreground" />
-        </button>
-        <button
-          onClick={() => navigate('/recurring')}
-          className="w-full p-4 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <Repeat size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">Recurring Transactions</span>
-          </div>
-          <ChevronRight size={16} className="text-muted-foreground" />
-        </button>
-        <button
-          onClick={() => navigate('/manage-categories')}
-          className="w-full p-4 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <FolderOpen size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">Manage Categories</span>
-          </div>
-          <ChevronRight size={16} className="text-muted-foreground" />
-        </button>
-        <button
-          onClick={() => navigate('/manage-labels')}
-          className="w-full p-4 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <Tag size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">Manage Labels</span>
-          </div>
-          <ChevronRight size={16} className="text-muted-foreground" />
-        </button>
-      </div>
+        {/* Manage */}
+        <div className="card-elevated divide-border divide-y rounded-2xl">
+          <button
+            onClick={() => navigate('/budgets')}
+            className="flex w-full items-center justify-between p-4"
+          >
+            <div className="flex items-center gap-3">
+              <Target size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">Budgets</span>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => navigate('/recurring')}
+            className="flex w-full items-center justify-between p-4"
+          >
+            <div className="flex items-center gap-3">
+              <Repeat size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">Recurring Transactions</span>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => navigate('/manage-categories')}
+            className="flex w-full items-center justify-between p-4"
+          >
+            <div className="flex items-center gap-3">
+              <FolderOpen size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">Manage Categories</span>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => navigate('/manage-labels')}
+            className="flex w-full items-center justify-between p-4"
+          >
+            <div className="flex items-center gap-3">
+              <Tag size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">Manage Labels</span>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
+        </div>
 
-      {/* Data */}
-      <div className="card-elevated rounded-2xl divide-y divide-border">
-        <button onClick={handleExport} className="w-full p-4 flex items-center gap-3">
-          <Download size={18} className="text-muted-foreground" />
-          <span className="text-sm font-medium">Export Data (JSON)</span>
-        </button>
-        <button onClick={handleImport} className="w-full p-4 flex items-center gap-3">
-          <Upload size={18} className="text-muted-foreground" />
-          <span className="text-sm font-medium">Import Data</span>
-        </button>
-        <button onClick={handleReset} className="w-full p-4 flex items-center gap-3">
-          <RotateCcw size={18} className="text-destructive" />
-          <span className="text-sm font-medium text-destructive">Reset to Defaults</span>
-        </button>
-      </div>
+        {/* Data */}
+        <div className="card-elevated divide-border divide-y rounded-2xl">
+          <button onClick={handleExport} className="flex w-full items-center gap-3 p-4">
+            <Download size={18} className="text-muted-foreground" />
+            <span className="text-sm font-medium">Export Data (JSON)</span>
+          </button>
+          <button onClick={handleImport} className="flex w-full items-center gap-3 p-4">
+            <Upload size={18} className="text-muted-foreground" />
+            <span className="text-sm font-medium">Import Data</span>
+          </button>
+          <button onClick={handleReset} className="flex w-full items-center gap-3 p-4">
+            <RotateCcw size={18} className="text-destructive" />
+            <span className="text-destructive text-sm font-medium">Reset to Defaults</span>
+          </button>
+        </div>
 
-      <p className="text-center text-[11px] text-muted-foreground pt-2">Finio · Personal Finance</p>
-    </div>
+        <p className="text-muted-foreground pt-2 text-center text-[11px]">
+          Finio · Personal Finance
+        </p>
+      </Main>
+    </>
   );
 }
-

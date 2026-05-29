@@ -32,10 +32,10 @@ export function SpendingDonut() {
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
   return (
-    <div className="rounded-2xl p-4 card-elevated">
-      <h3 className="text-sm font-semibold mb-3">Spending by Category</h3>
+    <div className="card-elevated rounded-2xl p-4">
+      <h3 className="mb-3 text-sm font-semibold">Spending by Category</h3>
       <div className="flex items-center gap-4">
-        <div className="relative w-36 h-36">
+        <div className="relative h-36 w-36">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -64,19 +64,22 @@ export function SpendingDonut() {
               />
             </PieChart>
           </ResponsiveContainer>
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-[10px] text-muted-foreground">Total</span>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-muted-foreground text-[10px]">Total</span>
             <span className="text-sm font-bold">{formatCurrency(total, currency, true)}</span>
           </div>
         </div>
-        <div className="flex-1 space-y-1.5 max-h-36 overflow-y-auto scrollbar-hide">
+        <div className="scrollbar-hide max-h-36 flex-1 space-y-1.5 overflow-y-auto">
           {data.map((item) => (
             <div key={item.name} className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                <span className="text-muted-foreground truncate max-w-[100px]">{item.name}</span>
+              <div className="flex min-w-0 items-center gap-2">
+                <div
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="text-muted-foreground max-w-[100px] truncate">{item.name}</span>
               </div>
-              <span className="font-medium ml-2">{formatCurrency(item.value, currency, true)}</span>
+              <span className="ml-2 font-medium">{formatCurrency(item.value, currency, true)}</span>
             </div>
           ))}
         </div>
@@ -84,4 +87,3 @@ export function SpendingDonut() {
     </div>
   );
 }
-

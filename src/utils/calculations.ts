@@ -75,9 +75,7 @@ export function groupTransactionsByDate(
 
 /** Sort copy of transactions by date desc. */
 export function sortTransactionsDateDesc(transactions: Transaction[]): Transaction[] {
-  return [...transactions].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  return [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export interface BudgetStatus {
@@ -88,10 +86,7 @@ export interface BudgetStatus {
   isOver: boolean;
 }
 
-export function computeBudgetStatuses(
-  budgets: Budget[],
-  monthTxns: Transaction[],
-): BudgetStatus[] {
+export function computeBudgetStatuses(budgets: Budget[], monthTxns: Transaction[]): BudgetStatus[] {
   const expenseTxns = monthTxns.filter((t) => t.type === 'expense');
   const totalExpenses = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
   const byCat = new Map<string, number>();
@@ -154,8 +149,7 @@ export function getDashboardStats(
   const prevExpenses = previousMonthTxns
     .filter((t) => t.type === 'expense')
     .reduce((s, t) => s + t.amount, 0);
-  const monthOverMonthChange =
-    prevExpenses > 0 ? (expensesTotal - prevExpenses) / prevExpenses : 0;
+  const monthOverMonthChange = prevExpenses > 0 ? (expensesTotal - prevExpenses) / prevExpenses : 0;
 
   const savingsRate = income > 0 ? Math.max(0, (income - expensesTotal) / income) : 0;
 
@@ -182,15 +176,7 @@ export function transactionsToCsv(
   const catMap = new Map(categories.map((c) => [c.id, c.name]));
   const accMap = new Map(accounts.map((a) => [a.id, a.name]));
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-  const header = [
-    'Date',
-    'Type',
-    'Amount',
-    'Account',
-    'To Account',
-    'Category',
-    'Note',
-  ].join(',');
+  const header = ['Date', 'Type', 'Amount', 'Account', 'To Account', 'Category', 'Note'].join(',');
   const rows = transactions.map((t) =>
     [
       t.date,
@@ -204,4 +190,3 @@ export function transactionsToCsv(
   );
   return [header, ...rows].join('\n');
 }
-

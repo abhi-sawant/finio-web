@@ -31,8 +31,8 @@ export function LabelSpendingBar() {
   if (data.length === 0) return null;
 
   return (
-    <div className="rounded-2xl p-4 card-elevated">
-      <h3 className="text-sm font-semibold mb-3">Spending by Label</h3>
+    <div className="card-elevated rounded-2xl p-4">
+      <h3 className="mb-3 text-sm font-semibold">Spending by Label</h3>
       <div className="space-y-2">
         {data.map((item) => {
           const maxAmount = data[0]?.amount ?? 1;
@@ -43,7 +43,7 @@ export function LabelSpendingBar() {
                 <span className="text-muted-foreground">{item.name}</span>
                 <span className="font-medium">{formatCurrency(item.amount, currency, true)}</span>
               </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div className="bg-muted h-2 overflow-hidden rounded-full">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{

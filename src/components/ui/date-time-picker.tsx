@@ -6,11 +6,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 /**
  * Parse the value used by `<input type="datetime-local">` (e.g., "2026-05-27T14:30")
@@ -98,11 +94,7 @@ export function DateTimePicker({
           }
         />
         <PopoverContent align="start" className="w-auto p-0">
-          <Calendar
-            mode="single"
-            selected={date ?? undefined}
-            onSelect={handleDateSelect}
-          />
+          <Calendar mode="single" selected={date ?? undefined} onSelect={handleDateSelect} />
         </PopoverContent>
       </Popover>
       <Input

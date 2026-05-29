@@ -39,46 +39,46 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center px-6 py-12 bg-background">
+    <div className="bg-background flex min-h-screen flex-col justify-center px-6 py-12">
       <div className="mx-auto w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold text-grad-primary">Finio</h1>
+        <div className="mb-8 text-center">
+          <h1 className="text-grad-primary text-4xl font-extrabold">Finio</h1>
           <p className="text-muted-foreground mt-2">Create your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+            <User className="text-muted-foreground absolute top-1/2 left-3 z-10 h-5 w-5 -translate-y-1/2" />
             <Input
               type="text"
               placeholder="Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-auto w-full pl-11 pr-4 py-3 rounded-xl bg-card"
+              className="bg-card h-auto w-full rounded-xl py-3 pr-4 pl-11"
               autoComplete="name"
             />
           </div>
 
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+            <Mail className="text-muted-foreground absolute top-1/2 left-3 z-10 h-5 w-5 -translate-y-1/2" />
             <Input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-auto w-full pl-11 pr-4 py-3 rounded-xl bg-card"
+              className="bg-card h-auto w-full rounded-xl py-3 pr-4 pl-11"
               autoComplete="email"
             />
           </div>
 
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+            <Lock className="text-muted-foreground absolute top-1/2 left-3 z-10 h-5 w-5 -translate-y-1/2" />
             <Input
               type={showPassword ? 'text' : 'password'}
               placeholder="Password (min 8 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-auto w-full pl-11 pr-11 py-3 rounded-xl bg-card"
+              className="bg-card h-auto w-full rounded-xl py-3 pr-11 pl-11"
               autoComplete="new-password"
             />
             <Button
@@ -86,22 +86,22 @@ export default function Register() {
               variant="ghost"
               size="icon"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
+              className="text-muted-foreground absolute top-1/2 right-1 -translate-y-1/2 hover:bg-transparent"
             >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </Button>
           </div>
 
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-auto py-3 rounded-xl bg-grad-primary text-white font-semibold shadow-glow-primary disabled:opacity-50"
+            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3 font-semibold text-white disabled:opacity-50"
           >
             {loading ? 'Creating account...' : 'Sign Up'}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-muted-foreground text-sm">
+        <p className="text-muted-foreground mt-6 text-center text-sm">
           Already have an account?{' '}
           <Link to="/login" className="text-primary font-medium hover:underline">
             Sign in

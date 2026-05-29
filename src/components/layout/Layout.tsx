@@ -1,13 +1,6 @@
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useEffect } from 'react';
-import {
-  LayoutDashboard,
-  Wallet,
-  ArrowLeftRight,
-  BarChart3,
-  Settings,
-  Plus,
-} from 'lucide-react';
+import { LayoutDashboard, Wallet, ArrowLeftRight, BarChart3, Settings, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useFinanceStore } from '@/store/useFinanceStore';
@@ -47,15 +40,12 @@ export function Layout() {
   }, [isHydrated, isAuthLoaded]);
 
   return (
-    <div className="flex flex-col h-dvh max-w-md mx-auto relative">
-      <main className="flex-1 overflow-y-auto pb-24">
-        <Outlet />
-      </main>
-
+    <>
+      <Outlet />
       {/* FAB */}
       <button
         onClick={() => navigate('/add-transaction')}
-        className="absolute right-4 z-50 w-14 h-14 rounded-full bg-grad-primary text-white shadow-glow-primary flex items-center justify-center active:scale-95 transition-transform"
+        className="bg-grad-primary shadow-glow-primary fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform active:scale-95"
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}
         aria-label="Add transaction"
       >
@@ -64,7 +54,7 @@ export function Layout() {
 
       {/* Bottom Nav */}
       <nav
-        className="fixed left-0 right-0 max-w-md mx-auto z-40 px-2 pt-2 pb-safe border-t border-border bg-card/85 backdrop-blur-xl flex justify-around items-center"
+        className="pb-safe border-border bg-card/85 fixed right-0 left-0 z-40 flex w-full items-center justify-around border-t px-2 pt-2 backdrop-blur-xl"
         style={{ bottom: 0 }}
       >
         {tabs.map((tab) => {
@@ -75,12 +65,12 @@ export function Layout() {
               key={tab.path}
               onClick={() => navigate(tab.path)}
               className={cn(
-                'relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors',
+                'relative flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 transition-colors',
                 isActive ? 'text-primary' : 'text-muted-foreground',
               )}
             >
               {isActive && (
-                <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-grad-primary" />
+                <span className="bg-grad-primary absolute -top-0.5 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full" />
               )}
               <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
               <span className="text-[10px] font-medium">{tab.label}</span>
@@ -88,7 +78,6 @@ export function Layout() {
           );
         })}
       </nav>
-    </div>
+    </>
   );
 }
-

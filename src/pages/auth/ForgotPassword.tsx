@@ -32,19 +32,19 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center px-6 py-12 bg-background">
+    <div className="bg-background flex min-h-screen flex-col justify-center px-6 py-12">
       <div className="mx-auto w-full max-w-sm">
         <Button
           variant="ghost"
           onClick={() => navigate('/login')}
-          className="h-auto p-0 flex items-center gap-1 text-muted-foreground mb-8 hover:bg-transparent hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground mb-8 flex h-auto items-center gap-1 p-0 hover:bg-transparent"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="h-4 w-4" />
           Back to login
         </Button>
 
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Forgot Password</h1>
+        <div className="mb-8 text-center">
+          <h1 className="text-foreground text-2xl font-bold">Forgot Password</h1>
           <p className="text-muted-foreground mt-2">
             Enter your email and we'll send you an OTP to reset your password.
           </p>
@@ -52,13 +52,13 @@ export default function ForgotPassword() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+            <Mail className="text-muted-foreground absolute top-1/2 left-3 z-10 h-5 w-5 -translate-y-1/2" />
             <Input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-auto w-full pl-11 pr-4 py-3 rounded-xl bg-card"
+              className="bg-card h-auto w-full rounded-xl py-3 pr-4 pl-11"
               autoComplete="email"
             />
           </div>
@@ -66,13 +66,13 @@ export default function ForgotPassword() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-auto py-3 rounded-xl bg-grad-primary text-white font-semibold shadow-glow-primary disabled:opacity-50"
+            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3 font-semibold text-white disabled:opacity-50"
           >
             {loading ? 'Sending...' : 'Send OTP'}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-muted-foreground text-sm">
+        <p className="text-muted-foreground mt-6 text-center text-sm">
           Remember your password?{' '}
           <Link to="/login" className="text-primary font-medium hover:underline">
             Sign in

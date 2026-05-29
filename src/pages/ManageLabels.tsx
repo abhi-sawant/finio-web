@@ -4,10 +4,22 @@ import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import Header from '@/components/ui/header';
+import Main from '@/components/ui/main';
 
 const labelColors = [
-  '#fbbf24', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fb923c',
-  '#ef4444', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4',
+  '#fbbf24',
+  '#34d399',
+  '#60a5fa',
+  '#f472b6',
+  '#a78bfa',
+  '#fb923c',
+  '#ef4444',
+  '#22c55e',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+  '#06b6d4',
 ];
 
 export default function ManageLabels() {
@@ -49,40 +61,43 @@ export default function ManageLabels() {
   };
 
   return (
-    <div className="min-h-dvh bg-background max-w-md mx-auto">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-border">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="w-9 h-9">
+      <Header>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-9 w-9">
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-base font-semibold">Labels</h1>
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => { resetForm(); setShowForm(true); }}
-          className="w-9 h-9 text-primary"
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+          className="text-primary h-9 w-9"
         >
           <Plus size={20} />
         </Button>
-      </div>
+      </Header>
 
-      <div className="px-4 py-4 space-y-4">
+      <Main>
         {/* Form */}
         {showForm && (
-          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="bg-card border-border space-y-3 rounded-xl border p-4">
             <Input
               type="text"
               placeholder="Label name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-auto px-3 py-2 bg-muted rounded-lg"
+              className="bg-muted h-auto rounded-lg px-3 py-2"
             />
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2">
               {labelColors.map((c) => (
                 <button
                   key={c}
                   onClick={() => setColor(c)}
-                  className={`w-7 h-7 rounded-full ${color === c ? 'ring-2 ring-offset-2 ring-primary scale-110' : ''}`}
+                  className={`h-7 w-7 rounded-full ${color === c ? 'ring-primary scale-110 ring-2 ring-offset-2' : ''}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
@@ -90,14 +105,14 @@ export default function ManageLabels() {
             <div className="flex gap-2">
               <Button
                 onClick={handleSubmit}
-                className="flex-1 h-auto py-2 bg-grad-primary text-white shadow-glow-primary rounded-lg text-sm font-medium"
+                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
               >
                 {editId ? 'Update' : 'Add'}
               </Button>
               <Button
                 variant="secondary"
                 onClick={resetForm}
-                className="h-auto px-4 py-2 bg-muted text-muted-foreground rounded-lg text-sm font-medium"
+                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </Button>
@@ -110,13 +125,10 @@ export default function ManageLabels() {
           {labels.map((label) => (
             <div
               key={label.id}
-              className="flex items-center justify-between p-3 bg-card border border-border rounded-xl"
+              className="bg-card border-border flex items-center justify-between rounded-xl border p-3"
             >
               <div className="flex items-center gap-3">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: label.color }}
-                />
+                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: label.color }} />
                 <p className="text-sm font-medium">{label.name}</p>
               </div>
               <div className="flex gap-1">
@@ -124,7 +136,7 @@ export default function ManageLabels() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleEdit(label.id)}
-                  className="w-8 h-8"
+                  className="h-8 w-8"
                 >
                   <Pencil size={14} className="text-muted-foreground" />
                 </Button>
@@ -134,7 +146,7 @@ export default function ManageLabels() {
                   onClick={() => {
                     if (confirm(`Delete "${label.name}"?`)) deleteLabel(label.id);
                   }}
-                  className="w-8 h-8"
+                  className="h-8 w-8"
                 >
                   <Trash2 size={14} className="text-destructive" />
                 </Button>
@@ -144,11 +156,11 @@ export default function ManageLabels() {
         </div>
 
         {labels.length === 0 && (
-          <p className="text-center text-muted-foreground text-sm py-8">
+          <p className="text-muted-foreground py-8 text-center text-sm">
             No labels yet. Add one to tag your transactions.
           </p>
         )}
-      </div>
-    </div>
+      </Main>
+    </>
   );
 }

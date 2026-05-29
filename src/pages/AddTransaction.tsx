@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { TransactionType } from '@/types';
+import Main from '@/components/ui/main';
+import Header from '@/components/ui/header';
 
 export default function AddTransaction() {
   const navigate = useNavigate();
@@ -36,7 +38,9 @@ export default function AddTransaction() {
   const [toAccountId, setToAccountId] = useState(existing?.toAccountId ?? '');
   const [categoryId, setCategoryId] = useState(existing?.categoryId ?? '');
   const [date, setDate] = useState(
-    existing?.date ? toLocalDateTimeInputValue(existing.date) : toLocalDateTimeInputValue(new Date()),
+    existing?.date
+      ? toLocalDateTimeInputValue(existing.date)
+      : toLocalDateTimeInputValue(new Date()),
   );
   const [note, setNote] = useState(existing?.note ?? '');
   const [selectedLabels, setSelectedLabels] = useState<string[]>(existing?.labels ?? []);
@@ -76,10 +80,7 @@ export default function AddTransaction() {
       amount: parsedAmount,
       accountId,
       toAccountId: type === 'transfer' ? toAccountId : undefined,
-      categoryId:
-        type === 'transfer'
-          ? (transferCategory?.id ?? categoryId ?? '')
-          : categoryId,
+      categoryId: type === 'transfer' ? (transferCategory?.id ?? categoryId ?? '') : categoryId,
       date: new Date(date).toISOString(),
       note,
       labels: selectedLabels,
@@ -113,35 +114,50 @@ export default function AddTransaction() {
     type === 'expense' ? 'bg-grad-danger' : type === 'income' ? 'bg-grad-success' : 'bg-grad-info';
 
   return (
-    <div className="min-h-dvh bg-background max-w-md mx-auto">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-border safe-top">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full">
+      <Header>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="h-9 w-9 rounded-full"
+        >
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-base font-semibold">
           {existing ? 'Edit Transaction' : 'Add Transaction'}
         </h1>
         {existing ? (
-          <Button variant="ghost" size="icon" onClick={handleDelete} className="w-9 h-9 text-destructive rounded-full hover:bg-destructive/10">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            className="text-destructive hover:bg-destructive/10 h-9 w-9 rounded-full"
+          >
             <Trash2 size={18} />
           </Button>
         ) : (
           <div className="w-9" />
         )}
-      </div>
+      </Header>
 
-      <div className="px-4 py-6 space-y-5">
+      <Main>
         {/* Type Selector */}
-        <div className="grid grid-cols-3 gap-2 bg-muted p-1 rounded-2xl">
+        <div className="bg-muted grid grid-cols-3 gap-2 rounded-2xl p-1">
           {(['expense', 'income', 'transfer'] as const).map((t) => {
             const isActive = type === t;
-            const grad = t === 'expense' ? 'bg-grad-danger' : t === 'income' ? 'bg-grad-success' : 'bg-grad-info';
+            const grad =
+              t === 'expense'
+                ? 'bg-grad-danger'
+                : t === 'income'
+                  ? 'bg-grad-success'
+                  : 'bg-grad-info';
             return (
               <button
                 key={t}
                 onClick={() => setType(t)}
-                className={`py-2 rounded-xl text-sm font-medium capitalize transition-all ${
+                className={`rounded-xl py-2 text-sm font-medium capitalize transition-all ${
                   isActive ? `${grad} text-white shadow` : 'text-muted-foreground'
                 }`}
               >
@@ -153,7 +169,7 @@ export default function AddTransaction() {
 
         {/* Amount */}
         <div>
-          <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Amount</Label>
+          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Amount</Label>
           <div className={`relative rounded-2xl p-[1.5px] ${typeAccent}`}>
             <Input
               type="number"
@@ -161,23 +177,27 @@ export default function AddTransaction() {
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="h-auto w-full px-4 py-3 bg-card border-0 rounded-2xl text-2xl font-bold text-center"
+              className="bg-card h-auto w-full rounded-2xl border-0 px-4 py-3 text-center text-2xl font-bold"
             />
           </div>
         </div>
 
         {/* Account */}
         <div>
-          <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
             {type === 'transfer' ? 'From Account' : 'Account'}
           </Label>
           <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-            <SelectTrigger className="w-full h-auto px-4 py-3 bg-card rounded-xl">
-              <SelectValue placeholder="Select account" />
+            <SelectTrigger className="bg-card h-auto w-full rounded-xl px-4 py-3">
+              <SelectValue placeholder="Select account">
+                {accounts.find((a) => a.id === accountId)?.name}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {accounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -186,15 +206,21 @@ export default function AddTransaction() {
         {/* To Account (Transfer) */}
         {type === 'transfer' && (
           <div>
-            <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">To Account</Label>
+            <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+              To Account
+            </Label>
             <Select value={toAccountId} onValueChange={(v) => setToAccountId(v ?? '')}>
-              <SelectTrigger className="w-full h-auto px-4 py-3 bg-card rounded-xl">
+              <SelectTrigger className="bg-card h-auto w-full rounded-xl px-4 py-3">
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
-                {accounts.filter((a) => a.id !== accountId).map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
+                {accounts
+                  .filter((a) => a.id !== accountId)
+                  .map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -203,28 +229,38 @@ export default function AddTransaction() {
         {/* Category */}
         {type !== 'transfer' && (
           <div>
-            <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Category</Label>
-            <div className="grid grid-cols-4 gap-2 max-h-44 overflow-y-auto scrollbar-hide">
+            <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+              Category
+            </Label>
+            <div className="scrollbar-hide grid max-h-44 grid-cols-4 gap-2 overflow-y-auto">
               {filteredCategories.map((cat) => {
                 const selected = categoryId === cat.id;
                 return (
                   <button
                     key={cat.id}
                     onClick={() => setCategoryId(cat.id)}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all ${
+                    className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition-all ${
                       selected
-                        ? 'border-transparent ring-grad-primary'
+                        ? 'ring-grad-primary border-transparent'
                         : 'border-border bg-card hover:bg-muted'
                     }`}
-                    style={selected ? { backgroundImage: `linear-gradient(135deg, ${cat.color}22, ${cat.color}11)` } : undefined}
+                    style={
+                      selected
+                        ? {
+                            backgroundImage: `linear-gradient(135deg, ${cat.color}22, ${cat.color}11)`,
+                          }
+                        : undefined
+                    }
                   >
                     <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                      style={{ backgroundImage: `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)` }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
+                      style={{
+                        backgroundImage: `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)`,
+                      }}
                     >
                       {cat.name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-[10px] leading-tight line-clamp-2">{cat.name}</span>
+                    <span className="line-clamp-2 text-[10px] leading-tight">{cat.name}</span>
                   </button>
                 );
               })}
@@ -234,26 +270,28 @@ export default function AddTransaction() {
 
         {/* Date */}
         <div>
-          <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Date & Time</Label>
+          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+            Date & Time
+          </Label>
           <DateTimePicker value={date} onChange={setDate} />
         </div>
 
         {/* Note */}
         <div>
-          <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Note</Label>
+          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Note</Label>
           <Input
             type="text"
             placeholder="Add a note..."
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="h-auto px-4 py-3 bg-card rounded-xl"
+            className="bg-card h-auto rounded-xl px-4 py-3"
           />
         </div>
 
         {/* Labels */}
         {labels.length > 0 && (
           <div>
-            <Label className="text-xs text-muted-foreground font-medium mb-1.5 block">Labels</Label>
+            <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Labels</Label>
             <div className="flex flex-wrap gap-2">
               {labels.map((label) => {
                 const active = selectedLabels.includes(label.id);
@@ -261,12 +299,14 @@ export default function AddTransaction() {
                   <button
                     key={label.id}
                     onClick={() => toggleLabel(label.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                       active ? 'text-white shadow' : 'bg-muted text-muted-foreground'
                     }`}
                     style={
                       active
-                        ? { backgroundImage: `linear-gradient(135deg, ${label.color}, ${label.color}cc)` }
+                        ? {
+                            backgroundImage: `linear-gradient(135deg, ${label.color}, ${label.color}cc)`,
+                          }
                         : undefined
                     }
                   >
@@ -282,12 +322,11 @@ export default function AddTransaction() {
         <Button
           onClick={handleSubmit}
           disabled={!amount || !accountId}
-          className="w-full h-auto py-3.5 bg-grad-primary text-white rounded-2xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-glow-primary"
+          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-2xl py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {existing ? 'Update Transaction' : 'Add Transaction'}
         </Button>
-      </div>
-    </div>
+      </Main>
+    </>
   );
 }
-
