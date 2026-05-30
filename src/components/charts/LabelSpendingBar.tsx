@@ -1,19 +1,20 @@
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { getCurrentMonthTransactions } from '@/utils/calculations';
 import { formatCurrency } from '@/utils/formatters';
+import type { Transaction } from '@/types';
 
-export function LabelSpendingBar() {
-  const transactions = useFinanceStore((s) => s.transactions);
+interface Props {
+  transactions: Transaction[];
+}
+
+export function LabelSpendingBar({ transactions }: Props) {
   const labels = useFinanceStore((s) => s.labels);
   const currency = useFinanceStore((s) => s.settings.currency);
 
   const data = useMemo(() => {
-    const monthTxns = getCurrentMonthTransactions(transactions).filter((t) => t.type === 'expense');
     const byLabel = new Map<string, number>();
 
-    for (const tx of monthTxns) {
+    for (const tx of transactions.filter((t) => t.type === 'expense')) {
       for (const labelId of tx.labels) {
         byLabel.set(labelId, (byLabel.get(labelId) ?? 0) + tx.amount);
       }

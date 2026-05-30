@@ -1,19 +1,22 @@
-import { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Target, ChevronRight, Repeat } from 'lucide-react';
+import { Target, ChevronRight, Repeat, CalendarIcon } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency } from '@/utils/formatters';
-import {
-  getCurrentMonthTransactions,
-  getTotalIncome,
-  getTotalExpenses,
-} from '@/utils/calculations';
+import { getTotalIncome, getTotalExpenses } from '@/utils/calculations';
 import { SpendingDonut } from '@/components/charts/SpendingDonut';
 import { IncomeExpenseBar } from '@/components/charts/IncomeExpenseBar';
 import { BalanceTrend } from '@/components/charts/BalanceTrend';
 import { LabelSpendingBar } from '@/components/charts/LabelSpendingBar';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import type { DateRange } from 'react-day-picker';
+import { format, parseISO, startOfMonth, startOfDay, endOfDay, subMonths } from 'date-fns';
+
+type FilterType = 'all' | 'month' | '3months' | '6months' | 'year' | 'custom';
 
 export default function Analytics() {
   const navigate = useNavigate();
@@ -22,10 +25,46 @@ export default function Analytics() {
   const budgets = useFinanceStore((s) => s.budgets);
   const recurring = useFinanceStore((s) => s.recurring);
 
-  const monthTxns = useMemo(() => getCurrentMonthTransactions(transactions), [transactions]);
-  const monthIncome = useMemo(() => getTotalIncome(monthTxns), [monthTxns]);
-  const monthExpenses = useMemo(() => getTotalExpenses(monthTxns), [monthTxns]);
-  const net = monthIncome - monthExpenses;
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
+  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    if (selectedFilter === 'month') return { from: startOfMonth(now), to: now };
+    if (selectedFilter === '3months') return { from: startOfMonth(subMonths(now, 2)), to: now };
+    if (selectedFilter === '6months') return { from: startOfMonth(subMonths(now, 5)), to: now };
+    if (selectedFilter === 'year') return { from: new Date(now.getFullYear(), 0, 1), to: now };
+    if (selectedFilter === 'custom' && date?.from) {
+      return { from: startOfDay(date.from), to: date.to ? endOfDay(date.to) : endOfDay(date.from) };
+    }
+    // 'all': use earliest transaction date
+    const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
+    return { from: sorted.length > 0 ? startOfDay(parseISO(sorted[0].date)) : startOfMonth(now), to: now };
+  }, [selectedFilter, date, transactions]);
+
+  const filteredTransactions = useMemo(() => {
+    if (selectedFilter === 'all') return transactions;
+    if (selectedFilter === 'custom' && !date?.from) return transactions;
+    const { from, to } = dateRange;
+    return transactions.filter((t) => {
+      const d = parseISO(t.date);
+      return d >= from && d <= to;
+    });
+  }, [selectedFilter, transactions, dateRange, date]);
+
+  const totalIncome = useMemo(() => getTotalIncome(filteredTransactions), [filteredTransactions]);
+  const totalExpenses = useMemo(() => getTotalExpenses(filteredTransactions), [filteredTransactions]);
+  const net = totalIncome - totalExpenses;
+
+  const handleFilterChange = (filter: FilterType) => {
+    setSelectedFilter(filter);
+    if (filter !== 'custom') setDate(undefined);
+  };
+
+  const handleDateSelect = (range: DateRange | undefined) => {
+    setDate(range);
+    if (range?.from) setSelectedFilter('custom');
+  };
 
   return (
     <>
@@ -40,18 +79,83 @@ export default function Analytics() {
           </p>
         ) : (
           <>
-            {/* Month Summary */}
-            <div className="card-elevated bg-grad-surface rounded-2xl p-4">
-              <p className="text-muted-foreground mb-2 text-[10px] tracking-wide uppercase">
+            <div className="scrollbar-hide flex items-center gap-2 overflow-x-auto py-2">
+              <Button
+                variant={selectedFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleFilterChange('all')}
+              >
+                All
+              </Button>
+              <Button
+                variant={selectedFilter === 'month' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleFilterChange('month')}
+              >
                 This Month
-              </p>
+              </Button>
+              <Button
+                variant={selectedFilter === '3months' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleFilterChange('3months')}
+              >
+                Last 3 Months
+              </Button>
+              <Button
+                variant={selectedFilter === '6months' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleFilterChange('6months')}
+              >
+                Last 6 Months
+              </Button>
+              <Button
+                variant={selectedFilter === 'year' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleFilterChange('year')}
+              >
+                This Year
+              </Button>
+              <Popover>
+                <PopoverTrigger>
+                  <Button
+                    variant={selectedFilter === 'custom' ? 'default' : 'outline'}
+                    id="date-picker-range"
+                    className="justify-start px-2.5 font-normal"
+                  >
+                    <CalendarIcon />
+                    {date?.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, 'LLL dd, y')} - {format(date.to, 'LLL dd, y')}
+                        </>
+                      ) : (
+                        format(date.from, 'LLL dd, y')
+                      )
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    defaultMonth={date?.from}
+                    selected={date}
+                    onSelect={handleDateSelect}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            {/* Period Summary */}
+            <div className="card-elevated bg-grad-surface rounded-2xl p-4">
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
                     Income
                   </p>
                   <p className="text-sm font-semibold text-emerald-500">
-                    {formatCurrency(monthIncome, currency, true)}
+                    {formatCurrency(totalIncome, currency, true)}
                   </p>
                 </div>
                 <div>
@@ -59,7 +163,7 @@ export default function Analytics() {
                     Expenses
                   </p>
                   <p className="text-sm font-semibold text-rose-500">
-                    {formatCurrency(monthExpenses, currency, true)}
+                    {formatCurrency(totalExpenses, currency, true)}
                   </p>
                 </div>
                 <div>
@@ -74,16 +178,16 @@ export default function Analytics() {
             </div>
 
             {/* Spending by Category */}
-            <SpendingDonut />
+            <SpendingDonut transactions={filteredTransactions} />
 
             {/* Income vs Expense Bar */}
-            <IncomeExpenseBar />
+            <IncomeExpenseBar transactions={filteredTransactions} />
 
             {/* Balance Trend */}
-            <BalanceTrend />
+            <BalanceTrend from={dateRange.from} to={dateRange.to} />
 
             {/* Label Spending */}
-            <LabelSpendingBar />
+            <LabelSpendingBar transactions={filteredTransactions} />
           </>
         )}
 

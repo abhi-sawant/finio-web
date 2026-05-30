@@ -9,19 +9,24 @@ import {
   Tooltip,
 } from 'recharts';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { subDays, format } from 'date-fns';
+import { subDays, format, differenceInDays, startOfMonth, addMonths } from 'date-fns';
 import { formatCurrency } from '@/utils/formatters';
 
-export function BalanceTrend() {
+interface Props {
+  from: Date;
+  to: Date;
+}
+
+export function BalanceTrend({ from, to }: Props) {
   const transactions = useFinanceStore((s) => s.transactions);
   const accounts = useFinanceStore((s) => s.accounts);
   const currency = useFinanceStore((s) => s.settings.currency);
 
   const data = useMemo(() => {
-    const now = new Date();
+    const today = new Date();
     const currentBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
-    // Bucket transaction deltas by day (income +, expense -, transfer = 0 net).
+    // Build daily delta map from ALL transactions for accurate balance reconstruction.
     const dayDelta = new Map<string, number>();
     for (const t of transactions) {
       if (t.type === 'transfer') continue;
@@ -30,25 +35,65 @@ export function BalanceTrend() {
       dayDelta.set(key, (dayDelta.get(key) ?? 0) + delta);
     }
 
-    let balance = currentBalance;
-    const points: { date: string; balance: number }[] = [];
-    for (let i = 0; i <= 30; i++) {
-      const day = subDays(now, i);
-      const dayKey = format(day, 'yyyy-MM-dd');
-      points.unshift({ date: format(day, 'dd MMM'), balance });
-      const delta = dayDelta.get(dayKey) ?? 0;
-      // Reverse this day's delta to get previous day's closing balance.
-      balance -= delta;
+    const numDays = differenceInDays(to, from);
+
+    if (numDays > 90) {
+      // Monthly granularity: walk back month by month
+      const daysFromToday = differenceInDays(today, from);
+      let balance = currentBalance;
+      const allDaily: { dateKey: string; balance: number }[] = [];
+
+      for (let i = 0; i <= daysFromToday; i++) {
+        const day = subDays(today, i);
+        const dayKey = format(day, 'yyyy-MM-dd');
+        allDaily.unshift({ dateKey: dayKey, balance });
+        balance -= dayDelta.get(dayKey) ?? 0;
+      }
+
+      // Sample first day of each month within [from, to]
+      const monthly: { date: string; balance: number }[] = [];
+      let cursor = startOfMonth(from);
+      while (cursor <= to) {
+        const key = format(cursor, 'yyyy-MM-dd');
+        const point = allDaily.find((p) => p.dateKey >= key);
+        if (point) monthly.push({ date: format(cursor, 'MMM yy'), balance: point.balance });
+        cursor = addMonths(cursor, 1);
+      }
+      // Always include the 'to' endpoint
+      const lastKey = format(to, 'yyyy-MM-dd');
+      const lastPoint = allDaily.findLast ? allDaily.findLast((p) => p.dateKey <= lastKey) : [...allDaily].reverse().find((p) => p.dateKey <= lastKey);
+      if (lastPoint) monthly.push({ date: format(to, 'MMM yy'), balance: lastPoint.balance });
+      return monthly;
     }
-    return points;
-  }, [transactions, accounts]);
+
+    // Daily granularity: reconstruct from today back to 'from'
+    const daysFromToday = differenceInDays(today, from);
+    let balance = currentBalance;
+    const points: { dateKey: string; date: string; balance: number }[] = [];
+
+    for (let i = 0; i <= daysFromToday; i++) {
+      const day = subDays(today, i);
+      const dayKey = format(day, 'yyyy-MM-dd');
+      points.unshift({ dateKey: dayKey, date: format(day, 'dd MMM'), balance });
+      balance -= dayDelta.get(dayKey) ?? 0;
+    }
+
+    const fromKey = format(from, 'yyyy-MM-dd');
+    const toKey = format(to, 'yyyy-MM-dd');
+    return points
+      .filter((p) => p.dateKey >= fromKey && p.dateKey <= toKey)
+      .map(({ date, balance }) => ({ date, balance }));
+  }, [transactions, accounts, from, to]);
+
+  const numDays = differenceInDays(to, from);
+  const xAxisInterval = numDays <= 31 ? 4 : numDays <= 60 ? 9 : 'preserveStartEnd';
 
   const hasData = accounts.length > 0;
   if (!hasData) return null;
 
   return (
     <div className="card-elevated rounded-2xl p-4">
-      <h3 className="mb-3 text-sm font-semibold">30-Day Balance Trend</h3>
+      <h3 className="mb-3 text-sm font-semibold">Balance Trend</h3>
       <div className="h-44">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -59,7 +104,7 @@ export function BalanceTrend() {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
-            <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} interval={5} />
+            <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} interval={xAxisInterval} />
             <YAxis fontSize={10} tickLine={false} axisLine={false} width={50} />
             <Tooltip
               cursor={{ stroke: 'rgba(124,92,255,0.25)', strokeWidth: 1 }}

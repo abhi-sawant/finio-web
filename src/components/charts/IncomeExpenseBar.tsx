@@ -1,33 +1,35 @@
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { subMonths, startOfMonth, format } from 'date-fns';
+import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/formatters';
+import type { Transaction } from '@/types';
 
-export function IncomeExpenseBar() {
-  const transactions = useFinanceStore((s) => s.transactions);
+interface Props {
+  transactions: Transaction[];
+}
+
+export function IncomeExpenseBar({ transactions }: Props) {
   const currency = useFinanceStore((s) => s.settings.currency);
 
   const data = useMemo(() => {
-    const now = new Date();
-    // Build the last 6 months window
-    const months: { key: string; month: string; income: number; expenses: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const m = startOfMonth(subMonths(now, i));
-      months.push({ key: format(m, 'yyyy-MM'), month: format(m, 'MMM'), income: 0, expenses: 0 });
-    }
-    const idx = new Map(months.map((m, i) => [m.key, i]));
+    const monthMap = new Map<string, { income: number; expenses: number }>();
 
     for (const t of transactions) {
       if (t.type !== 'income' && t.type !== 'expense') continue;
-      const key = t.date.slice(0, 7);
-      const i = idx.get(key);
-      if (i === undefined) continue;
-      if (t.type === 'income') months[i].income += t.amount;
-      else months[i].expenses += t.amount;
+      const key = t.date.slice(0, 7); // 'YYYY-MM'
+      const entry = monthMap.get(key) ?? { income: 0, expenses: 0 };
+      if (t.type === 'income') entry.income += t.amount;
+      else entry.expenses += t.amount;
+      monthMap.set(key, entry);
     }
 
-    return months;
+    return Array.from(monthMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, { income, expenses }]) => {
+        const [year, month] = key.split('-').map(Number);
+        return { key, month: format(new Date(year, month - 1), 'MMM yy'), income, expenses };
+      });
   }, [transactions]);
 
   const hasData = data.some((d) => d.income > 0 || d.expenses > 0);
