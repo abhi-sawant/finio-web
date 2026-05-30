@@ -25,9 +25,9 @@ export const defaultCategories: Category[] = [
   { id: 'cat-9', name: 'Salary', icon: 'briefcase', color: '#22c55e', type: 'income' },
   { id: 'cat-10', name: 'Freelance', icon: 'laptop', color: '#6C63FF', type: 'income' },
   { id: 'cat-12', name: 'Business', icon: 'building-2', color: '#a855f7', type: 'income' },
-  { id: 'cat-21', name: 'Gifts (Income)', icon: 'gift', color: '#f97316', type: 'income' },
-  { id: 'cat-22', name: 'Rental Income', icon: 'home', color: '#3b82f6', type: 'income' },
-  { id: 'cat-23', name: 'Interest Income', icon: 'dollar-sign', color: '#10b981', type: 'income' },
+  { id: 'cat-21', name: 'Gifts', icon: 'gift', color: '#f97316', type: 'income' },
+  { id: 'cat-22', name: 'Rent', icon: 'home', color: '#3b82f6', type: 'income' },
+  { id: 'cat-23', name: 'Interest', icon: 'dollar-sign', color: '#10b981', type: 'income' },
   { id: 'cat-13', name: 'Transfer', icon: 'repeat', color: '#3b82f6', type: 'both' },
   { id: 'cat-24', name: 'Miscellaneous', icon: 'circle-ellipsis', color: '#94a3b8', type: 'both' },
 ];

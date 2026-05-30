@@ -111,9 +111,6 @@ export default function AddTransaction() {
     );
   };
 
-  const typeAccent =
-    type === 'expense' ? 'bg-grad-danger' : type === 'income' ? 'bg-grad-success' : 'bg-grad-info';
-
   return (
     <>
       {/* Header */}
@@ -171,14 +168,14 @@ export default function AddTransaction() {
         {/* Amount */}
         <div>
           <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Amount</Label>
-          <div className={`relative rounded-2xl p-[1.5px] ${typeAccent}`}>
+          <div className={`relative rounded-2xl p-[1.5px]`}>
             <Input
               type="number"
               inputMode="decimal"
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="bg-card h-auto w-full rounded-2xl border-0 px-4 py-3 text-center text-2xl font-bold"
+              className="bg-card h-auto w-full rounded-2xl px-4 py-3 text-center text-2xl font-bold"
             />
           </div>
         </div>

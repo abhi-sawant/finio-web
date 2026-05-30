@@ -70,6 +70,18 @@ export default function Transactions() {
     });
   }, [transactions, search, typeFilter, accountFilter, categories, fromDate, toDate]);
 
+  const { totalIncome, totalExpense } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of filtered) {
+      if (t.type === 'income') income += t.amount;
+      else if (t.type === 'expense') expense += t.amount;
+    }
+    return { totalIncome: income, totalExpense: expense };
+  }, [filtered]);
+
+  const isIncomeMore = totalIncome > totalExpense;
+
   // Flatten grouped transactions into a single array for the virtualizer
   const virtualRows = useMemo<VirtualRow[]>(() => {
     const groups = groupTransactionsByDate(filtered);
@@ -160,6 +172,15 @@ export default function Transactions() {
             onChange={(e) => setSearch(e.target.value)}
             className="bg-card h-auto w-full rounded-xl py-2.5 pr-4 pl-9"
           />
+        </div>
+
+        <div className="flex items-center justify-end gap-1">
+          <span className="text-muted-foreground text-xs">
+            {isIncomeMore ? 'Total Earned:' : 'Total Spent:'}
+          </span>
+          <span className={`font-bold text-xs ${isIncomeMore ? 'text-green-500' : 'text-red-500'}`}>
+            {currency} {isIncomeMore ? totalIncome : totalExpense}
+          </span>
         </div>
 
         {/* Filters */}

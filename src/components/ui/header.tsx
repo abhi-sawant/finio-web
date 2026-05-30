@@ -4,7 +4,7 @@ function Header({ children, className, ...props }: React.ComponentPropsWithoutRe
   return (
     <header
       className={cn(
-        'sticky top-0 z-5 flex items-center justify-between bg-white/15 px-3 py-3 backdrop-blur',
+        'sticky top-0 z-5 flex items-center justify-between bg-background/15 px-3 py-3 backdrop-blur',
         className,
       )}
       {...props}
