@@ -1,6 +1,10 @@
 # Finio — Personal Finance Tracker
 
-Finio is a privacy-first personal finance PWA (Progressive Web App) built with React, TypeScript, and Vite. It runs entirely in the browser with all data stored locally on your device. An optional self-hosted PHP backend enables encrypted cloud backups so your data follows you across devices.
+Finio is a privacy-first personal finance PWA (Progressive Web App) built with React, TypeScript, and Vite. It runs entirely in the browser with all data stored locally on your device.
+
+**The app is live at [finio.slowatcoding.com](https://finio.slowatcoding.com)** — you can use it right now with a fully functional cloud backup backend included. No setup required.
+
+If you prefer to keep your backup data on infrastructure you control, you can self-host the PHP backend yourself. See [Self-Hosting the Backend](#self-hosting-the-backend) for a complete guide.
 
 ---
 
@@ -47,7 +51,7 @@ Finio is a mobile-first personal finance tracker that works completely offline. 
 - **Offline-first** — all data is persisted in `localStorage` via Zustand; no internet connection required to use the app.
 - **Installable** — add to your home screen on iOS/Android or install on desktop via the browser's install prompt.
 - **Privacy-first** — zero analytics, zero telemetry; your data is yours.
-- **Optional cloud backup** — create a free account on the hosted backend (or self-host your own) to get encrypted daily auto-backups that you can restore on any device.
+- **Optional cloud backup** — create a free account on the live hosted backend at [finio.slowatcoding.com](https://finio.slowatcoding.com) to get daily auto-backups that you can restore on any device. Self-hosting is also supported for maximum privacy.
 - **Multi-currency** — supports INR, USD, EUR, GBP, JPY, CAD, and AUD with proper currency formatting.
 - **Themeable** — light, dark, and system-follow themes.
 
@@ -317,6 +321,8 @@ npm run format:check # Check formatting without writing
 ---
 
 ## Self-Hosting the Backend
+
+> **This is entirely optional.** The live app at [finio.slowatcoding.com](https://finio.slowatcoding.com) already includes a working cloud backup backend — just create a free account and you're done. Self-hosting is only for users who want full control over where their backup data is stored.
 
 The backend is a lightweight PHP application designed for **cPanel shared hosting** (e.g., MilesWeb, Hostinger, SiteGround). It provides JWT authentication, email OTP verification, and JSON backup storage. The steps below guide you through a complete setup with no prior PHP or server experience required.
 
