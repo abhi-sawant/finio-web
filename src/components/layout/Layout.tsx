@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { autoBackupIfNeeded } from '@/services/backup';
+import { autoBackupIfNeeded, autoLocalBackupIfNeeded } from '@/services/backup';
 
 const tabs = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
@@ -37,6 +37,12 @@ export function Layout() {
     autoBackupIfNeeded().catch(() => {
       /* silent: handled by toast inside service */
     });
+  }, [isHydrated, isAuthLoaded]);
+
+  // Trigger a local auto-backup download (once per day) for non-logged-in users.
+  useEffect(() => {
+    if (!isHydrated || !isAuthLoaded) return;
+    autoLocalBackupIfNeeded();
   }, [isHydrated, isAuthLoaded]);
 
   return (

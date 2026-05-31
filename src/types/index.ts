@@ -75,6 +75,8 @@ export interface Settings {
   currency: Currency;
   theme: Theme;
   userName: string;
+  /** Whether to automatically download a local backup JSON once per day (guests only). */
+  autoLocalBackup: boolean;
 }
 
 export interface FinanceStore {
@@ -86,6 +88,9 @@ export interface FinanceStore {
   recurring: RecurringTransaction[];
   settings: Settings;
   isHydrated: boolean;
+  /** ISO date (YYYY-MM-DD) of the last automatic local backup download, or null. */
+  lastLocalBackupAt: string | null;
+  setLastLocalBackupAt: (date: string) => void;
 
   addAccount: (account: Omit<Account, 'id' | 'createdAt'>) => void;
   updateAccount: (id: string, updates: Partial<Omit<Account, 'id'>>) => void;

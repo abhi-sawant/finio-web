@@ -74,6 +74,7 @@ const defaultState = {
   recurring: [] as RecurringTransaction[],
   settings: defaultSettings,
   isHydrated: false,
+  lastLocalBackupAt: null as string | null,
 };
 
 export const useFinanceStore = create<FinanceStore>()(
@@ -82,6 +83,8 @@ export const useFinanceStore = create<FinanceStore>()(
       ...defaultState,
 
       setHydrated: (hydrated) => set({ isHydrated: hydrated }),
+
+      setLastLocalBackupAt: (date) => set({ lastLocalBackupAt: date }),
 
       addAccount: (accountData) => {
         const account: Account = {
@@ -331,7 +334,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState, version) => {
         const s = (persistedState ?? {}) as Partial<FinanceStore>;
@@ -340,6 +343,17 @@ export const useFinanceStore = create<FinanceStore>()(
             ...s,
             budgets: Array.isArray(s.budgets) ? s.budgets : [],
             recurring: Array.isArray(s.recurring) ? s.recurring : [],
+          } as FinanceStore;
+        }
+        if (version < 3) {
+          return {
+            ...s,
+            lastLocalBackupAt: null,
+            settings: {
+              ...defaultSettings,
+              ...(s.settings ?? {}),
+              autoLocalBackup: false,
+            },
           } as FinanceStore;
         }
         return s as FinanceStore;

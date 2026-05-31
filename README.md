@@ -226,6 +226,15 @@ Even without a cloud account, you can back up and restore your data locally:
 - **Export** — downloads your entire data store as a `.json` file.
 - **Import** — uploads a previously exported `.json` file to restore data.
 
+**Auto-download daily backup (guests only):**
+
+If you are not signed in, Finio can automatically download a backup JSON to your device once per day when you open the app. This is useful if you want a no-account backup safety net.
+- Enable this in **Settings → Auto-download daily backup** (the toggle is only visible when you are not logged in).
+- The download uses the browser's native file-download mechanism — no server involved.
+- A backup is only downloaded if you have at least one account, transaction, budget, or recurring rule; an empty vault is skipped.
+- Only one download per calendar day — re-opening the app on the same day does nothing.
+- Logged-in users are never affected by this setting; they always use the cloud auto-backup path.
+
 ---
 
 ### Settings
@@ -237,6 +246,7 @@ Accessible via the gear icon on the Dashboard.
 | **Display name** | Any text — shown in the dashboard greeting |
 | **Currency** | INR ₹, USD $, EUR €, GBP £, JPY ¥, CAD $, AUD $ |
 | **Theme** | System (follows OS), Light, Dark |
+| **Auto-download daily backup** | On / Off — guests only; automatically downloads a backup JSON once per day on app open |
 
 Additional actions available in Settings:
 
@@ -245,6 +255,7 @@ Additional actions available in Settings:
 - **Budgets** — shortcut to the Budgets page.
 - **Recurring** — shortcut to the Recurring Transactions page.
 - **Back Up Now** / **Restore from Cloud** — cloud backup controls (visible when logged in).
+- **Auto-download daily backup** — toggle (visible when not logged in) to enable automatic daily local backup downloads.
 - **Export Data** — download a full JSON backup to your device.
 - **Import Data** — restore from a local JSON file.
 - **Reset to Defaults** — clears all data and restores factory defaults (accounts, transactions, budgets, and recurring rules are deleted; categories and labels reset to defaults).

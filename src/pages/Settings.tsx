@@ -15,6 +15,7 @@ import {
   CloudUpload,
   Target,
   Repeat,
+  HardDrive,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -388,6 +389,29 @@ export default function Settings() {
 
         {/* Data */}
         <div className="card-elevated divide-border divide-y rounded-2xl">
+          {!token && (
+            <div className="flex items-center gap-3 p-4">
+              <HardDrive size={18} className="text-muted-foreground shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Auto-download daily backup</p>
+                <p className="text-muted-foreground text-xs">Download a backup JSON once per day when the app opens</p>
+              </div>
+              <button
+                role="switch"
+                aria-checked={settings.autoLocalBackup}
+                onClick={() => updateSettings({ autoLocalBackup: !settings.autoLocalBackup })}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none ${
+                  settings.autoLocalBackup ? 'bg-primary' : 'bg-muted'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-transform ${
+                    settings.autoLocalBackup ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          )}
           <button onClick={handleExport} className="flex w-full items-center gap-3 p-4">
             <Download size={18} className="text-muted-foreground" />
             <span className="text-sm font-medium">Export Data (JSON)</span>
