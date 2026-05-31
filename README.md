@@ -673,6 +673,7 @@ finio-web/
 ├── tsconfig.json                # TypeScript project references
 └── package.json                 # npm dependencies and scripts
 ```
+```
 import reactDom from 'eslint-plugin-react-dom'
 
 export default defineConfig([
