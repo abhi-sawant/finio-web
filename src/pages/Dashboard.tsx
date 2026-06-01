@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { getHours } from 'date-fns';
+import { getHours, parseISO, addDays, addMonths, addYears, differenceInCalendarDays } from 'date-fns';
 import {
   Settings2,
   Plus,
@@ -11,6 +11,8 @@ import {
   CalendarRange,
   PiggyBank,
   Target,
+  AlertTriangle,
+  Repeat,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency, formatPercentChange } from '@/utils/formatters';
@@ -18,13 +20,14 @@ import {
   getTotalIncome,
   getTotalExpenses,
   getTotalAccountBalance,
-  getNetWorth,
+  getTotalCreditOutstanding,
   getCurrentMonthTransactions,
   getPreviousMonthTransactions,
   getDashboardStats,
   sortTransactionsDateDesc,
   computeBudgetStatuses,
 } from '@/utils/calculations';
+
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { AccountCard } from '@/components/accounts/AccountCard';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
@@ -44,13 +47,15 @@ export default function Dashboard() {
   const transactions = useFinanceStore((s) => s.transactions);
   const categories = useFinanceStore((s) => s.categories);
   const budgets = useFinanceStore((s) => s.budgets);
+  const recurring = useFinanceStore((s) => s.recurring);
   const userName = useFinanceStore((s) => s.settings.userName);
   const currency = useFinanceStore((s) => s.settings.currency);
 
   const monthTxns = useMemo(() => getCurrentMonthTransactions(transactions), [transactions]);
   const prevMonthTxns = useMemo(() => getPreviousMonthTransactions(transactions), [transactions]);
   const totalBalance = useMemo(() => getTotalAccountBalance(accounts), [accounts]);
-  const netWorth = useMemo(() => getNetWorth(accounts), [accounts]);
+  const creditOutstanding = useMemo(() => getTotalCreditOutstanding(accounts), [accounts]);
+  const afterDues = totalBalance - creditOutstanding;
   const monthIncome = useMemo(() => getTotalIncome(monthTxns), [monthTxns]);
   const monthExpenses = useMemo(() => getTotalExpenses(monthTxns), [monthTxns]);
   const recentTxns = useMemo(
@@ -61,14 +66,37 @@ export default function Dashboard() {
     () => getDashboardStats(monthTxns, prevMonthTxns, categories),
     [monthTxns, prevMonthTxns, categories],
   );
-  const overallBudget = useMemo(
-    () =>
-      computeBudgetStatuses(
-        budgets.filter((b) => b.categoryId === ''),
-        monthTxns,
-      )[0] ?? null,
+  const allBudgetStatuses = useMemo(
+    () => computeBudgetStatuses(budgets, monthTxns),
     [budgets, monthTxns],
   );
+  const overallBudget = useMemo(
+    () => allBudgetStatuses.find((s) => s.budget.categoryId === '') ?? null,
+    [allBudgetStatuses],
+  );
+  const nearLimitBudgets = useMemo(
+    () => allBudgetStatuses.filter((s) => s.percent >= 85),
+    [allBudgetStatuses],
+  );
+  const upcomingRecurring = useMemo(() => {
+    const now = new Date();
+    return recurring
+      .map((r) => {
+        let nextDue: Date;
+        if (r.lastRunDate === null) {
+          nextDue = parseISO(r.startDate);
+        } else {
+          const base = parseISO(r.lastRunDate);
+          if (r.frequency === 'daily') nextDue = addDays(base, 1);
+          else if (r.frequency === 'weekly') nextDue = addDays(base, 7);
+          else if (r.frequency === 'monthly') nextDue = addMonths(base, 1);
+          else nextDue = addYears(base, 1);
+        }
+        return { rule: r, nextDue, daysUntil: differenceInCalendarDays(nextDue, now) };
+      })
+      .filter(({ daysUntil }) => daysUntil >= 0 && daysUntil <= 7)
+      .sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime());
+  }, [recurring]);
 
   return (
     <>
@@ -106,9 +134,9 @@ export default function Dashboard() {
             <p className="text-3xl font-bold tracking-tight">
               {formatCurrency(totalBalance, currency)}
             </p>
-            {netWorth !== totalBalance && (
+            {creditOutstanding > 0 && (
               <p className="mt-1 text-xs text-white/80">
-                Net worth: {formatCurrency(netWorth, currency, true)}
+                After Dues: {formatCurrency(afterDues, currency)}
               </p>
             )}
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -193,6 +221,51 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Budget Alerts — shown when any budget hits 85%+ */}
+        {nearLimitBudgets.length > 0 && (
+          <button
+            onClick={() => navigate('/budgets')}
+            className="card-elevated w-full rounded-2xl p-4 text-left"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15">
+                <AlertTriangle size={13} className="text-amber-500" />
+              </div>
+              <span className="text-sm font-semibold">Budget Alert</span>
+              <span className="ml-auto rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+                {nearLimitBudgets.length} near limit
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {nearLimitBudgets.map((s) => {
+                const cat = categories.find((c) => c.id === s.budget.categoryId);
+                const label = s.budget.categoryId === '' ? 'Overall Expenses' : (cat?.name ?? 'Unknown');
+                return (
+                  <div key={s.budget.id}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-xs font-medium">{label}</span>
+                      <span
+                        className={`text-xs font-semibold ${s.isOver ? 'text-rose-500' : 'text-amber-500'}`}
+                      >
+                        {Math.round(s.percent)}%
+                      </span>
+                    </div>
+                    <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.min(s.percent, 100)}%`,
+                          backgroundImage: s.isOver ? 'var(--grad-danger)' : 'var(--grad-warning)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </button>
+        )}
+
         {/* Overall budget progress (if set) */}
         {overallBudget && (
           <button
@@ -223,6 +296,57 @@ export default function Dashboard() {
                       : 'var(--grad-primary)',
                 }}
               />
+            </div>
+          </button>
+        )}
+
+        {/* Upcoming Recurring — shown when a rule fires within 7 days */}
+        {upcomingRecurring.length > 0 && (
+          <button
+            onClick={() => navigate('/recurring')}
+            className="card-elevated w-full rounded-2xl p-4 text-left"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15">
+                <Repeat size={13} className="text-blue-500" />
+              </div>
+              <span className="text-sm font-semibold">Upcoming Bills</span>
+              <span className="ml-auto rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-500">
+                this week
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {upcomingRecurring.map(({ rule, daysUntil }) => {
+                const cat = categories.find((c) => c.id === rule.categoryId);
+                const label = rule.note || cat?.name || 'Recurring';
+                const color = cat?.color ?? '#94a3b8';
+                const dueLabel =
+                  daysUntil === 0
+                    ? 'Due today'
+                    : daysUntil === 1
+                      ? 'Due tomorrow'
+                      : `Due in ${daysUntil} days`;
+                return (
+                  <div key={rule.id} className="flex items-center gap-3">
+                    <div
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                      style={{ backgroundImage: `linear-gradient(135deg, ${color}, ${color}cc)` }}
+                    >
+                      <Repeat size={14} color="white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium">{label}</p>
+                      <p className="text-muted-foreground text-[10px]">{dueLabel}</p>
+                    </div>
+                    <p
+                      className={`shrink-0 text-xs font-semibold ${rule.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}
+                    >
+                      {rule.type === 'income' ? '+' : '-'}
+                      {formatCurrency(rule.amount, currency, true)}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </button>
         )}

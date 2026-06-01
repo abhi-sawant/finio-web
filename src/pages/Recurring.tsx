@@ -7,6 +7,8 @@ import { formatCurrency, formatFullDate, toLocalDateTimeInputValue } from '@/uti
 import { Button } from '@/components/ui/button';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NumberPad } from '@/components/ui/number-pad';
 import {
   Select,
   SelectContent,
@@ -132,14 +134,12 @@ export default function Recurring() {
                 </button>
               ))}
             </div>
-            <Input
-              type="number"
-              inputMode="decimal"
-              placeholder="Amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="bg-muted h-auto rounded-lg px-3 py-2"
-            />
+            <div>
+              <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+                Amount
+              </Label>
+              <NumberPad value={amount} onChange={setAmount} />
+            </div>
             <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
               <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
                 <SelectValue placeholder="Account">

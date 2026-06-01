@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NumberPad } from '@/components/ui/number-pad';
 import {
   Select,
   SelectContent,
@@ -120,14 +120,7 @@ export default function Budgets() {
               <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                 Monthly Limit
               </Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="bg-muted h-auto rounded-lg px-3 py-2"
-              />
+              <NumberPad value={amount} onChange={setAmount} />
             </div>
             <div className="flex gap-2">
               <Button

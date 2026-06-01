@@ -63,11 +63,12 @@ Finio is a mobile-first personal finance tracker that works completely offline. 
 
 The dashboard is the home screen of Finio. It greets you by name with a time-aware greeting (Good morning / afternoon / evening) and gives you a snapshot of your financial health at a glance:
 
-- **Hero balance card** — total balance across all non-credit accounts with an ambient gradient glow.
-- **Net worth** — balance after subtracting credit card debt.
+- **Hero balance card** — total balance across all non-credit accounts with an ambient gradient glow, plus "After Dues" subtitle (balance minus credit card outstanding).
 - **This month's income & expenses** — with a percentage change badge compared to last month (green for improvement, red for decline).
 - **Account cards** — a horizontal scrollable row of all your accounts; tap any card to edit it.
 - **Budget progress** — if you have set an overall budget, a progress ring shows how much of it you've used this month.
+- **Budget alerts** — when any budget reaches 85% of its limit, a prominent alert card appears showing which budgets are near their limits (amber for 85–99%, red for over limit). Tap to navigate to Budgets.
+- **Upcoming recurring transactions** — a list of recurring transactions due within the next 7 days, with icons and due dates.
 - **Top spending categories this month** — the three categories you've spent the most on.
 - **Recent transactions** — the five most recent transactions with category icon, note, and amount; tap any to edit.
 - **Quick-action shortcuts** — direct links to Budgets, Recurring, Analytics, and Accounts from the dashboard.
@@ -112,7 +113,7 @@ The full transaction ledger with powerful search and filtering.
 
 1. Tap the **+** floating action button on the Dashboard or navigate to the Transactions tab and tap **+**.
 2. Select the type (Expense / Income / Transfer).
-3. Enter the amount.
+3. Enter the amount using the **NumberPad** — tap number keys, use the decimal button (·), or backspace (⌫). Numbers are formatted in the Indian number system (e.g., 1,22,999) for easy reading.
 4. Choose the source account (and destination account for transfers).
 5. Pick a category (filtered to show only relevant types).
 6. Set the date and time (defaults to now).
@@ -634,7 +635,7 @@ finio-web/
 │   │   ├── categories/          # CategoryIcon component
 │   │   ├── charts/              # Recharts chart components
 │   │   ├── transactions/        # TransactionItem component
-│   │   └── ui/                  # shadcn/ui primitive components
+│   │   └── ui/                  # shadcn/ui primitives + custom NumberPad component
 │   ├── data/
 │   │   └── defaultData.ts       # Default categories, labels, and settings
 │   ├── lib/

@@ -14,18 +14,9 @@ const CURRENCY_LOCALE_MAP: Record<Currency, string> = {
 export function formatCurrency(
   amount: number,
   currency: Currency = 'INR',
-  compact = false,
+  _compact = false,
 ): string {
   const locale = CURRENCY_LOCALE_MAP[currency];
-
-  if (compact && Math.abs(amount) >= 100000) {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(amount);
-  }
 
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -66,6 +57,21 @@ export function toLocalDateTimeInputValue(iso: string | Date): string {
     ':' +
     pad(d.getMinutes())
   );
+}
+
+/**
+ * Format a raw numeric input string for display using the Indian number system.
+ * Keeps the decimal part intact while grouping the integer part.
+ * e.g. "122999" → "1,22,999", "122999.5" → "1,22,999.5"
+ */
+export function formatInputAmount(raw: string): string {
+  if (!raw) return '0';
+  const [intPart, decPart] = raw.split('.');
+  const intNum = parseInt(intPart || '0', 10);
+  const formatted = Number.isNaN(intNum)
+    ? '0'
+    : new Intl.NumberFormat('en-IN').format(intNum);
+  return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
 }
 
 /** Format a 0..1 ratio as a +/- signed percentage. */
