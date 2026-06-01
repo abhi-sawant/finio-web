@@ -11,18 +11,30 @@ import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
 const categoryColors = [
+  '#6C63FF',
   '#ef4444',
   '#f97316',
+  '#fb923c',
   '#f59e0b',
+  '#fbbf24',
+  '#84cc16',
   '#22c55e',
   '#10b981',
+  '#34d399',
+  '#14b8a6',
   '#06b6d4',
+  '#0ea5e9',
+  '#60a5fa',
   '#3b82f6',
-  '#6C63FF',
   '#8b5cf6',
+  '#a78bfa',
+  '#d946ef',
   '#ec4899',
+  '#f472b6',
   '#64748b',
   '#94a3b8',
+  '#78716c',
+  '#6b7280',
 ];
 
 export default function ManageCategories() {

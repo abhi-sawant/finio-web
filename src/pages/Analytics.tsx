@@ -25,7 +25,7 @@ export default function Analytics() {
   const budgets = useFinanceStore((s) => s.budgets);
   const recurring = useFinanceStore((s) => s.recurring);
 
-  const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>('month');
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
 
   const dateRange = useMemo(() => {

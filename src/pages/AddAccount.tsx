@@ -15,6 +15,7 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NumberPad } from '@/components/ui/number-pad';
 import type { AccountType, Currency } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -41,13 +42,27 @@ const accountColors = [
   '#6C63FF',
   '#ef4444',
   '#f97316',
+  '#fb923c',
   '#f59e0b',
+  '#fbbf24',
+  '#84cc16',
   '#22c55e',
   '#10b981',
+  '#34d399',
+  '#14b8a6',
   '#06b6d4',
+  '#0ea5e9',
+  '#60a5fa',
   '#3b82f6',
   '#8b5cf6',
+  '#a78bfa',
+  '#d946ef',
   '#ec4899',
+  '#f472b6',
+  '#64748b',
+  '#94a3b8',
+  '#78716c',
+  '#6b7280',
 ];
 
 export default function AddAccount() {
@@ -63,10 +78,15 @@ export default function AddAccount() {
 
   const [name, setName] = useState(existing?.name ?? '');
   const [type, setType] = useState<AccountType>(existing?.type ?? 'checking');
-  const [balance, setBalance] = useState(existing?.balance?.toString() ?? '0');
+  const [balance, setBalance] = useState(
+    existing?.type === 'credit' ? '0' : (existing?.balance?.toString() ?? '0'),
+  );
+  const [due, setDue] = useState(
+    existing?.type === 'credit' ? Math.abs(existing.balance).toString() : '0',
+  );
   const [color, setColor] = useState(existing?.color ?? accountColors[0]);
   const [currency] = useState<Currency>(existing?.currency ?? settings.currency);
-  const [creditLimit, setCreditLimit] = useState(existing?.creditLimit?.toString() ?? '');
+  const [creditLimit, setCreditLimit] = useState(existing?.creditLimit?.toString() ?? '0');
 
   const handleSubmit = () => {
     if (!name.trim()) return;
@@ -74,7 +94,7 @@ export default function AddAccount() {
     const data = {
       name: name.trim(),
       type,
-      balance: parseFloat(balance) || 0,
+      balance: type === 'credit' ? -(parseFloat(due) || 0) : parseFloat(balance) || 0,
       color,
       icon: existing?.icon ?? accountTypes.find((t) => t.value === type)?.icon ?? 'landmark',
       currency,
@@ -171,43 +191,30 @@ export default function AddAccount() {
           </div>
         </div>
 
-        {/* Balance */}
-        <div>
-          <Label
-            htmlFor="accountBalance"
-            className="text-muted-foreground mb-1.5 block text-xs font-medium"
-          >
-            {type === 'credit' ? 'Current Balance (negative = owed)' : 'Current Balance'}
-          </Label>
-          <Input
-            id="accountBalance"
-            type="number"
-            inputMode="decimal"
-            placeholder="0"
-            value={balance}
-            onChange={(e) => setBalance(e.target.value)}
-            className="bg-card h-auto rounded-xl px-4 py-3"
-          />
-        </div>
+        {/* Balance / Due */}
+        {type === 'credit' ? (
+          <div>
+            <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+              Current Due
+            </Label>
+            <NumberPad value={due} onChange={setDue} />
+          </div>
+        ) : (
+          <div>
+            <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+              Current Balance
+            </Label>
+            <NumberPad value={balance} onChange={setBalance} />
+          </div>
+        )}
 
         {/* Credit Limit */}
         {type === 'credit' && (
           <div>
-            <Label
-              htmlFor="creditLimit"
-              className="text-muted-foreground mb-1.5 block text-xs font-medium"
-            >
+            <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
               Credit Limit
             </Label>
-            <Input
-              id="creditLimit"
-              type="number"
-              inputMode="decimal"
-              placeholder="e.g., 100000"
-              value={creditLimit}
-              onChange={(e) => setCreditLimit(e.target.value)}
-              className="bg-card h-auto rounded-xl px-4 py-3"
-            />
+            <NumberPad value={creditLimit} onChange={setCreditLimit} />
           </div>
         )}
 
