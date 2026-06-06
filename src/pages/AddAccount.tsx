@@ -122,7 +122,7 @@ export default function AddAccount() {
   return (
     <>
       {/* Header */}
-      <Header>
+      <Header innerClassName="lg:max-w-xl">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-9 w-9">
           <ArrowLeft size={20} />
         </Button>
@@ -141,7 +141,7 @@ export default function AddAccount() {
         )}
       </Header>
 
-      <Main>
+      <Main className="lg:max-w-xl">
         {/* Name */}
         <div>
           <Label

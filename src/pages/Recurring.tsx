@@ -83,7 +83,7 @@ export default function Recurring() {
   return (
     <>
       {/* Header */}
-      <Header>
+      <Header innerClassName="lg:max-w-xl">
         <Button
           variant="ghost"
           size="icon"
@@ -105,7 +105,7 @@ export default function Recurring() {
         </Button>
       </Header>
 
-      <Main>
+      <Main className="lg:max-w-xl">
         {accounts.length === 0 && (
           <p className="text-muted-foreground py-8 text-center text-sm">
             Add an account first to create recurring rules.

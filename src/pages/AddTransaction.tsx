@@ -115,7 +115,7 @@ export default function AddTransaction() {
   return (
     <>
       {/* Header */}
-      <Header>
+      <Header innerClassName="lg:max-w-xl">
         <Button
           variant="ghost"
           size="icon"
@@ -141,7 +141,7 @@ export default function AddTransaction() {
         )}
       </Header>
 
-      <Main>
+      <Main className="lg:max-w-xl">
         {/* Type Selector */}
         <div className="bg-muted grid grid-cols-3 gap-2 rounded-2xl p-1">
           {(['expense', 'income', 'transfer'] as const).map((t) => {

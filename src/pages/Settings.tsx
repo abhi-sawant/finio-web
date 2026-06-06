@@ -191,11 +191,11 @@ export default function Settings() {
 
   return (
     <>
-      <Header>
+      <Header innerClassName="lg:max-w-2xl">
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
       </Header>
 
-      <Main>
+      <Main className="lg:max-w-2xl">
         {/* Account */}
         <div className="card-elevated divide-border divide-y overflow-hidden rounded-2xl">
           {token && user ? (

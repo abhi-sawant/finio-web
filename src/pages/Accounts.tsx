@@ -35,7 +35,7 @@ export default function Accounts() {
       </Header>
       <Main>
         {/* Summary */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
           <div className="card-elevated bg-grad-primary-soft rounded-2xl p-4">
             <div className="mb-1 flex items-center gap-1.5">
               <Wallet size={12} className="text-primary" />
@@ -64,7 +64,7 @@ export default function Accounts() {
         {regularAccounts.length > 0 && (
           <div>
             <h2 className="text-muted-foreground mb-3 text-sm font-medium">Accounts</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
               {regularAccounts.map((account) => (
                 <AccountCard
                   key={account.id}
@@ -90,7 +90,7 @@ export default function Accounts() {
         {creditAccounts.length > 0 && (
           <div>
             <h2 className="text-muted-foreground mb-3 text-sm font-medium">Credit Cards</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
               {creditAccounts.map((account) => (
                 <AccountCard
                   key={account.id}

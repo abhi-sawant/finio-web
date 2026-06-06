@@ -9,7 +9,7 @@ const Main = forwardRef<HTMLElement, React.ComponentPropsWithoutRef<'main'>>(fun
     <main
       ref={ref}
       className={cn(
-        'scrollbar-hide flex-[1_1_0] space-y-4 overflow-y-auto px-3 pt-2 pb-24',
+        'scrollbar-hide mx-auto w-full max-w-5xl flex-[1_1_0] space-y-4 overflow-y-auto px-3 pt-2 pb-24 lg:space-y-6 lg:px-8 lg:pb-8',
         className,
       )}
       {...props}

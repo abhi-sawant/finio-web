@@ -67,7 +67,7 @@ export default function Budgets() {
   return (
     <>
       {/* Header */}
-      <Header>
+      <Header innerClassName="lg:max-w-xl">
         <Button
           variant="ghost"
           size="icon"
@@ -88,7 +88,7 @@ export default function Budgets() {
         </Button>
       </Header>
 
-      <Main>
+      <Main className="lg:max-w-xl">
         {showForm && (
           <div className="card-elevated space-y-3 rounded-2xl p-4">
             <div>

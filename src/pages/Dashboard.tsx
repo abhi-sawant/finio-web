@@ -164,7 +164,7 @@ export default function Dashboard() {
 
         {/* Quick stats */}
         {monthTxns.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <div className="card-elevated bg-grad-primary-soft rounded-2xl p-3">
               <div className="mb-1 flex items-center gap-1.5">
                 <CalendarRange size={12} className="text-primary" />
@@ -196,7 +196,7 @@ export default function Dashboard() {
               )}
             </div>
             {stats.topCategory && (
-              <div className="card-elevated col-span-2 flex items-center gap-3 rounded-2xl p-3">
+              <div className="card-elevated col-span-2 flex items-center gap-3 rounded-2xl p-3 lg:col-span-2">
                 <div
                   className="flex h-10 w-10 items-center justify-center rounded-full"
                   style={{
@@ -374,7 +374,7 @@ export default function Dashboard() {
               </span>
             </button>
           ) : (
-            <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
+            <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-x-visible xl:grid-cols-4">
               {accounts.map((account) => (
                 <AccountCard
                   key={account.id}

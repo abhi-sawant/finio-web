@@ -79,7 +79,7 @@ export default function Analytics() {
           </p>
         ) : (
           <>
-            <div className="scrollbar-hide flex items-center gap-2 overflow-x-auto py-2">
+            <div className="scrollbar-hide flex items-center gap-2 overflow-x-auto py-2 lg:flex-wrap lg:overflow-x-visible">
               <Button
                 variant={selectedFilter === 'all' ? 'default' : 'outline'}
                 size="sm"
@@ -177,17 +177,19 @@ export default function Analytics() {
               </div>
             </div>
 
-            {/* Spending by Category */}
-            <SpendingDonut transactions={filteredTransactions} />
+            <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+              {/* Spending by Category */}
+              <SpendingDonut transactions={filteredTransactions} />
 
-            {/* Income vs Expense Bar */}
-            <IncomeExpenseBar transactions={filteredTransactions} />
+              {/* Income vs Expense Bar */}
+              <IncomeExpenseBar transactions={filteredTransactions} />
 
-            {/* Balance Trend */}
-            <BalanceTrend from={dateRange.from} to={dateRange.to} />
+              {/* Balance Trend */}
+              <BalanceTrend from={dateRange.from} to={dateRange.to} />
 
-            {/* Label Spending */}
-            <LabelSpendingBar transactions={filteredTransactions} />
+              {/* Label Spending */}
+              <LabelSpendingBar transactions={filteredTransactions} />
+            </div>
           </>
         )}
 

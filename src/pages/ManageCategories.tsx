@@ -91,7 +91,7 @@ export default function ManageCategories() {
   return (
     <>
       {/* Header */}
-      <Header>
+      <Header innerClassName="lg:max-w-xl">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-9 w-9">
           <ArrowLeft size={20} />
         </Button>
@@ -109,7 +109,7 @@ export default function ManageCategories() {
         </Button>
       </Header>
 
-      <Main>
+      <Main className="lg:max-w-xl">
         {/* Filter */}
         <div className="flex gap-2">
           {(['all', 'expense', 'income', 'both'] as const).map((f) => (

@@ -1,19 +1,13 @@
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useEffect } from 'react';
-import { LayoutDashboard, Wallet, ArrowLeftRight, BarChart3, Settings, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { autoBackupIfNeeded, autoLocalBackupIfNeeded } from '@/services/backup';
-
-const tabs = [
-  { path: '/', icon: LayoutDashboard, label: 'Home' },
-  { path: '/accounts', icon: Wallet, label: 'Accounts' },
-  { path: '/transactions', icon: ArrowLeftRight, label: 'Txns' },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
-];
+import { Sidebar } from './Sidebar';
+import { navTabs } from './navItems';
 
 export function Layout() {
   const location = useLocation();
@@ -47,23 +41,30 @@ export function Layout() {
 
   return (
     <>
-      <Outlet />
-      {/* FAB */}
+      {/* Desktop sidebar (lg+) */}
+      <Sidebar />
+
+      {/* Content column */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <Outlet />
+      </div>
+
+      {/* FAB — mobile only */}
       <button
         onClick={() => navigate('/add-transaction')}
-        className="bg-grad-primary shadow-glow-primary fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform active:scale-95"
+        className="bg-grad-primary shadow-glow-primary fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform active:scale-95 lg:hidden"
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}
         aria-label="Add transaction"
       >
         <Plus size={26} strokeWidth={2.4} />
       </button>
 
-      {/* Bottom Nav */}
+      {/* Bottom Nav — mobile only */}
       <nav
-        className="pb-safe border-border bg-card/85 fixed right-0 left-0 z-40 flex w-full items-center justify-around border-t px-2 pt-2 backdrop-blur-xl"
+        className="pb-safe border-border bg-card/85 fixed right-0 left-0 z-40 flex w-full items-center justify-around border-t px-2 pt-2 backdrop-blur-xl lg:hidden"
         style={{ bottom: 0 }}
       >
-        {tabs.map((tab) => {
+        {navTabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
           return (

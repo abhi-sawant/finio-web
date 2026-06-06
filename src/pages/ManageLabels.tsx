@@ -76,7 +76,7 @@ export default function ManageLabels() {
   return (
     <>
       {/* Header */}
-      <Header>
+      <Header innerClassName="lg:max-w-xl">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-9 w-9">
           <ArrowLeft size={20} />
         </Button>
@@ -94,7 +94,7 @@ export default function ManageLabels() {
         </Button>
       </Header>
 
-      <Main>
+      <Main className="lg:max-w-xl">
         {/* Form Dialog */}
         <Dialog
           open={open}

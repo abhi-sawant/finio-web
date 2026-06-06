@@ -38,7 +38,7 @@ export function IncomeExpenseBar({ transactions }: Props) {
   return (
     <div className="card-elevated rounded-2xl p-4">
       <h3 className="mb-3 text-sm font-semibold">Income vs Expenses</h3>
-      <div className="h-48">
+      <div className="h-48 lg:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} barGap={4} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <defs>

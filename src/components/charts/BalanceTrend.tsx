@@ -94,7 +94,7 @@ export function BalanceTrend({ from, to }: Props) {
   return (
     <div className="card-elevated rounded-2xl p-4">
       <h3 className="mb-3 text-sm font-semibold">Balance Trend</h3>
-      <div className="h-44">
+      <div className="h-44 lg:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <defs>
