@@ -47,6 +47,13 @@ export default function AddTransaction() {
   const [note, setNote] = useState(existing?.note ?? '');
   const [selectedLabels, setSelectedLabels] = useState<string[]>(existing?.labels ?? []);
 
+  const notesSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    return transactions
+      .map((t) => t.note?.trim())
+      .filter((n): n is string => !!n && !seen.has(n) && seen.add(n) !== undefined);
+  }, [transactions]);
+
   const filteredCategories = useMemo(() => {
     if (type === 'transfer') return categories.filter((c) => c.type === 'both');
     return categories.filter((c) => c.type === type || c.type === 'both');
@@ -275,7 +282,13 @@ export default function AddTransaction() {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className="bg-card h-auto rounded-xl px-4 py-3"
+            list="note-suggestions"
           />
+          <datalist id="note-suggestions">
+            {notesSuggestions.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
         </div>
 
         {/* Labels */}
