@@ -187,13 +187,31 @@ export default function AddTransaction() {
           <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
             <SelectTrigger className="bg-card h-auto w-full rounded-xl px-4 py-3">
               <SelectValue placeholder="Select account">
-                {accounts.find((a) => a.id === accountId)?.name}
+                {accounts.find((a) => a.id === accountId) && (
+                  <span>
+                    {accounts.find((a) => a.id === accountId)?.name}{' '}
+                    <span className="text-muted-foreground text-xs">
+                      [
+                      {accounts
+                        .find((a) => a.id === accountId)
+                        ?.type?.charAt(0)
+                        .toUpperCase()}
+                      {accounts.find((a) => a.id === accountId)?.type?.slice(1)}]
+                    </span>
+                  </span>
+                )}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {accounts.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
-                  {a.name}
+                  <span className="flex items-center gap-1">
+                    {a.name}{' '}
+                    <span className="text-muted-foreground text-xs">
+                      [{a.type?.charAt(0).toUpperCase()}
+                      {a.type?.slice(1)}]
+                    </span>
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -208,14 +226,34 @@ export default function AddTransaction() {
             </Label>
             <Select value={toAccountId} onValueChange={(v) => setToAccountId(v ?? '')}>
               <SelectTrigger className="bg-card h-auto w-full rounded-xl px-4 py-3">
-                <SelectValue placeholder="Select account" />
+                <SelectValue placeholder="Select account">
+                  {accounts.find((a) => a.id === toAccountId) && (
+                    <span>
+                      {accounts.find((a) => a.id === toAccountId)?.name}{' '}
+                      <span className="text-muted-foreground text-xs">
+                        [
+                        {accounts
+                          .find((a) => a.id === toAccountId)
+                          ?.type?.charAt(0)
+                          .toUpperCase()}
+                        {accounts.find((a) => a.id === toAccountId)?.type?.slice(1)}]
+                      </span>
+                    </span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {accounts
                   .filter((a) => a.id !== accountId)
                   .map((a) => (
                     <SelectItem key={a.id} value={a.id}>
-                      {a.name}
+                      <span className="flex items-center gap-1">
+                        {a.name}{' '}
+                        <span className="text-muted-foreground text-xs">
+                          [{a.type?.charAt(0).toUpperCase()}
+                          {a.type?.slice(1)}]
+                        </span>
+                      </span>
                     </SelectItem>
                   ))}
               </SelectContent>
