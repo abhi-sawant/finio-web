@@ -75,7 +75,7 @@ export interface Settings {
   currency: Currency;
   theme: Theme;
   userName: string;
-  /** Whether to automatically download a local backup JSON once per day (guests only). */
+  /** Whether to automatically download a local backup JSON once per day. */
   autoLocalBackup: boolean;
 }
 

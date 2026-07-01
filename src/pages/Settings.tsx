@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   ChevronRight,
@@ -6,6 +6,7 @@ import {
   Palette,
   Tag,
   FolderOpen,
+  Folder,
   Download,
   Upload,
   RotateCcw,
@@ -19,10 +20,24 @@ import {
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { uploadBackup, restoreLatestBackup } from '@/services/backup';
+import { uploadBackup, restoreLatestBackup, saveLocalBackup } from '@/services/backup';
+import {
+  chooseBackupFolder,
+  clearBackupFolder,
+  getSavedDirectoryHandle,
+  isFolderPickerSupported,
+} from '@/services/backupFolder';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -77,8 +92,15 @@ export default function Settings() {
   const [nameValue, setNameValue] = useState(settings.userName);
   const [backingUp, setBackingUp] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [backupFolderName, setBackupFolderName] = useState<string | null>(null);
+  const [showFolderSetupInfo, setShowFolderSetupInfo] = useState(false);
 
-  const handleExport = () => {
+  useEffect(() => {
+    if (!isFolderPickerSupported()) return;
+    getSavedDirectoryHandle().then((handle) => setBackupFolderName(handle?.name ?? null));
+  }, []);
+
+  const handleExport = async () => {
     try {
       const state = useFinanceStore.getState();
       const data = {
@@ -90,17 +112,29 @@ export default function Settings() {
         recurring: state.recurring,
         settings: state.settings,
       };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `finio-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const filename = `finio-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      await saveLocalBackup(filename, JSON.stringify(data, null, 2), { allowPrompt: true });
       toast.success('Backup downloaded');
     } catch {
       toast.error('Export failed');
     }
+  };
+
+  const handleChooseBackupFolder = async () => {
+    setShowFolderSetupInfo(false);
+    try {
+      const handle = await chooseBackupFolder();
+      setBackupFolderName(handle.name);
+      toast.success(`Backups will be saved to "${handle.name}"`);
+    } catch {
+      /* user cancelled the picker or denied permission */
+    }
+  };
+
+  const handleDisconnectBackupFolder = async () => {
+    await clearBackupFolder();
+    setBackupFolderName(null);
+    toast.success('Backup folder disconnected');
   };
 
   const handleImport = () => {
@@ -389,29 +423,78 @@ export default function Settings() {
 
         {/* Data */}
         <div className="card-elevated divide-border divide-y rounded-2xl">
-          {!token && (
+          <div className="flex items-center gap-3 p-4">
+            <HardDrive size={18} className="text-muted-foreground shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Auto-download daily backup</p>
+              <p className="text-muted-foreground text-xs">Download a backup JSON once per day when the app opens</p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={settings.autoLocalBackup}
+              onClick={() => updateSettings({ autoLocalBackup: !settings.autoLocalBackup })}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none ${
+                settings.autoLocalBackup ? 'bg-primary' : 'bg-muted'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-transform ${
+                  settings.autoLocalBackup ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+          {isFolderPickerSupported() && (
             <div className="flex items-center gap-3 p-4">
-              <HardDrive size={18} className="text-muted-foreground shrink-0" />
+              <Folder size={18} className="text-muted-foreground shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium">Auto-download daily backup</p>
-                <p className="text-muted-foreground text-xs">Download a backup JSON once per day when the app opens</p>
+                <p className="text-sm font-medium">Backup Folder</p>
+                <p className="text-muted-foreground text-xs">
+                  {backupFolderName
+                    ? `Saving to "${backupFolderName}" · keeps latest 10`
+                    : 'Not connected — backups use the default Downloads folder'}
+                </p>
               </div>
               <button
-                role="switch"
-                aria-checked={settings.autoLocalBackup}
-                onClick={() => updateSettings({ autoLocalBackup: !settings.autoLocalBackup })}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none ${
-                  settings.autoLocalBackup ? 'bg-primary' : 'bg-muted'
-                }`}
+                onClick={
+                  backupFolderName ? handleDisconnectBackupFolder : () => setShowFolderSetupInfo(true)
+                }
+                className="bg-muted shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium"
               >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-transform ${
-                    settings.autoLocalBackup ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
+                {backupFolderName ? 'Disconnect' : 'Choose Folder'}
               </button>
             </div>
           )}
+
+          <Dialog open={showFolderSetupInfo} onOpenChange={setShowFolderSetupInfo}>
+            <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl">
+              <DialogHeader>
+                <DialogTitle>Set Up Backup Folder</DialogTitle>
+                <DialogDescription>
+                  In the folder picker that opens next, create a new folder named{' '}
+                  <strong className="text-foreground">"Finio"</strong> inside your Downloads
+                  folder, then select it. This is the recommended setup — it keeps backups
+                  organized in one place and lets Finio automatically keep only the 10 most
+                  recent, deleting older ones for you.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleChooseBackupFolder}
+                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                >
+                  Continue
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowFolderSetupInfo(false)}
+                  className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <button onClick={handleExport} className="flex w-full items-center gap-3 p-4">
             <Download size={18} className="text-muted-foreground" />
             <span className="text-sm font-medium">Export Data (JSON)</span>

@@ -1,6 +1,12 @@
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { api } from './api';
+import {
+  getSavedDirectoryHandle,
+  hasWritePermission,
+  isFolderPickerSupported,
+  writeBackupAndRotate,
+} from './backupFolder';
 import type { FinanceStore } from '@/types';
 
 type BackupPayload = Pick<
@@ -9,6 +15,34 @@ type BackupPayload = Pick<
 >;
 
 let backupInProgress = false;
+const MAX_LOCAL_BACKUPS = 10;
+
+/**
+ * Saves a local backup file. If a Finio backup folder is connected (Chromium-only File
+ * System Access API) and permission is available, writes into it and rotates old backups
+ * beyond MAX_LOCAL_BACKUPS. Otherwise falls back to a plain browser download.
+ */
+export async function saveLocalBackup(
+  filename: string,
+  contents: string,
+  { allowPrompt }: { allowPrompt: boolean },
+): Promise<void> {
+  if (isFolderPickerSupported()) {
+    const handle = await getSavedDirectoryHandle();
+    if (handle && (await hasWritePermission(handle, { prompt: allowPrompt }))) {
+      await writeBackupAndRotate(handle, filename, contents, MAX_LOCAL_BACKUPS);
+      return;
+    }
+  }
+
+  const blob = new Blob([contents], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export async function uploadBackup(): Promise<string> {
   const { token } = useAuthStore.getState();
@@ -39,10 +73,7 @@ export async function restoreLatestBackup(): Promise<void> {
   useFinanceStore.getState().importData(res as Partial<BackupPayload>);
 }
 
-export function autoLocalBackupIfNeeded(): void {
-  const { token } = useAuthStore.getState();
-  if (token) return; // logged-in users use cloud backup instead
-
+export async function autoLocalBackupIfNeeded(): Promise<void> {
   const { accounts, transactions, budgets, recurring, settings, lastLocalBackupAt, setLastLocalBackupAt } =
     useFinanceStore.getState();
 
@@ -62,13 +93,10 @@ export function autoLocalBackupIfNeeded(): void {
   try {
     const { categories, labels } = useFinanceStore.getState();
     const data = { accounts, transactions, categories, labels, budgets, recurring, settings };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `finio-backup-${today}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // No user gesture here (runs from a mount effect), so never prompt for folder permission.
+    await saveLocalBackup(`finio-backup-${today}.json`, JSON.stringify(data, null, 2), {
+      allowPrompt: false,
+    });
     setLastLocalBackupAt(today);
   } catch {
     /* silent failure — backup is best-effort */
