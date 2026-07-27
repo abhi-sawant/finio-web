@@ -5,6 +5,7 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency } from '@/utils/formatters';
 import { buildSpendingCalendar, type CalendarDay } from '@/utils/analytics';
 import { normalizeMonthStartDay, periodRange, shiftPeriod } from '@/utils/period';
+import { ChartDataTable } from '@/components/charts/ChartDataTable';
 
 /** Monday-first, matching `WEEK_STARTS_ON`. */
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -36,6 +37,12 @@ export function SpendingHeatmap() {
   }, [transactions, offset, monthStartDay]);
 
   const money = (value: number) => formatCurrency(value, true, hideAmounts);
+
+  // Quiet days would be most of the table and none of the information.
+  const spendingDays = useMemo(
+    () => calendar.weeks.flat().filter((day) => day.inRange && day.total > 0),
+    [calendar],
+  );
 
   return (
     <section className="card-elevated rounded-2xl p-4">
@@ -98,7 +105,20 @@ export function SpendingHeatmap() {
                       : undefined
                   }
                 >
-                  {day.inRange ? format(day.date, 'd') : ''}
+                  <span aria-hidden>{day.inRange ? format(day.date, 'd') : ''}</span>
+                  {day.inRange && (
+                    // `title` is mouse-only, so the same sentence goes to assistive tech.
+                    <span className="sr-only">
+                      {format(day.date, 'd MMM')}
+                      {day.isFuture
+                        ? ', upcoming'
+                        : `, ${day.total > 0 ? money(day.total) : 'nothing'} spent`}
+                      {day.transactionCount > 0
+                        ? ` across ${day.transactionCount} transaction${day.transactionCount === 1 ? '' : 's'}`
+                        : ''}
+                      {day.isToday ? ', today' : ''}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -139,6 +159,15 @@ export function SpendingHeatmap() {
           No spending recorded in this period.
         </p>
       )}
+
+      <ChartDataTable
+        caption="Days with spending in this period"
+        columns={['Day', 'Spent', 'Transactions']}
+        rows={spendingDays.map((day) => ({
+          key: day.key,
+          cells: [format(day.date, 'd MMM'), money(day.total), day.transactionCount],
+        }))}
+      />
     </section>
   );
 }

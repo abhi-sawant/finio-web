@@ -1,7 +1,19 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, ChevronDown, History, Pencil, Plus, Tag, Target, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  History,
+  Pencil,
+  Plus,
+  Tag,
+  Target,
+  Trash2,
+} from 'lucide-react';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
+import { BudgetHealthBadge, BudgetProgressBar } from '@/components/budgets/BudgetHealthBadge';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency } from '@/utils/formatters';
@@ -9,6 +21,7 @@ import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { NumberPad } from '@/components/ui/number-pad';
+import { SwitchField } from '@/components/ui/switch';
 import { useConfirm } from '@/components/ui/use-confirm';
 import {
   Select,
@@ -242,29 +255,12 @@ export default function Budgets() {
               <NumberPad value={amount} onChange={setAmount} />
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <p className="text-sm font-medium">Roll over unspent</p>
-                <p className="text-muted-foreground text-xs">
-                  Carry what's left (or overspent) into the next period
-                </p>
-              </div>
-              <button
-                role="switch"
-                aria-checked={rollover}
-                aria-label="Roll over unspent"
-                onClick={() => setRollover((v) => !v)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                  rollover ? 'bg-primary' : 'bg-muted'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-transform ${
-                    rollover ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
+            <SwitchField
+              title="Roll over unspent"
+              description="Carry what's left (or overspent) into the next period"
+              checked={rollover}
+              onCheckedChange={setRollover}
+            />
 
             <div className="flex gap-2">
               <Button
@@ -415,30 +411,29 @@ function BudgetCard({
         </div>
       </div>
 
-      <div className="mb-1.5 flex justify-between text-xs">
+      <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
         <span className={status.isOver ? 'font-medium text-rose-500' : 'text-muted-foreground'}>
           {formatCurrency(status.spent, false, hideAmounts)} of{' '}
           {formatCurrency(status.limit, false, hideAmounts)}
         </span>
-        <span
-          className={`font-medium ${status.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
-        >
-          {Math.round(status.percent)}%
+        <span className="flex shrink-0 items-center gap-1.5">
+          <BudgetHealthBadge status={status} />
+          <span
+            className={`font-medium ${status.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
+          >
+            {Math.round(status.percent)}%
+          </span>
         </span>
       </div>
-      <div className="bg-muted h-2 overflow-hidden rounded-full">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{
-            width: `${Math.min(Math.max(status.percent, 0), 100)}%`,
-            backgroundImage: status.isOver
-              ? 'var(--grad-danger)'
-              : status.percent > 80
-                ? 'var(--grad-warning)'
-                : `linear-gradient(90deg, ${scopeColor}, ${scopeColor}cc)`,
-          }}
-        />
-      </div>
+      <BudgetProgressBar
+        status={status}
+        okFill={`linear-gradient(90deg, ${scopeColor}, ${scopeColor}cc)`}
+        valueText={`${formatCurrency(status.spent, false, hideAmounts)} of ${formatCurrency(
+          status.limit,
+          false,
+          hideAmounts,
+        )} spent`}
+      />
       <p className="text-muted-foreground mt-1.5 text-[11px]">
         {status.isOver
           ? `Over by ${formatCurrency(-status.remaining, false, hideAmounts)}`
@@ -491,8 +486,13 @@ function BudgetCard({
                   />
                 </div>
                 <span
-                  className={`w-28 shrink-0 text-right ${h.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
+                  className={`flex w-32 shrink-0 items-center justify-end gap-1 text-right ${h.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
                 >
+                  {h.isOver ? (
+                    <AlertTriangle size={10} aria-label="Over budget" />
+                  ) : (
+                    <Check size={10} aria-label="Within budget" />
+                  )}
                   {formatCurrency(h.spent, true, hideAmounts)} /{' '}
                   {formatCurrency(h.limit, true, hideAmounts)}
                 </span>

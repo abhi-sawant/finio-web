@@ -91,6 +91,15 @@ export const TransactionItem = memo(function TransactionItem({
   const amountPrefix =
     transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '';
 
+  // The sign and the tint are the only visual cue for which way money moved, and a transfer
+  // has neither — so name the type for assistive tech.
+  const typeLabel =
+    transaction.type === 'income'
+      ? 'Income'
+      : transaction.type === 'expense'
+        ? 'Expense'
+        : 'Transfer';
+
   const splitTitle = isSplit
     ? transaction
         .splits!.map((s) => categories.find((c) => c.id === s.categoryId)?.name ?? 'Unknown')
@@ -132,6 +141,7 @@ export const TransactionItem = memo(function TransactionItem({
           </p>
         </div>
         <p className={`text-sm font-semibold ${amountColor}`}>
+          <span className="sr-only">{typeLabel}: </span>
           {amountPrefix}
           {formatCurrency(transaction.amount, false, hideAmounts)}
         </p>

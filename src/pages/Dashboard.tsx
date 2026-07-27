@@ -32,7 +32,9 @@ import {
   computeBudgetStatuses,
   computeGoalStatus,
   computePersonBalance,
+  BUDGET_NEAR_LIMIT_PERCENT,
 } from '@/utils/calculations';
+import { BudgetHealthBadge, BudgetProgressBar } from '@/components/budgets/BudgetHealthBadge';
 import { GoalIcon } from '@/components/goals/GoalIcon';
 import { PersonIcon } from '@/components/people/PersonIcon';
 import { PERIOD_LABELS, normalizeMonthStartDay } from '@/utils/period';
@@ -100,7 +102,7 @@ export default function Dashboard() {
     [allBudgetStatuses],
   );
   const nearLimitBudgets = useMemo(
-    () => allBudgetStatuses.filter((s) => s.percent >= 85),
+    () => allBudgetStatuses.filter((s) => s.percent >= BUDGET_NEAR_LIMIT_PERCENT),
     [allBudgetStatuses],
   );
   const upcomingRecurring = useMemo(() => {
@@ -298,23 +300,27 @@ export default function Dashboard() {
                     : (categories.find((c) => c.id === s.budget.categoryId)?.name ?? 'Unknown');
                 return (
                   <div key={s.budget.id}>
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-xs font-medium">{label}</span>
-                      <span
-                        className={`text-xs font-semibold ${s.isOver ? 'text-rose-500' : 'text-amber-500'}`}
-                      >
-                        {Math.round(s.percent)}%
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-medium">{label}</span>
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        <BudgetHealthBadge status={s} />
+                        <span
+                          className={`text-xs font-semibold ${s.isOver ? 'text-rose-500' : 'text-amber-500'}`}
+                        >
+                          {Math.round(s.percent)}%
+                        </span>
                       </span>
                     </div>
-                    <div className="bg-muted h-1.5 overflow-hidden rounded-full">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.min(s.percent, 100)}%`,
-                          backgroundImage: s.isOver ? 'var(--grad-danger)' : 'var(--grad-warning)',
-                        }}
-                      />
-                    </div>
+                    <BudgetProgressBar
+                      status={s}
+                      okFill="var(--grad-warning)"
+                      className="h-1.5"
+                      valueText={`${label}: ${formatCurrency(s.spent, true, hideAmounts)} of ${formatCurrency(
+                        s.limit,
+                        true,
+                        hideAmounts,
+                      )} spent`}
+                    />
                   </div>
                 );
               })}
@@ -335,26 +341,25 @@ export default function Dashboard() {
                   {PERIOD_LABELS[overallBudget.budget.period]} Budget
                 </span>
               </div>
-              <span
-                className={`text-xs font-medium ${overallBudget.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
-              >
-                {formatCurrency(overallBudget.spent, true, hideAmounts)} /{' '}
-                {formatCurrency(overallBudget.limit, true, hideAmounts)}
+              <span className="flex shrink-0 items-center gap-1.5">
+                <BudgetHealthBadge status={overallBudget} />
+                <span
+                  className={`text-xs font-medium ${overallBudget.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
+                >
+                  {formatCurrency(overallBudget.spent, true, hideAmounts)} /{' '}
+                  {formatCurrency(overallBudget.limit, true, hideAmounts)}
+                </span>
               </span>
             </div>
-            <div className="bg-muted h-2 overflow-hidden rounded-full">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${Math.min(overallBudget.percent, 100)}%`,
-                  backgroundImage: overallBudget.isOver
-                    ? 'var(--grad-danger)'
-                    : overallBudget.percent > 80
-                      ? 'var(--grad-warning)'
-                      : 'var(--grad-primary)',
-                }}
-              />
-            </div>
+            <BudgetProgressBar
+              status={overallBudget}
+              okFill="var(--grad-primary)"
+              valueText={`${formatCurrency(overallBudget.spent, true, hideAmounts)} of ${formatCurrency(
+                overallBudget.limit,
+                true,
+                hideAmounts,
+              )} spent`}
+            />
           </button>
         )}
 

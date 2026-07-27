@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildSearchIndex,
+  budgetHealth,
   budgetScopeKey,
+  BUDGET_NEAR_LIMIT_PERCENT,
   computeBudgetHistory,
   computeBudgetStatuses,
   computeGoalStatus,
@@ -194,6 +196,33 @@ describe('computeBudgetStatuses', () => {
     const [unused] = computeBudgetStatuses([budget('cat-99', 500)], monthTxns, IN_JUNE);
     expect(unused.spent).toBe(0);
     expect(unused.remaining).toBe(500);
+  });
+});
+
+describe('budgetHealth', () => {
+  it('calls an exceeded budget over, whatever the percentage', () => {
+    expect(budgetHealth({ isOver: true, percent: 101 })).toBe('over');
+    // Rollover debt can push a budget over its limit while percent stays modest.
+    expect(budgetHealth({ isOver: true, percent: 40 })).toBe('over');
+  });
+
+  it('warns from the near-limit threshold up, and not below it', () => {
+    expect(budgetHealth({ isOver: false, percent: BUDGET_NEAR_LIMIT_PERCENT })).toBe('near');
+    expect(budgetHealth({ isOver: false, percent: BUDGET_NEAR_LIMIT_PERCENT - 0.1 })).toBe('ok');
+  });
+
+  it('treats a fully-spent-but-not-over budget as near, not over', () => {
+    expect(budgetHealth({ isOver: false, percent: 100 })).toBe('near');
+  });
+
+  it('agrees with computeBudgetStatuses on a real budget', () => {
+    const txns = [tx({ type: 'expense', amount: 500, categoryId: 'cat-1' })];
+
+    const [tight] = computeBudgetStatuses([budget('cat-1', 400)], txns, IN_JUNE);
+    expect(budgetHealth(tight)).toBe('over');
+
+    const [roomy] = computeBudgetStatuses([budget('cat-1', 1000)], txns, IN_JUNE);
+    expect(budgetHealth(roomy)).toBe('ok');
   });
 });
 
@@ -657,7 +686,7 @@ describe('getCreditCardDueInfo', () => {
     expect(getCreditCardDueInfo(account)).toBeNull();
   });
 
-  it('anchors to this month\'s close day once it has passed', () => {
+  it("anchors to this month's close day once it has passed", () => {
     const account = creditAccount({ balance: -1000, statementCloseDay: 5, paymentDueDays: 20 });
     const info = getCreditCardDueInfo(account, at(2026, 7, 10));
     expect(info?.dueDate).toEqual(at(2026, 7, 25, 0));

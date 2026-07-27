@@ -15,6 +15,8 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency } from '@/utils/formatters';
 import { buildCashFlowForecast } from '@/utils/forecast';
 import { Button } from '@/components/ui/button';
+import { ChartDataTable } from '@/components/charts/ChartDataTable';
+import { sampleForTable } from '@/utils/chartTable';
 
 const HORIZONS = [
   { days: 30, label: '30d' },
@@ -47,6 +49,7 @@ export function CashFlowForecast() {
   if (forecast.isEmpty) return null;
 
   const upcoming = forecast.scheduled.slice(0, 4);
+  const projectedTable = sampleForTable(forecast.points);
 
   return (
     <section className="card-elevated rounded-2xl p-4">
@@ -117,6 +120,20 @@ export function CashFlowForecast() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      <ChartDataTable
+        caption="Projected liquid balance by day"
+        columns={['Date', 'Projected balance']}
+        note={
+          projectedTable.sampled
+            ? `sampled to ${projectedTable.rows.length} of ${forecast.points.length} days`
+            : undefined
+        }
+        rows={projectedTable.rows.map((point) => ({
+          key: point.date.toISOString(),
+          cells: [format(point.date, 'd MMM'), money(point.balance)],
+        }))}
+      />
 
       <dl className="mt-3 grid grid-cols-3 gap-2">
         <div className="bg-muted/40 rounded-xl p-2.5">

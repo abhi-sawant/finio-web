@@ -16,6 +16,7 @@ import { formatCurrency, formatPercentChange } from '@/utils/formatters';
 import { buildNetWorthSeries } from '@/utils/netWorth';
 import { normalizeMonthStartDay } from '@/utils/period';
 import { Button } from '@/components/ui/button';
+import { ChartDataTable } from '@/components/charts/ChartDataTable';
 
 const RANGES = [
   { months: 6, label: '6m' },
@@ -133,6 +134,20 @@ export function NetWorthTrend() {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+
+      <ChartDataTable
+        caption="Net worth, assets and liabilities by month"
+        columns={['Month', 'Net worth', 'Assets', 'Liabilities']}
+        rows={series.map((point) => ({
+          key: point.key,
+          cells: [
+            format(point.date, 'MMM yy'),
+            money(point.netWorth),
+            money(point.assets),
+            money(point.liabilities),
+          ],
+        }))}
+      />
 
       <p className="text-muted-foreground mt-3 flex items-start gap-1.5 text-[10px]">
         <Camera size={11} className="mt-0.5 shrink-0" />
