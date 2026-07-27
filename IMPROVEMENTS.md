@@ -155,12 +155,19 @@ These are defects in a money app — they should land before any new feature wor
 ### Backend features with no UI
 
 All of these endpoints are implemented in PHP and wired up in
-[`src/services/api.ts`](src/services/api.ts), but nothing in the app calls them:
+[`src/services/api.ts`](src/services/api.ts):
 
-- [ ] **[S] Backup history** — `listBackups`, `getBackup(date)`, `deleteBackup`. A list of versions
-  with restore-by-date and delete. The hard part is already done.
-- [ ] **[S] Change password** — `updateProfile` with `current_password` / `new_password`.
-- [ ] **[S] Delete cloud account** — `api.deleteAccount`.
+- [x] **[S] Backup history** — Fixed: [`src/services/backup.ts`](src/services/backup.ts) gained
+  `listCloudBackups`, `restoreBackupByDate` and `deleteCloudBackup` wrappers (restore goes through
+  the same `validateBackup()` as every other cloud payload). Settings has a **Backup History**
+  dialog listing every version by date and size with per-row **Restore** (confirmed, since it
+  replaces local data) and delete.
+- [x] **[S] Change password** — Fixed: a **Change Password** dialog in Settings calls
+  `api.updateProfile` with `current_password`/`new_password` and stores the refreshed JWT the
+  endpoint returns via `setAuth`.
+- [x] **[S] Delete cloud account** — Fixed: a **Delete Cloud Account** dialog requires the account
+  password (the endpoint's own confirmation), calls `api.deleteAccount`, then clears local auth
+  state. Local finance data is unaffected — only the server-side account and its backups go.
 
 ---
 

@@ -84,6 +84,19 @@ export function formatOrdinal(value: number): string {
   }
 }
 
+/** Format a byte count as a human-readable size, e.g. 2_400 → "2.3 KB". */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB'];
+  let value = bytes / 1024;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex++;
+  }
+  return `${value.toFixed(1)} ${units[unitIndex]}`;
+}
+
 /** Format a 0..1 ratio as a +/- signed percentage. */
 export function formatPercentChange(ratio: number): string {
   const pct = Math.round(ratio * 100);

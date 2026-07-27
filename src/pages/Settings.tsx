@@ -20,10 +20,21 @@ import {
   Scale,
   AlertTriangle,
   CalendarRange,
+  History,
+  KeyRound,
+  Trash2,
+  UserX,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { uploadBackup, restoreLatestBackup, saveLocalBackup } from '@/services/backup';
+import {
+  uploadBackup,
+  restoreLatestBackup,
+  saveLocalBackup,
+  listCloudBackups,
+  restoreBackupByDate,
+  deleteCloudBackup,
+} from '@/services/backup';
 import {
   chooseBackupFolder,
   clearBackupFolder,
@@ -33,6 +44,7 @@ import {
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -55,7 +67,7 @@ import {
   validateBackup,
   type ValidatedBackup,
 } from '@/utils/importValidation';
-import { formatCurrency, formatOrdinal } from '@/utils/formatters';
+import { formatCurrency, formatOrdinal, formatFileSize, formatFullDate } from '@/utils/formatters';
 import {
   MAX_MONTH_START_DAY,
   MIN_MONTH_START_DAY,
@@ -101,6 +113,23 @@ export default function Settings() {
   const [showFolderSetupInfo, setShowFolderSetupInfo] = useState(false);
   const [preview, setPreview] = useState<(ValidatedBackup & { file: File }) | null>(null);
   const [showMonthStartPicker, setShowMonthStartPicker] = useState(false);
+
+  const [showBackupHistory, setShowBackupHistory] = useState(false);
+  const [backupList, setBackupList] = useState<
+    Array<{ backup_date: string; file_size: number; created_at: string }> | null
+  >(null);
+  const [backupListLoading, setBackupListLoading] = useState(false);
+  const [busyBackupDate, setBusyBackupDate] = useState<string | null>(null);
+
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const monthStartDay = normalizeMonthStartDay(settings.monthStartDay);
   const currentCycleLabel = periodLabel(
@@ -234,6 +263,103 @@ export default function Settings() {
     }
   };
 
+  const openBackupHistory = async () => {
+    setShowBackupHistory(true);
+    setBackupListLoading(true);
+    try {
+      const backups = await listCloudBackups();
+      setBackupList(backups);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load backup history');
+      setBackupList([]);
+    } finally {
+      setBackupListLoading(false);
+    }
+  };
+
+  const handleRestoreBackupDate = async (date: string) => {
+    const confirmed = await confirm({
+      title: `Restore backup from ${formatFullDate(date)}?`,
+      description: 'Your current data will be replaced by this backup.',
+      confirmLabel: 'Restore',
+    });
+    if (!confirmed) return;
+    setBusyBackupDate(date);
+    try {
+      await restoreBackupByDate(date);
+      toast.success('Data restored from backup');
+      setShowBackupHistory(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Restore failed');
+    } finally {
+      setBusyBackupDate(null);
+    }
+  };
+
+  const handleDeleteBackupDate = async (date: string) => {
+    const confirmed = await confirm({
+      title: `Delete backup from ${formatFullDate(date)}?`,
+      description: 'This backup will be permanently removed from the server.',
+      confirmLabel: 'Delete',
+    });
+    if (!confirmed) return;
+    setBusyBackupDate(date);
+    try {
+      await deleteCloudBackup(date);
+      setBackupList((list) => list?.filter((b) => b.backup_date !== date) ?? null);
+      toast.success('Backup deleted');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setBusyBackupDate(null);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    if (!token) return;
+    setChangingPassword(true);
+    try {
+      const res = await api.updateProfile(token, {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      setAuth(res.token, res.user);
+      toast.success('Password changed');
+      setShowChangePassword(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to change password');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleDeleteCloudAccount = async () => {
+    if (!token || !deleteAccountPassword) return;
+    setDeletingAccount(true);
+    try {
+      await api.deleteAccount(token, deleteAccountPassword);
+      clearAuth();
+      setShowDeleteAccount(false);
+      setDeleteAccountPassword('');
+      toast.success('Cloud account and backups permanently deleted');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete account');
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const handleNameSave = async (newName: string) => {
     const trimmed = newName.trim() || 'User';
     updateSettings({ userName: trimmed });
@@ -281,11 +407,25 @@ export default function Settings() {
                 </div>
               </div>
               <button
+                onClick={() => setShowChangePassword(true)}
+                className="hover:bg-muted/50 flex w-full items-center gap-3 p-4 transition-colors"
+              >
+                <KeyRound size={18} className="text-muted-foreground" />
+                <span className="text-sm font-medium">Change Password</span>
+              </button>
+              <button
                 onClick={handleLogout}
                 className="hover:bg-muted/50 flex w-full items-center gap-3 p-4 transition-colors"
               >
                 <LogOut size={18} className="text-destructive" />
                 <span className="text-destructive text-sm font-medium">Sign Out</span>
+              </button>
+              <button
+                onClick={() => setShowDeleteAccount(true)}
+                className="hover:bg-muted/50 flex w-full items-center gap-3 p-4 transition-colors"
+              >
+                <UserX size={18} className="text-destructive" />
+                <span className="text-destructive text-sm font-medium">Delete Cloud Account</span>
               </button>
             </>
           ) : (
@@ -336,6 +476,13 @@ export default function Settings() {
               <span className="text-sm font-medium">
                 {restoring ? 'Restoring...' : 'Restore from Cloud'}
               </span>
+            </button>
+            <button
+              onClick={openBackupHistory}
+              className="flex w-full items-center gap-3 p-4"
+            >
+              <History size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">Backup History</span>
             </button>
           </div>
         )}
@@ -670,6 +817,152 @@ export default function Settings() {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Backup history */}
+        <Dialog open={showBackupHistory} onOpenChange={setShowBackupHistory}>
+          <DialogContent className="bg-card mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-2xl sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Backup History</DialogTitle>
+              <DialogDescription>Every backup version stored on the server.</DialogDescription>
+            </DialogHeader>
+
+            {backupListLoading ? (
+              <p className="text-muted-foreground py-6 text-center text-sm">Loading...</p>
+            ) : !backupList || backupList.length === 0 ? (
+              <p className="text-muted-foreground py-6 text-center text-sm">No backups found</p>
+            ) : (
+              <ul className="divide-border divide-y text-sm">
+                {backupList.map((backup) => (
+                  <li key={backup.backup_date} className="flex items-center justify-between py-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{formatFullDate(backup.backup_date)}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {formatFileSize(backup.file_size)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <Button
+                        variant="secondary"
+                        disabled={busyBackupDate === backup.backup_date}
+                        onClick={() => handleRestoreBackupDate(backup.backup_date)}
+                        className="bg-muted h-auto rounded-lg px-3 py-1.5 text-xs font-medium"
+                      >
+                        Restore
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={busyBackupDate === backup.backup_date}
+                        onClick={() => handleDeleteBackupDate(backup.backup_date)}
+                        className="text-destructive h-8 w-8 rounded-lg"
+                      >
+                        <Trash2 size={15} />
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Change password */}
+        <Dialog
+          open={showChangePassword}
+          onOpenChange={(open) => {
+            setShowChangePassword(open);
+            if (!open) {
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+            }
+          }}
+        >
+          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Change Password</DialogTitle>
+              <DialogDescription>Sign in on other devices again after this.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium">Current Password</Label>
+                <Input
+                  type="password"
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="bg-muted h-auto rounded-lg border-0 px-3 py-2"
+                />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium">New Password</Label>
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Min 8 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="bg-muted h-auto rounded-lg border-0 px-3 py-2"
+                />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium">Confirm New Password</Label>
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="bg-muted h-auto rounded-lg border-0 px-3 py-2"
+                />
+              </div>
+              <Button
+                onClick={handleChangePassword}
+                disabled={changingPassword || !currentPassword || !newPassword}
+                className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {changingPassword ? 'Changing...' : 'Change Password'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete cloud account */}
+        <Dialog
+          open={showDeleteAccount}
+          onOpenChange={(open) => {
+            setShowDeleteAccount(open);
+            if (!open) setDeleteAccountPassword('');
+          }}
+        >
+          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete Cloud Account?</DialogTitle>
+              <DialogDescription>
+                Your account and every backup on the server will be permanently deleted. This
+                cannot be undone. Finance data on this device is not affected.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label className="mb-1.5 block text-xs font-medium">Confirm Password</Label>
+                <Input
+                  type="password"
+                  autoComplete="current-password"
+                  value={deleteAccountPassword}
+                  onChange={(e) => setDeleteAccountPassword(e.target.value)}
+                  className="bg-muted h-auto rounded-lg border-0 px-3 py-2"
+                />
+              </div>
+              <Button
+                onClick={handleDeleteCloudAccount}
+                disabled={deletingAccount || !deleteAccountPassword}
+                className="bg-destructive h-auto w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {deletingAccount ? 'Deleting...' : 'Permanently Delete Account'}
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
 
