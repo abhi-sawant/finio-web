@@ -92,13 +92,29 @@ These are defects in a money app — they should land before any new feature wor
   `transactionMatchesQuery(tx, query, index)` in [`src/utils/calculations.ts`](src/utils/calculations.ts)
   and now covers note, category, both sides of a transfer's accounts, labels, and amount.
   Amount matching strips grouping and currency symbols, so `₹1,200` finds `1200`.
-- [ ] **[M] Recurring rules can only be created and deleted.** No edit, no pause, no end date, no
-  occurrence count, no transfer support. A rule with an old `startDate` also retroactively injects
-  hundreds of transactions and moves balances with no preview or confirmation.
-- [ ] **[M] Budgets are monthly-only.** No weekly/yearly period, no rollover of unspent amounts, no
-  per-label budgets, no budget history ("did I hit it last month?").
-- [ ] **[S] Custom month start day.** All "this month" math hardcodes the calendar month. People on
-  a 25th-of-the-month salary cycle need budget periods to match.
+- [x] **[M] Recurring rules can only be created and deleted.** Fixed: rules now have a full
+  lifecycle. [`src/store/recurring.ts`](src/store/recurring.ts) gained `pausedAt`, `endDate`,
+  `maxOccurrences`/`occurrenceCount` and transfer support (a transfer rule needs both accounts to
+  still exist), plus `nextDueDate`, `isRuleFinished` and `lastOccurrenceOnOrBefore`. The Recurring
+  page edits a rule in place, pauses/resumes it, and shows next-due / "3 of 12" / "until 31 Dec" on
+  each card. A rule dated in the past no longer injects transactions silently: `previewBackfill()`
+  feeds a dialog that names the count, the total and the first date, and offers **Add them**,
+  **Start from today** (parks `lastRunDate` on the last past occurrence, keeping the cadence
+  anchored to `startDate`) or **Cancel**. The Dashboard's upcoming-bills card reuses `nextDueDate`
+  so paused and finished rules drop out of it.
+- [x] **[M] Budgets are monthly-only.** Fixed: `Budget` gained `period` (weekly/monthly/yearly),
+  `rollover` and `labelId`. Statuses come from
+  `computeBudgetStatuses(budgets, transactions, { monthStartDay })`, which slices each budget by its
+  own period; rollover carries the previous period's balance forward — signed, so an overspend
+  carries as a debt — over at most `MAX_ROLLOVER_LOOKBACK` periods and never past the budget's
+  creation. `computeBudgetHistory()` answers "did I hit it last month?" and renders as a collapsible
+  per-period bar list on each card. Budgets are also editable now, and one limit per scope
+  (`budgetScopeKey`) keeps overall / category / label budgets from double-counting.
+- [x] **[S] Custom month start day.** Fixed: `Settings.monthStartDay` (1–28) drives a new
+  [`src/utils/period.ts`](src/utils/period.ts) — `periodRange`, `shiftPeriod`, `periodLabel`,
+  day-count helpers — that every month window now goes through: Dashboard totals and daily-average
+  pacing, monthly budgets, and the Analytics month/quarter/year filters. Settings picks the day from
+  a 28-day grid and shows the resulting cycle ("25 Jul – 24 Aug 2026").
 - [x] **[S] Archive accounts instead of deleting.** Fixed: `Account.archivedAt` marks a closed
   account. Transactions, balances and recurring rules survive; the account drops out of every
   running total (`activeAccounts()` in [`src/utils/calculations.ts`](src/utils/calculations.ts)
@@ -222,6 +238,8 @@ All of these endpoints are implemented in PHP and wired up in
    auto-categorization if new-user onboarding matters more.
 3. **Backup history UI** — nearly free, the backend already supports it.
 4. ~~**Section 2 quick wins** — search breadth, `AlertDialog` instead of `confirm()`, archive
-   accounts.~~ **Done**, plus onboarding. What remains in section 2 is the larger work: recurring
-   rule lifecycle, budget periods, custom month start day, credit card lifecycle, and the three
+   accounts.~~ **Done**, plus onboarding.
+5. ~~**Period work** — custom month start day, budget periods/rollover/history, recurring rule
+   lifecycle.~~ **Done.** The month start day landed first because budget periods are built on the
+   same `period.ts` engine. What remains in section 2 is the credit card lifecycle and the three
    backend-backed UIs.

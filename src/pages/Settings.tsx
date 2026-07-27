@@ -19,6 +19,7 @@ import {
   HardDrive,
   Scale,
   AlertTriangle,
+  CalendarRange,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -54,7 +55,14 @@ import {
   validateBackup,
   type ValidatedBackup,
 } from '@/utils/importValidation';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, formatOrdinal } from '@/utils/formatters';
+import {
+  MAX_MONTH_START_DAY,
+  MIN_MONTH_START_DAY,
+  normalizeMonthStartDay,
+  periodLabel,
+  periodRange,
+} from '@/utils/period';
 import type { ImportMode, Theme } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -64,6 +72,11 @@ const themes: { value: Theme; label: string }[] = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
 ];
+
+const monthStartDays = Array.from(
+  { length: MAX_MONTH_START_DAY - MIN_MONTH_START_DAY + 1 },
+  (_, i) => MIN_MONTH_START_DAY + i,
+);
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -87,6 +100,13 @@ export default function Settings() {
   const [backupFolderName, setBackupFolderName] = useState<string | null>(null);
   const [showFolderSetupInfo, setShowFolderSetupInfo] = useState(false);
   const [preview, setPreview] = useState<(ValidatedBackup & { file: File }) | null>(null);
+  const [showMonthStartPicker, setShowMonthStartPicker] = useState(false);
+
+  const monthStartDay = normalizeMonthStartDay(settings.monthStartDay);
+  const currentCycleLabel = periodLabel(
+    periodRange('monthly', new Date(), monthStartDay),
+    monthStartDay,
+  );
 
   useEffect(() => {
     if (!isFolderPickerSupported()) return;
@@ -369,6 +389,57 @@ export default function Settings() {
               </SelectContent>
             </Select>
           </div>
+          <div className="flex items-center justify-between gap-3 p-4">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <CalendarRange size={18} className="text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Month starts on</p>
+                <p className="text-muted-foreground truncate text-xs">
+                  Current cycle: {currentCycleLabel}
+                </p>
+              </div>
+            </div>
+            {/* A grid beats a 28-item dropdown here — every day is one tap away. */}
+            <button
+              onClick={() => setShowMonthStartPicker(true)}
+              className="bg-muted shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium"
+            >
+              {formatOrdinal(monthStartDay)}
+            </button>
+          </div>
+
+          <Dialog open={showMonthStartPicker} onOpenChange={setShowMonthStartPicker}>
+            <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Month starts on</DialogTitle>
+                <DialogDescription>
+                  Every "this month" total and monthly budget will run from this day to the day
+                  before it in the next month.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-7 gap-1.5">
+                {monthStartDays.map((day) => (
+                  <button
+                    key={day}
+                    onClick={() => {
+                      updateSettings({ monthStartDay: day });
+                      setShowMonthStartPicker(false);
+                    }}
+                    className={`rounded-lg py-2 text-sm font-medium transition-colors ${
+                      day === monthStartDay
+                        ? 'bg-grad-primary text-white'
+                        : 'bg-muted hover:bg-muted/70'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Days after the 28th aren't offered — they don't exist in every month.
+              </p>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Manage */}
