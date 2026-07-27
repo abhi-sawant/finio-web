@@ -490,6 +490,98 @@ describe('deleteAccount clears dangling goal links', () => {
   });
 });
 
+describe('addPerson / updatePerson / deletePerson', () => {
+  it('creates a person and returns its id', () => {
+    const id = useFinanceStore.getState().addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+
+    const [created] = useFinanceStore.getState().people;
+    expect(created.id).toBe(id);
+    expect(created.name).toBe('Rahul');
+    expect(created.createdAt).toEqual(expect.any(String));
+  });
+
+  it('updates only the given fields', () => {
+    const id = useFinanceStore.getState().addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+
+    useFinanceStore.getState().updatePerson(id, { name: 'Rahul Sharma' });
+    const [updated] = useFinanceStore.getState().people;
+    expect(updated.name).toBe('Rahul Sharma');
+    expect(updated.icon).toBe('user');
+  });
+
+  it('deleting a person removes every debt entry logged against them, not other people', () => {
+    const id = useFinanceStore.getState().addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+    const otherId = useFinanceStore
+      .getState()
+      .addPerson({ name: 'Priya', icon: 'user', color: '#f59e0b' });
+    useFinanceStore.getState().addDebtEntry({ personId: id, amount: 500, date: '', note: '' });
+    useFinanceStore.getState().addDebtEntry({ personId: otherId, amount: 200, date: '', note: '' });
+
+    useFinanceStore.getState().deletePerson(id);
+
+    const state = useFinanceStore.getState();
+    expect(state.people.map((p) => p.id)).toEqual([otherId]);
+    expect(state.debtEntries.map((e) => e.personId)).toEqual([otherId]);
+  });
+
+  it('is cleared by resetToDefaults, same as every other finance collection', () => {
+    const id = useFinanceStore.getState().addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+    useFinanceStore.getState().addDebtEntry({ personId: id, amount: 500, date: '', note: '' });
+
+    useFinanceStore.getState().resetToDefaults();
+    expect(useFinanceStore.getState().people).toEqual([]);
+    expect(useFinanceStore.getState().debtEntries).toEqual([]);
+  });
+});
+
+describe('addDebtEntry / deleteDebtEntry / restoreDebtEntry', () => {
+  it('adds an entry and returns its id', () => {
+    const id = useFinanceStore
+      .getState()
+      .addDebtEntry({ personId: 'person-1', amount: 500, date: '2026-01-05', note: 'Lunch' });
+
+    const [created] = useFinanceStore.getState().debtEntries;
+    expect(created.id).toBe(id);
+    expect(created.amount).toBe(500);
+    expect(created.createdAt).toEqual(expect.any(String));
+  });
+
+  it('deletes an entry and returns the removed row for undo', () => {
+    const id = useFinanceStore
+      .getState()
+      .addDebtEntry({ personId: 'person-1', amount: 500, date: '2026-01-05', note: '' });
+
+    const removed = useFinanceStore.getState().deleteDebtEntry(id);
+    expect(removed?.id).toBe(id);
+    expect(useFinanceStore.getState().debtEntries).toEqual([]);
+  });
+
+  it('returns null when deleting an entry that no longer exists', () => {
+    expect(useFinanceStore.getState().deleteDebtEntry('missing')).toBeNull();
+  });
+
+  it('restoreDebtEntry re-inserts the exact row deleted, verbatim', () => {
+    const id = useFinanceStore
+      .getState()
+      .addDebtEntry({ personId: 'person-1', amount: 500, date: '2026-01-05', note: 'Lunch' });
+    const removed = useFinanceStore.getState().deleteDebtEntry(id)!;
+
+    useFinanceStore.getState().restoreDebtEntry(removed);
+    expect(useFinanceStore.getState().debtEntries).toEqual([removed]);
+  });
+
+  it('guards against a double undo re-inserting the same entry twice', () => {
+    const id = useFinanceStore
+      .getState()
+      .addDebtEntry({ personId: 'person-1', amount: 500, date: '2026-01-05', note: '' });
+    const removed = useFinanceStore.getState().deleteDebtEntry(id)!;
+
+    useFinanceStore.getState().restoreDebtEntry(removed);
+    useFinanceStore.getState().restoreDebtEntry(removed);
+    expect(useFinanceStore.getState().debtEntries).toHaveLength(1);
+  });
+});
+
 describe('importData', () => {
   const payload: ImportPayload = {
     accounts: [account('imported', 0, 1000)],
@@ -585,6 +677,41 @@ describe('importData', () => {
     const state = useFinanceStore.getState();
     expect(state.goals.map((g) => g.id).sort()).toEqual([localId, 'imported-goal'].sort());
     expect(state.goalContributions.map((c) => c.id)).toEqual(['imported-contrib']);
+  });
+
+  it('merges people and debt entries by id, same as every other collection', () => {
+    const localId = useFinanceStore
+      .getState()
+      .addPerson({ name: 'Local Person', icon: 'user', color: '#6C63FF' });
+
+    useFinanceStore.getState().importData(
+      {
+        people: [
+          {
+            id: 'imported-person',
+            name: 'Imported Person',
+            icon: 'handshake',
+            color: '#f59e0b',
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        debtEntries: [
+          {
+            id: 'imported-entry',
+            personId: 'imported-person',
+            amount: 500,
+            date: '2026-01-02T00:00:00.000Z',
+            note: '',
+            createdAt: '2026-01-02T00:00:00.000Z',
+          },
+        ],
+      },
+      { mode: 'merge' },
+    );
+
+    const state = useFinanceStore.getState();
+    expect(state.people.map((p) => p.id).sort()).toEqual([localId, 'imported-person'].sort());
+    expect(state.debtEntries.map((e) => e.id)).toEqual(['imported-entry']);
   });
 });
 
@@ -774,6 +901,34 @@ describe('v9 migration', () => {
 
     expect(state.goals).toEqual([]);
     expect(state.goalContributions).toEqual([]);
+  });
+});
+
+describe('v10 migration', () => {
+  it('seeds empty people and debtEntries arrays for pre-v10 state', async () => {
+    backing.set(
+      'finio-storage',
+      JSON.stringify({
+        version: 9,
+        state: {
+          accounts: [account('a', 100)],
+          transactions: [],
+          settings: {
+            theme: 'dark',
+            userName: 'Alex',
+            autoLocalBackup: false,
+            monthStartDay: 1,
+            hideAmounts: false,
+          },
+        },
+      }),
+    );
+
+    await useFinanceStore.persist.rehydrate();
+    const state = useFinanceStore.getState();
+
+    expect(state.people).toEqual([]);
+    expect(state.debtEntries).toEqual([]);
   });
 });
 

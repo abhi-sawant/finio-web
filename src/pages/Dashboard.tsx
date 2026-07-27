@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Repeat,
   CreditCard,
+  HandCoins,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency, formatPercentChange } from '@/utils/formatters';
@@ -30,8 +31,10 @@ import {
   sortTransactionsDateDesc,
   computeBudgetStatuses,
   computeGoalStatus,
+  computePersonBalance,
 } from '@/utils/calculations';
 import { GoalIcon } from '@/components/goals/GoalIcon';
+import { PersonIcon } from '@/components/people/PersonIcon';
 import { PERIOD_LABELS, normalizeMonthStartDay } from '@/utils/period';
 import { isRulePaused, nextDueDate } from '@/store/recurring';
 
@@ -59,6 +62,8 @@ export default function Dashboard() {
   const recurring = useFinanceStore((s) => s.recurring);
   const goals = useFinanceStore((s) => s.goals);
   const goalContributions = useFinanceStore((s) => s.goalContributions);
+  const people = useFinanceStore((s) => s.people);
+  const debtEntries = useFinanceStore((s) => s.debtEntries);
   const userName = useFinanceStore((s) => s.settings.userName);
   const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
 
@@ -120,6 +125,16 @@ export default function Dashboard() {
         .sort((a, b) => b.percent - a.percent)
         .slice(0, 2),
     [goals, goalContributions],
+  );
+  // Anyone with an open balance, biggest first — settled-up people have nothing to show.
+  const topDebts = useMemo(
+    () =>
+      people
+        .map((p) => computePersonBalance(p, debtEntries))
+        .filter((s) => s.balance !== 0)
+        .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance))
+        .slice(0, 3),
+    [people, debtEntries],
   );
   const creditDues = useMemo(() => {
     return openAccounts
@@ -377,6 +392,42 @@ export default function Dashboard() {
                       }}
                     />
                   </div>
+                </div>
+              ))}
+            </div>
+          </button>
+        )}
+
+        {/* Debts & lending — shown for the biggest open balances */}
+        {topDebts.length > 0 && (
+          <button
+            onClick={() => navigate('/debts')}
+            className="card-elevated w-full rounded-2xl p-4 text-left"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <div className="bg-grad-primary-soft flex h-6 w-6 items-center justify-center rounded-full">
+                <HandCoins size={13} className="text-primary" />
+              </div>
+              <span className="text-sm font-semibold">Debts & Lending</span>
+            </div>
+            <div className="space-y-2.5">
+              {topDebts.map((s) => (
+                <div key={s.person.id} className="flex items-center gap-3">
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                    style={{
+                      backgroundImage: `linear-gradient(135deg, ${s.person.color}, ${s.person.color}cc)`,
+                    }}
+                  >
+                    <PersonIcon icon={s.person.icon} size={14} color="white" />
+                  </div>
+                  <p className="min-w-0 flex-1 truncate text-xs font-medium">{s.person.name}</p>
+                  <p
+                    className={`shrink-0 text-xs font-semibold ${s.balance > 0 ? 'text-emerald-500' : 'text-rose-500'}`}
+                  >
+                    {s.balance > 0 ? 'Owes you ' : 'You owe '}
+                    {formatCurrency(Math.abs(s.balance), true, hideAmounts)}
+                  </p>
                 </div>
               ))}
             </div>

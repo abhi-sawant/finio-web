@@ -5,13 +5,26 @@ import {
   computeBudgetHistory,
   computeBudgetStatuses,
   computeGoalStatus,
+  computePersonBalance,
   getCreditCardDueInfo,
   getCreditUtilization,
   getCurrentMonthTransactions,
   getDashboardStats,
+  getTotalOwedToYou,
+  getTotalYouOwe,
   transactionMatchesQuery,
 } from './calculations';
-import type { Account, Budget, Category, Goal, GoalContribution, Label, Transaction } from '@/types';
+import type {
+  Account,
+  Budget,
+  Category,
+  DebtEntry,
+  Goal,
+  GoalContribution,
+  Label,
+  Person,
+  Transaction,
+} from '@/types';
 
 function creditAccount(partial: Partial<Account> = {}): Account {
   return {
@@ -59,6 +72,28 @@ function contribution(
   return {
     id: partial.id ?? `contrib-${partial.amount}`,
     goalId: 'goal-1',
+    date: '2026-01-05T00:00:00.000Z',
+    note: '',
+    createdAt: '2026-01-05T00:00:00.000Z',
+    ...partial,
+  };
+}
+
+function person(extra: Partial<Person> = {}): Person {
+  return {
+    id: 'person-1',
+    name: 'Rahul',
+    icon: 'user',
+    color: '#6C63FF',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...extra,
+  };
+}
+
+function debtEntry(partial: Partial<DebtEntry> & Pick<DebtEntry, 'amount'>): DebtEntry {
+  return {
+    id: partial.id ?? `entry-${partial.amount}`,
+    personId: 'person-1',
     date: '2026-01-05T00:00:00.000Z',
     note: '',
     createdAt: '2026-01-05T00:00:00.000Z',
@@ -584,5 +619,64 @@ describe('computeGoalStatus', () => {
       (status.projectedDate!.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
     );
     expect(daysAhead).toBe(270);
+  });
+});
+
+describe('computePersonBalance', () => {
+  it('sums only the entries logged against this person', () => {
+    const p = person();
+    const entries = [
+      debtEntry({ id: 'e1', amount: 500 }),
+      debtEntry({ id: 'e2', amount: 200 }),
+      debtEntry({ id: 'e3', amount: 100, personId: 'someone-else' }),
+    ];
+    const status = computePersonBalance(p, entries);
+    expect(status.balance).toBe(700);
+  });
+
+  it('nets negative entries (you owe them) against positive ones (they owe you)', () => {
+    const p = person();
+    const entries = [debtEntry({ id: 'e1', amount: 1000 }), debtEntry({ id: 'e2', amount: -400 })];
+    const status = computePersonBalance(p, entries);
+    expect(status.balance).toBe(600);
+  });
+
+  it('reports zero balance and null last activity with no entries', () => {
+    const status = computePersonBalance(person(), []);
+    expect(status.balance).toBe(0);
+    expect(status.lastActivity).toBeNull();
+  });
+
+  it('reports the most recent entry date as last activity', () => {
+    const entries = [
+      debtEntry({ id: 'e1', amount: 100, date: '2026-01-05T00:00:00.000Z' }),
+      debtEntry({ id: 'e2', amount: 100, date: '2026-02-10T00:00:00.000Z' }),
+      debtEntry({ id: 'e3', amount: 100, date: '2026-01-20T00:00:00.000Z' }),
+    ];
+    const status = computePersonBalance(person(), entries);
+    expect(status.lastActivity).toBe('2026-02-10T00:00:00.000Z');
+  });
+});
+
+describe('getTotalOwedToYou / getTotalYouOwe', () => {
+  it('sums positive balances as owed-to-you and negative balances (as positive) as you-owe', () => {
+    const people = [
+      person({ id: 'p1', name: 'Rahul' }),
+      person({ id: 'p2', name: 'Priya' }),
+      person({ id: 'p3', name: 'Settled' }),
+    ];
+    const entries = [
+      debtEntry({ id: 'e1', personId: 'p1', amount: 1000 }),
+      debtEntry({ id: 'e2', personId: 'p2', amount: -400 }),
+      debtEntry({ id: 'e3', personId: 'p3', amount: 200 }),
+      debtEntry({ id: 'e4', personId: 'p3', amount: -200 }),
+    ];
+    expect(getTotalOwedToYou(people, entries)).toBe(1000);
+    expect(getTotalYouOwe(people, entries)).toBe(400);
+  });
+
+  it('is zero for both totals with no people or entries', () => {
+    expect(getTotalOwedToYou([], [])).toBe(0);
+    expect(getTotalYouOwe([], [])).toBe(0);
   });
 });

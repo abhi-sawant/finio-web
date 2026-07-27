@@ -187,9 +187,22 @@ All of these endpoints are implemented in PHP and wired up in
   the reference. Backup export/import (local, cloud, and validation) all carry goals and
   contributions — this also fixed a pre-existing gap where `templates` wasn't included in either
   backup payload.
-- [ ] **[M] Debt / lending tracker.** The default labels already ship `Lending`, `Obligation`, and
-  `For Others` — that's a workaround for a missing feature. A "who owes me / who I owe" ledger with
-  per-person balances and a settle-up action that generates the transfer.
+- [x] **[M] Debt / lending tracker.** Fixed: `Person { name, icon, color }` sits beside `Goal`, and
+  `DebtEntry { personId, amount, date, note }` is the person's own manual ledger — signed (positive
+  = they owe you more, negative = you owe them more) and, like `GoalContribution`, independent of
+  accounts and transactions, so logging "I lent ₹500" can never corrupt a real balance.
+  [`src/utils/calculations.ts`](src/utils/calculations.ts) gained `computePersonBalance` plus
+  `getTotalOwedToYou`/`getTotalYouOwe`. The [Debts page](src/pages/Debts.tsx) reuses the Goals
+  page's card pattern — per-person balance, expandable entry history (delete + undo) — with **They
+  owe me** / **I owe them** buttons to log an entry. **Settle up** is the one moment real money
+  changes hands: it prompts for an amount and an account, then atomically creates a real
+  transaction (income if they owed you, expense if you owed them) via `addTransaction` and a
+  balancing `DebtEntry` stamped with `settledTransactionId`, so the repayment shows up in the
+  account's real history while the person's ledger nets back toward zero. The Dashboard gained a
+  "Debts & Lending" card for the biggest open balances, mirroring the Savings Goals card. Deleting
+  a person cascades their debt entries, same as deleting a goal cascades its contributions. Backup
+  export/import (local, cloud, and validation) carry people and debt entries alongside every other
+  entity, persisted-schema v10.
 - [ ] **[L] Split transactions.** One receipt across multiple categories (groceries + household +
   pharmacy). Needs `Transaction.splits?: {categoryId, amount}[]` and touches every aggregation, but
   it's the difference between roughly categorized and actually accurate.

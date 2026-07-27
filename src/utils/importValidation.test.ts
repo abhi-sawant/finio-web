@@ -328,4 +328,65 @@ describe('validateBackup', () => {
     });
     expect(report.warnings.some((w) => /goal that is not in this file/.test(w))).toBe(true);
   });
+
+  it('accepts a well-formed person and rejects one with no name', () => {
+    const validPerson = {
+      id: 'person-1',
+      name: 'Rahul',
+      icon: 'user',
+      color: '#6C63FF',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    const { data, report } = validateBackup({
+      people: [validPerson, { ...validPerson, id: 'person-2', name: '' }],
+    });
+    expect(data.people?.map((p) => p.id)).toEqual(['person-1']);
+    expect(report.counts.people).toEqual({ present: true, total: 2, accepted: 1, rejected: 1 });
+  });
+
+  it('accepts a well-formed debt entry and rejects one with a zero amount', () => {
+    const validEntry = {
+      id: 'entry-1',
+      personId: 'person-1',
+      amount: 500,
+      date: '2026-01-05T00:00:00.000Z',
+      note: 'Lunch money',
+      createdAt: '2026-01-05T00:00:00.000Z',
+    };
+    const { data, report } = validateBackup({
+      debtEntries: [validEntry, { ...validEntry, id: 'entry-2', amount: 0 }],
+    });
+    expect(data.debtEntries?.map((e) => e.id)).toEqual(['entry-1']);
+    expect(report.counts.debtEntries).toEqual({
+      present: true,
+      total: 2,
+      accepted: 1,
+      rejected: 1,
+    });
+  });
+
+  it('warns about debt entries pointing at a person the file does not contain', () => {
+    const { report } = validateBackup({
+      people: [
+        {
+          id: 'person-1',
+          name: 'Rahul',
+          icon: 'user',
+          color: '#6C63FF',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      debtEntries: [
+        {
+          id: 'entry-1',
+          personId: 'ghost-person',
+          amount: 500,
+          date: '2026-01-05T00:00:00.000Z',
+          note: '',
+          createdAt: '2026-01-05T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(report.warnings.some((w) => /person that is not in this file/.test(w))).toBe(true);
+  });
 });

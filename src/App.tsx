@@ -23,6 +23,7 @@ const ManageLabels = lazy(() => import('@/pages/ManageLabels'));
 const Budgets = lazy(() => import('@/pages/Budgets'));
 const Recurring = lazy(() => import('@/pages/Recurring'));
 const Goals = lazy(() => import('@/pages/Goals'));
+const Debts = lazy(() => import('@/pages/Debts'));
 const Login = lazy(() => import('@/pages/auth/Login'));
 const Register = lazy(() => import('@/pages/auth/Register'));
 const VerifyOtp = lazy(() => import('@/pages/auth/VerifyOtp'));
@@ -64,6 +65,7 @@ function AppRoutes() {
       <Route path="budgets" element={<Budgets />} />
       <Route path="recurring" element={<Recurring />} />
       <Route path="goals" element={<Goals />} />
+      <Route path="debts" element={<Debts />} />
       <Route path="login" element={<Login />} />
       <Route path="register" element={<Register />} />
       <Route path="verify-otp" element={<VerifyOtp />} />

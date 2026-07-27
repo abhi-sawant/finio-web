@@ -161,6 +161,32 @@ export interface GoalContribution {
   createdAt: string;
 }
 
+/** Someone you lend to or borrow from — a "who owes me / who I owe" ledger, per person. */
+export interface Person {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  createdAt: string;
+}
+
+/**
+ * A manual ledger entry against a person — independent of accounts and transactions, like a
+ * `GoalContribution`. Positive = they owe you more (you lent them money, or they owe you for
+ * something). Negative = you owe them more (you borrowed, or you owe them). A settle-up adds a
+ * balancing entry in the opposite direction and stamps `settledTransactionId` with the real
+ * transaction it generated, since settling is the one moment actual money changes hands.
+ */
+export interface DebtEntry {
+  id: string;
+  personId: string;
+  amount: number;
+  date: string;
+  note: string;
+  settledTransactionId?: string;
+  createdAt: string;
+}
+
 /** A saved shape for quickly re-adding a common transaction — everything but the date. */
 export interface TransactionTemplate {
   id: string;
@@ -186,6 +212,8 @@ export interface ImportPayload {
   templates?: TransactionTemplate[];
   goals?: Goal[];
   goalContributions?: GoalContribution[];
+  people?: Person[];
+  debtEntries?: DebtEntry[];
   settings?: Settings;
 }
 
@@ -201,6 +229,8 @@ export interface FinanceStore {
   templates: TransactionTemplate[];
   goals: Goal[];
   goalContributions: GoalContribution[];
+  people: Person[];
+  debtEntries: DebtEntry[];
   settings: Settings;
   isHydrated: boolean;
   /** ISO date (YYYY-MM-DD) of the last automatic local backup download, or null. */
@@ -253,6 +283,17 @@ export interface FinanceStore {
   deleteContribution: (id: string) => GoalContribution | null;
   /** Re-insert a previously deleted contribution verbatim — same id, no double-undo. */
   restoreContribution: (contribution: GoalContribution) => void;
+
+  addPerson: (person: Omit<Person, 'id' | 'createdAt'>) => string;
+  updatePerson: (id: string, updates: Partial<Omit<Person, 'id'>>) => void;
+  /** Removes the person and every debt entry logged against them. */
+  deletePerson: (id: string) => void;
+
+  addDebtEntry: (entry: Omit<DebtEntry, 'id' | 'createdAt'>) => string;
+  /** Removes the entry. Returns the removed row so callers can undo. */
+  deleteDebtEntry: (id: string) => DebtEntry | null;
+  /** Re-insert a previously deleted entry verbatim — same id, no double-undo. */
+  restoreDebtEntry: (entry: DebtEntry) => void;
 
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Omit<Category, 'id'>>) => void;
