@@ -282,6 +282,8 @@ export interface FinanceStore {
   bulkRecategorize: (ids: string[], categoryId: string) => void;
   /** Add a label to every listed transaction that doesn't already carry it. */
   bulkAddLabel: (ids: string[], labelId: string) => void;
+  /** Insert many transactions at once (e.g. from a CSV import). Returns how many were added. */
+  bulkAddTransactions: (transactions: Omit<Transaction, 'id' | 'createdAt'>[]) => number;
 
   /** Save a transaction's shape (everything but date) as a reusable template. */
   addTemplate: (template: Omit<TransactionTemplate, 'id' | 'createdAt'>) => string;

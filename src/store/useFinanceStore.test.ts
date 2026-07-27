@@ -330,6 +330,30 @@ describe('bulkRecategorize / bulkAddLabel', () => {
   });
 });
 
+describe('bulkAddTransactions', () => {
+  it('inserts every row with fresh ids/createdAt and applies balance deltas', () => {
+    seed([account('a', 1000)]);
+
+    const added = useFinanceStore.getState().bulkAddTransactions([
+      { type: 'expense', amount: 100, accountId: 'a', categoryId: 'cat-1', date: '2026-06-01T00:00:00.000Z', note: 'Coffee', labels: [] },
+      { type: 'income', amount: 5000, accountId: 'a', categoryId: 'cat-1', date: '2026-06-02T00:00:00.000Z', note: 'Salary', labels: [] },
+    ]);
+
+    expect(added).toBe(2);
+    const state = useFinanceStore.getState();
+    expect(state.transactions).toHaveLength(2);
+    expect(state.transactions.every((t) => t.id && t.createdAt)).toBe(true);
+    // 1000 - 100 (expense) + 5000 (income) = 5900.
+    expect(state.accounts[0].balance).toBe(5900);
+  });
+
+  it('returns 0 and changes nothing for an empty list', () => {
+    seed([account('a', 100)]);
+    expect(useFinanceStore.getState().bulkAddTransactions([])).toBe(0);
+    expect(useFinanceStore.getState().transactions).toHaveLength(0);
+  });
+});
+
 describe('deleteCategory with split transactions', () => {
   it('reassigns a dangling split entry to the fallback category', () => {
     seed(
