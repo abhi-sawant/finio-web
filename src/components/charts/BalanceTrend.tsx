@@ -12,6 +12,8 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { subDays, format, differenceInDays, startOfMonth, addMonths } from 'date-fns';
 import { formatCurrency } from '@/utils/formatters';
 import { getNetWorth } from '@/utils/calculations';
+import { sampleForTable } from '@/utils/chartTable';
+import { ChartDataTable } from './ChartDataTable';
 
 interface Props {
   from: Date;
@@ -95,10 +97,23 @@ export function BalanceTrend({ from, to }: Props) {
   const hasData = accounts.length > 0;
   if (!hasData) return null;
 
+  const first = data[0];
+  const last = data[data.length - 1];
+  const money = (value: number) => formatCurrency(value, true, hideAmounts);
+  const table = sampleForTable(data);
+
   return (
     <div className="card-elevated rounded-2xl p-4">
       <h3 className="mb-3 text-sm font-semibold">Balance Trend</h3>
-      <div className="h-44 lg:h-64">
+      <div
+        className="h-44 lg:h-64"
+        role="img"
+        aria-label={
+          first && last
+            ? `Balance from ${first.date} to ${last.date}, ${money(first.balance)} to ${money(last.balance)}.`
+            : 'Balance over time.'
+        }
+      >
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <defs>
@@ -137,6 +152,17 @@ export function BalanceTrend({ from, to }: Props) {
           </LineChart>
         </ResponsiveContainer>
       </div>
+      <ChartDataTable
+        caption="Balance over time"
+        columns={['Date', 'Balance']}
+        note={
+          table.sampled ? `sampled to ${table.rows.length} of ${data.length} points` : undefined
+        }
+        rows={table.rows.map((point) => ({
+          key: point.date,
+          cells: [point.date, money(point.balance)],
+        }))}
+      />
     </div>
   );
 }

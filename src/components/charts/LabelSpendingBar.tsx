@@ -34,19 +34,20 @@ export function LabelSpendingBar({ transactions }: Props) {
   return (
     <div className="card-elevated rounded-2xl p-4">
       <h3 className="mb-3 text-sm font-semibold">Spending by Label</h3>
-      <div className="space-y-2">
+      {/* The amount is already spelled out next to every label, so the bars are decorative. */}
+      <ul className="space-y-2">
         {data.map((item) => {
           const maxAmount = data[0]?.amount ?? 1;
           const width = (item.amount / maxAmount) * 100;
           return (
-            <div key={item.name} className="space-y-1">
+            <li key={item.name} className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">{item.name}</span>
                 <span className="font-medium">
                   {formatCurrency(item.amount, true, hideAmounts)}
                 </span>
               </div>
-              <div className="bg-muted h-2 overflow-hidden rounded-full">
+              <div aria-hidden className="bg-muted h-2 overflow-hidden rounded-full">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
@@ -55,10 +56,10 @@ export function LabelSpendingBar({ transactions }: Props) {
                   }}
                 />
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }

@@ -57,6 +57,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { SwitchField } from '@/components/ui/switch';
 import { useConfirm } from '@/components/ui/use-confirm';
 import {
   Select,
@@ -679,29 +680,14 @@ export default function Settings() {
 
         {/* Data */}
         <div className="card-elevated divide-border divide-y rounded-2xl">
-          <div className="flex items-center gap-3 p-4">
-            <HardDrive size={18} className="text-muted-foreground shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">Auto-download daily backup</p>
-              <p className="text-muted-foreground text-xs">
-                Download a backup JSON once per day when the app opens
-              </p>
-            </div>
-            <button
-              role="switch"
-              aria-checked={settings.autoLocalBackup}
-              onClick={() => updateSettings({ autoLocalBackup: !settings.autoLocalBackup })}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none ${
-                settings.autoLocalBackup ? 'bg-primary' : 'bg-muted'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-transform ${
-                  settings.autoLocalBackup ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
+          <SwitchField
+            className="p-4"
+            icon={<HardDrive size={18} className="text-muted-foreground shrink-0" />}
+            title="Auto-download daily backup"
+            description="Download a backup JSON once per day when the app opens"
+            checked={settings.autoLocalBackup}
+            onCheckedChange={(autoLocalBackup) => updateSettings({ autoLocalBackup })}
+          />
           {isFolderPickerSupported() && (
             <div className="flex items-center gap-3 p-4">
               <Folder size={18} className="text-muted-foreground shrink-0" />

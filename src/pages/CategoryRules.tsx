@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useConfirm } from '@/components/ui/use-confirm';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -256,21 +257,12 @@ export default function CategoryRules() {
                       </div>
 
                       <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          role="switch"
-                          aria-checked={rule.enabled}
-                          aria-label={rule.enabled ? 'Disable rule' : 'Enable rule'}
-                          onClick={() => updateRule(rule.id, { enabled: !rule.enabled })}
-                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                            rule.enabled ? 'bg-primary' : 'bg-muted'
-                          }`}
-                        >
-                          <span
-                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
-                              rule.enabled ? 'translate-x-4' : 'translate-x-0'
-                            }`}
-                          />
-                        </button>
+                        <Switch
+                          size="sm"
+                          checked={rule.enabled}
+                          onCheckedChange={(enabled) => updateRule(rule.id, { enabled })}
+                          aria-label={`Rule "${rule.pattern}" enabled`}
+                        />
                         <Button
                           variant="ghost"
                           size="icon"

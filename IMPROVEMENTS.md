@@ -343,11 +343,40 @@ All of these endpoints are implemented in PHP and wired up in
 
 ## 4. Accessibility & quality
 
-- [ ] **[S]** The custom toggle switch in Settings has no keyboard focus ring and no label
-  association.
-- [ ] **[S]** Budget and transaction status is communicated by color alone (rose/emerald) with no
-  text or icon alternative.
-- [ ] **[S]** Charts have no text alternative or data table fallback for screen readers.
+- [x] **[S]** The custom toggle switch in Settings has no keyboard focus ring and no label
+  association. Fixed: the hand-rolled toggle was copy-pasted across five call sites (Settings,
+  Budgets, Category Rules, and twice in Import CSV — one of them a `role="switch"` `<span>` nested
+  inside a `<button>`, which is neither focusable nor valid). All five now use
+  [`src/components/ui/switch.tsx`](src/components/ui/switch.tsx): `Switch` is a real
+  `<button role="switch">` carrying the same `focus-visible:ring-3` treatment as `Button` and
+  `Checkbox`, and `SwitchField` renders the labelled row, wiring the title and description to the
+  control with `aria-labelledby` / `aria-describedby` — the association a `<label htmlFor>` can't
+  give a button. Rows that used to be one big tappable card keep that hit target via
+  `interactiveRow`, with the switch still the only focusable thing in them.
+- [x] **[S]** Budget and transaction status is communicated by color alone (rose/emerald) with no
+  text or icon alternative. Fixed: `budgetHealth()` in
+  [`src/utils/calculations.ts`](src/utils/calculations.ts) turns a `BudgetStatus` into a named
+  level (`over` / `near` / `ok`), and `BUDGET_NEAR_LIMIT_PERCENT` is now the single threshold both
+  the Dashboard's alert card and the Budgets page bar read — they previously disagreed (85 vs 80).
+  [`BudgetHealthBadge`](src/components/budgets/BudgetHealthBadge.tsx) says "Over budget" /
+  "Near limit" / "On track" with an icon on every budget card (Budgets page and both Dashboard
+  cards), and `BudgetProgressBar` makes the bar a real `progressbar` whose `aria-valuetext` reads
+  "₹2,000 of ₹2,200 spent" instead of a bare percentage. Budget history rows gained a
+  within/over icon. On a transaction row the tint was the only cue for a transfer (which has no
+  `+`/`−` sign either), so the amount now carries an `sr-only` "Income:" / "Expense:" /
+  "Transfer:" prefix.
+- [x] **[S]** Charts have no text alternative or data table fallback for screen readers. Fixed:
+  [`ChartDataTable`](src/components/charts/ChartDataTable.tsx) renders the figures behind a chart
+  as a real `<table>` inside a "View data table" disclosure — a fallback for assistive tech that
+  doubles as a feature for anyone who wants the numbers rather than the picture. It's wired into
+  every chart whose data lived only in the SVG: balance trend, income vs expenses, the cash-flow
+  forecast, net worth over time, and the spending calendar. `sampleForTable()`
+  ([`src/utils/chartTable.ts`](src/utils/chartTable.ts)) thins a 90-day daily series to 24 rows,
+  always keeping the endpoints and saying so in the caption. The two charts that were already
+  text — the spending donut and the label bars — instead got `role="img"` summaries, list
+  semantics and `aria-hidden` on their decorative swatches, so their legend isn't announced
+  twice. Heatmap cells carried their total in a `title`, which is mouse-only; each in-range day
+  now has an `sr-only` sentence as well.
 - [x] ~~**[S]** `confirm()` dialogs break focus management on mobile.~~ Resolved by the
   `AlertDialog` migration in section 2.
 
@@ -368,8 +397,9 @@ All of these endpoints are implemented in PHP and wired up in
    same `period.ts` engine. Sections 1 and 2 are now fully checked off.
 6. ~~**Analytics depth** — forecast, net worth over time, heatmap, insights, compare periods.~~
    **Done.** Nothing in it was blocked: it built on `period.ts`, the recurring engine and the
-   derived-balance model, all of which had already landed. What remains is section 3's platform/PWA
-   group, the strategic encrypted-backup item, and the three accessibility items in section 4 —
-   note that the two new charts (forecast, net worth) ship with `aria-label` summaries and the
-   heatmap labels every cell with its date, so they don't add to the charts-need-text-alternatives
-   debt, but they don't close it either.
+   derived-balance model, all of which had already landed.
+7. ~~**Accessibility & quality** (section 4) — switch semantics, status not by colour alone, chart
+   data tables.~~ **Done**, and it depended on nothing pending: it touches presentation only, so it
+   was independent of the platform/PWA and encrypted-backup work still open in section 3. Section 4
+   is now fully checked off. What remains is section 3's platform/PWA group and the strategic
+   end-to-end-encrypted backup item.

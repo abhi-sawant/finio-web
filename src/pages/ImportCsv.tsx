@@ -19,6 +19,7 @@ import { formatCurrency, formatFullDate } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SwitchField } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -407,32 +408,16 @@ export default function ImportCsv() {
               </div>
 
               {rules.length > 0 && (
-                <div className="border-border flex items-center gap-3 border-t pt-3">
-                  <Wand2 size={18} className="text-muted-foreground shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Apply categorization rules</p>
-                    <p className="text-muted-foreground text-xs">
-                      {rules.filter((r) => r.enabled).length} active rule
-                      {rules.filter((r) => r.enabled).length === 1 ? '' : 's'} will categorize rows
-                      the file doesn't already categorize
-                    </p>
-                  </div>
-                  <button
-                    role="switch"
-                    aria-checked={applyRules}
-                    aria-label="Apply categorization rules"
-                    onClick={() => setApplyRules((v) => !v)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                      applyRules ? 'bg-primary' : 'bg-muted'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
-                        applyRules ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
+                <SwitchField
+                  className="border-border border-t pt-3"
+                  icon={<Wand2 size={18} className="text-muted-foreground shrink-0" />}
+                  title="Apply categorization rules"
+                  description={`${rules.filter((r) => r.enabled).length} active rule${
+                    rules.filter((r) => r.enabled).length === 1 ? '' : 's'
+                  } will categorize rows the file doesn't already categorize`}
+                  checked={applyRules}
+                  onCheckedChange={setApplyRules}
+                />
               )}
             </div>
 
@@ -471,30 +456,14 @@ export default function ImportCsv() {
             )}
 
             {duplicateRows.size > 0 && (
-              <button
-                onClick={() => setSkipDuplicates((v) => !v)}
-                className="card-elevated flex w-full items-center justify-between rounded-2xl p-4"
-              >
-                <div className="text-left">
-                  <p className="text-sm font-medium">Skip duplicate transactions</p>
-                  <p className="text-muted-foreground text-xs">
-                    Matched by same day, type, amount and note
-                  </p>
-                </div>
-                <span
-                  role="switch"
-                  aria-checked={skipDuplicates}
-                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${
-                    skipDuplicates ? 'bg-primary' : 'bg-muted'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
-                      skipDuplicates ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </span>
-              </button>
+              <SwitchField
+                className="card-elevated rounded-2xl p-4"
+                interactiveRow
+                title="Skip duplicate transactions"
+                description="Matched by same day, type, amount and note"
+                checked={skipDuplicates}
+                onCheckedChange={setSkipDuplicates}
+              />
             )}
 
             {result.issues.length > 0 && (

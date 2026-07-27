@@ -30,7 +30,9 @@ import type {
 export function transactionCategoryAmounts(
   t: Pick<Transaction, 'categoryId' | 'amount' | 'splits'>,
 ): Array<{ categoryId: string; amount: number }> {
-  return t.splits && t.splits.length > 0 ? t.splits : [{ categoryId: t.categoryId, amount: t.amount }];
+  return t.splits && t.splits.length > 0
+    ? t.splits
+    : [{ categoryId: t.categoryId, amount: t.amount }];
 }
 
 export function getTotalIncome(transactions: Transaction[]): number {
@@ -334,7 +336,13 @@ export function computeBudgetStatuses(
 
     let carryover = 0;
     if (budget.rollover) {
-      const priors = priorPeriods(budget, transactions, range, monthStartDay, MAX_ROLLOVER_LOOKBACK);
+      const priors = priorPeriods(
+        budget,
+        transactions,
+        range,
+        monthStartDay,
+        MAX_ROLLOVER_LOOKBACK,
+      );
       const previous = priors[priors.length - 1];
       if (previous) carryover = previous.limit - previous.spent;
     }
@@ -352,6 +360,25 @@ export function computeBudgetStatuses(
       isOver: spent > limit,
     };
   });
+}
+
+/**
+ * A budget this close to its limit is worth warning about. Shared by the Dashboard's
+ * "Budget Alert" card and the Budgets page, so the two can't disagree about what counts
+ * as near the limit.
+ */
+export const BUDGET_NEAR_LIMIT_PERCENT = 85;
+
+export type BudgetHealth = 'over' | 'near' | 'ok';
+
+/**
+ * Where a budget sits against its limit, as a value the UI can *name* — the status was
+ * previously carried by bar colour alone, which says nothing to a screen reader or to
+ * anyone who can't separate rose from emerald.
+ */
+export function budgetHealth(status: Pick<BudgetStatus, 'isOver' | 'percent'>): BudgetHealth {
+  if (status.isOver) return 'over';
+  return status.percent >= BUDGET_NEAR_LIMIT_PERCENT ? 'near' : 'ok';
 }
 
 /**
@@ -546,8 +573,8 @@ export function transactionsToCsv(
   const rows = transactions.map((t) => {
     const isSplit = !!t.splits && t.splits.length > 0;
     const splitDetail = isSplit
-      ? t.splits!
-          .map((s) => `${catMap.get(s.categoryId) ?? 'Unknown'}: ${s.amount.toFixed(2)}`)
+      ? t
+          .splits!.map((s) => `${catMap.get(s.categoryId) ?? 'Unknown'}: ${s.amount.toFixed(2)}`)
           .join(' | ')
       : '';
     return [
