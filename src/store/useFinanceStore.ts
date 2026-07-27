@@ -1,17 +1,26 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { addDays, addMonths, addWeeks, addYears, isAfter, parseISO } from 'date-fns';
 import {
   MISC_CATEGORY_ID,
   defaultCategories,
   defaultLabels,
   defaultSettings,
 } from '@/data/defaultData';
+import {
+  applyBalanceDelta,
+  backfillOpeningBalances,
+  diffBalances,
+  recomputeAccountBalances,
+  roundMoney,
+  sumTransactionDeltas,
+} from './balance';
+import { planRecurring } from './recurring';
 import type {
   Account,
   Budget,
   Category,
   FinanceStore,
+  ImportedAccount,
   Label,
   RecurringTransaction,
   Settings,
@@ -46,44 +55,12 @@ function generateUUID(): string {
   });
 }
 
-function applyBalanceDelta(
-  accounts: Account[],
-  tx: Pick<Transaction, 'type' | 'accountId' | 'toAccountId' | 'amount'>,
-  direction: 1 | -1,
-): Account[] {
-  return accounts.map((account) => {
-    if (tx.type === 'expense' && account.id === tx.accountId) {
-      return { ...account, balance: account.balance - direction * tx.amount };
-    }
-    if (tx.type === 'income' && account.id === tx.accountId) {
-      return { ...account, balance: account.balance + direction * tx.amount };
-    }
-    if (tx.type === 'transfer') {
-      if (account.id === tx.accountId) {
-        return { ...account, balance: account.balance - direction * tx.amount };
-      }
-      if (tx.toAccountId && account.id === tx.toAccountId) {
-        return { ...account, balance: account.balance + direction * tx.amount };
-      }
-    }
-    return account;
-  });
-}
-
-/** Safety cap on how many occurrences a single rule may generate in one pass. */
-const MAX_OCCURRENCES_PER_RULE = 365;
-
-function nextOccurrence(date: Date, freq: RecurringTransaction['frequency']): Date {
-  switch (freq) {
-    case 'daily':
-      return addDays(date, 1);
-    case 'weekly':
-      return addWeeks(date, 1);
-    case 'monthly':
-      return addMonths(date, 1);
-    case 'yearly':
-      return addYears(date, 1);
-  }
+/** Union two collections by id, with `incoming` winning on conflicts. */
+function mergeById<T extends { id: string }>(existing: T[], incoming: T[] | undefined): T[] {
+  if (!incoming) return existing;
+  const byId = new Map(existing.map((row) => [row.id, row]));
+  for (const row of incoming) byId.set(row.id, row);
+  return Array.from(byId.values());
 }
 
 const defaultState = {
@@ -110,6 +87,9 @@ export const useFinanceStore = create<FinanceStore>()(
       addAccount: (accountData) => {
         const account: Account = {
           ...accountData,
+          // A brand-new account has no transactions, so the balance the user typed *is*
+          // the opening balance.
+          openingBalance: accountData.balance,
           id: generateUUID(),
           createdAt: new Date().toISOString(),
         };
@@ -117,9 +97,26 @@ export const useFinanceStore = create<FinanceStore>()(
       },
 
       updateAccount: (id, updates) => {
-        set((state) => ({
-          accounts: state.accounts.map((a) => (a.id === id ? { ...a, ...updates } : a)),
-        }));
+        set((state) => {
+          const target = state.accounts.find((a) => a.id === id);
+          if (!target) return state;
+
+          const next = { ...target, ...updates };
+
+          // Editing the balance is a statement about the *current* balance, so shift the
+          // opening balance by the same amount to keep
+          // `balance === openingBalance + Σ deltas` true.
+          if (
+            updates.balance !== undefined &&
+            updates.openingBalance === undefined &&
+            updates.balance !== target.balance
+          ) {
+            const delta = sumTransactionDeltas(state.transactions).get(id) ?? 0;
+            next.openingBalance = roundMoney(updates.balance - delta);
+          }
+
+          return { accounts: state.accounts.map((a) => (a.id === id ? next : a)) };
+        });
       },
 
       deleteAccount: (id) => {
@@ -141,6 +138,14 @@ export const useFinanceStore = create<FinanceStore>()(
             recurring: state.recurring.filter((r) => r.accountId !== id),
           };
         });
+      },
+
+      recomputeBalances: () => {
+        const before = get().accounts;
+        const after = recomputeAccountBalances(before, get().transactions);
+        const result = diffBalances(before, after);
+        if (result.changed > 0) set({ accounts: after });
+        return result;
       },
 
       addTransaction: (txData) => {
@@ -297,44 +302,27 @@ export const useFinanceStore = create<FinanceStore>()(
       },
 
       processRecurring: () => {
-        let generated = 0;
-        const now = new Date();
         const state = get();
-        const newTxns: Transaction[] = [];
-        const updatedRules = state.recurring.map((rule) => {
-          // Skip if account no longer exists.
-          if (!state.accounts.some((a) => a.id === rule.accountId)) return rule;
+        const plan = planRecurring(
+          state.recurring,
+          state.accounts.map((a) => a.id),
+          new Date(),
+        );
+        if (plan.occurrences.length === 0) return 0;
 
-          let next = rule.lastRunDate
-            ? nextOccurrence(parseISO(rule.lastRunDate), rule.frequency)
-            : parseISO(rule.startDate);
-
-          let lastRun = rule.lastRunDate ? parseISO(rule.lastRunDate) : null;
-          let ruleGenerated = 0;
-
-          while (!isAfter(next, now) && ruleGenerated < MAX_OCCURRENCES_PER_RULE) {
-            newTxns.push({
-              id: generateUUID(),
-              type: rule.type,
-              amount: rule.amount,
-              accountId: rule.accountId,
-              categoryId: rule.categoryId,
-              date: next.toISOString(),
-              note: rule.note,
-              labels: [...rule.labels],
-              createdAt: new Date().toISOString(),
-              recurringId: rule.id,
-            });
-            generated += 1;
-            ruleGenerated += 1;
-            lastRun = next;
-            next = nextOccurrence(next, rule.frequency);
-          }
-
-          return lastRun ? { ...rule, lastRunDate: lastRun.toISOString() } : rule;
-        });
-
-        if (generated === 0) return 0;
+        const createdAt = new Date().toISOString();
+        const newTxns: Transaction[] = plan.occurrences.map(({ rule, date }) => ({
+          id: generateUUID(),
+          type: rule.type,
+          amount: rule.amount,
+          accountId: rule.accountId,
+          categoryId: rule.categoryId,
+          date: date.toISOString(),
+          note: rule.note,
+          labels: [...rule.labels],
+          createdAt,
+          recurringId: rule.id,
+        }));
 
         set((s) => {
           let accounts = s.accounts;
@@ -342,11 +330,11 @@ export const useFinanceStore = create<FinanceStore>()(
           return {
             transactions: [...newTxns, ...s.transactions],
             accounts,
-            recurring: updatedRules,
+            recurring: plan.rules,
           };
         });
 
-        return generated;
+        return newTxns.length;
       },
 
       updateSettings: (updates) => {
@@ -367,26 +355,50 @@ export const useFinanceStore = create<FinanceStore>()(
         });
       },
 
-      importData: (data) => {
-        set((state) => ({
-          accounts: Array.isArray(data.accounts)
-            ? data.accounts.map(dropLegacyCurrency)
-            : state.accounts,
-          transactions: Array.isArray(data.transactions) ? data.transactions : state.transactions,
-          categories: Array.isArray(data.categories) ? data.categories : state.categories,
-          labels: Array.isArray(data.labels) ? data.labels : state.labels,
-          budgets: Array.isArray(data.budgets) ? data.budgets : state.budgets,
-          recurring: Array.isArray(data.recurring) ? data.recurring : state.recurring,
-          settings:
-            data.settings && typeof data.settings === 'object'
+      importData: (data, options) => {
+        const mode = options?.mode ?? 'merge';
+
+        set((state) => {
+          const incomingAccounts = data.accounts?.map(dropLegacyCurrency);
+
+          const next =
+            mode === 'merge'
+              ? {
+                  accounts: mergeById<ImportedAccount>(state.accounts, incomingAccounts),
+                  transactions: mergeById(state.transactions, data.transactions),
+                  categories: mergeById(state.categories, data.categories),
+                  labels: mergeById(state.labels, data.labels),
+                  budgets: mergeById(state.budgets, data.budgets),
+                  recurring: mergeById(state.recurring, data.recurring),
+                }
+              : {
+                  accounts: (incomingAccounts ?? state.accounts) as ImportedAccount[],
+                  transactions: data.transactions ?? state.transactions,
+                  categories: data.categories ?? state.categories,
+                  labels: data.labels ?? state.labels,
+                  budgets: data.budgets ?? state.budgets,
+                  recurring: data.recurring ?? state.recurring,
+                };
+
+          return {
+            ...next,
+            // Imported accounts may predate `openingBalance`, or carry a `balance` that no
+            // longer matches the transaction set they arrived with. Derive what is missing,
+            // then rebuild every balance from it.
+            accounts: recomputeAccountBalances(
+              backfillOpeningBalances(next.accounts, next.transactions),
+              next.transactions,
+            ),
+            settings: data.settings
               ? dropLegacyCurrency({ ...state.settings, ...data.settings })
               : state.settings,
-        }));
+          };
+        });
       },
     }),
     {
       name: 'finio-storage',
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -421,6 +433,21 @@ export const useFinanceStore = create<FinanceStore>()(
               ...(s.settings ?? {}),
             } as Settings),
             accounts: Array.isArray(s.accounts) ? s.accounts.map(dropLegacyCurrency) : s.accounts,
+          };
+        }
+
+        if (version < 5) {
+          // Seed `openingBalance` from the stored balance minus the transactions that
+          // produced it, so existing balances are preserved exactly and become
+          // recomputable from here on.
+          s = {
+            ...s,
+            accounts: Array.isArray(s.accounts)
+              ? backfillOpeningBalances(
+                  s.accounts,
+                  Array.isArray(s.transactions) ? s.transactions : [],
+                )
+              : s.accounts,
           };
         }
 

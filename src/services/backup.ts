@@ -7,6 +7,7 @@ import {
   isFolderPickerSupported,
   writeBackupAndRotate,
 } from './backupFolder';
+import { validateBackup } from '@/utils/importValidation';
 import type { FinanceStore } from '@/types';
 
 type BackupPayload = Pick<
@@ -70,7 +71,10 @@ export async function restoreLatestBackup(): Promise<void> {
   const { token } = useAuthStore.getState();
   if (!token) throw new Error('Not signed in');
   const res = await api.getLatestBackup(token);
-  useFinanceStore.getState().importData(res as Partial<BackupPayload>);
+  // Cloud payloads get the same validation as a hand-picked file — a malformed backup
+  // must not be able to corrupt local state.
+  const { data } = validateBackup(res);
+  useFinanceStore.getState().importData(data, { mode: 'replace' });
 }
 
 export async function autoLocalBackupIfNeeded(): Promise<void> {

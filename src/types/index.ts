@@ -10,10 +10,19 @@ export interface Account {
   type: AccountType;
   color: string;
   icon: string;
+  /** Cache of `openingBalance + Σ(transaction deltas)`. Recomputable — never the source of truth. */
   balance: number;
+  /**
+   * The balance before any recorded transaction. Immutable in normal use, which is what makes
+   * `balance` derivable and any drift reconcilable.
+   */
+  openingBalance: number;
   createdAt: string;
   creditLimit?: number;
 }
+
+/** An account from a backup file or pre-v5 storage, where `openingBalance` may be absent. */
+export type ImportedAccount = Omit<Account, 'openingBalance'> & { openingBalance?: number };
 
 export interface Transaction {
   id: string;
@@ -76,6 +85,19 @@ export interface Settings {
   autoLocalBackup: boolean;
 }
 
+/** Sanitized backup contents accepted by `importData`. */
+export interface ImportPayload {
+  accounts?: ImportedAccount[];
+  transactions?: Transaction[];
+  categories?: Category[];
+  labels?: Label[];
+  budgets?: Budget[];
+  recurring?: RecurringTransaction[];
+  settings?: Settings;
+}
+
+export type ImportMode = 'replace' | 'merge';
+
 export interface FinanceStore {
   accounts: Account[];
   transactions: Transaction[];
@@ -89,9 +111,14 @@ export interface FinanceStore {
   lastLocalBackupAt: string | null;
   setLastLocalBackupAt: (date: string) => void;
 
-  addAccount: (account: Omit<Account, 'id' | 'createdAt'>) => void;
+  addAccount: (account: Omit<Account, 'id' | 'createdAt' | 'openingBalance'>) => void;
   updateAccount: (id: string, updates: Partial<Omit<Account, 'id'>>) => void;
   deleteAccount: (id: string) => void;
+  /**
+   * Rebuild every account balance from its opening balance plus its transactions.
+   * Returns how many accounts moved and the net drift that was corrected.
+   */
+  recomputeBalances: () => { changed: number; totalDrift: number };
 
   addTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => string;
   updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id'>>) => void;
@@ -118,14 +145,11 @@ export interface FinanceStore {
   updateSettings: (updates: Partial<Settings>) => void;
 
   resetToDefaults: () => void;
-  importData: (
-    data: Partial<
-      Pick<
-        FinanceStore,
-        'accounts' | 'transactions' | 'categories' | 'labels' | 'budgets' | 'recurring' | 'settings'
-      >
-    >,
-  ) => void;
+  /**
+   * Apply an (already validated) backup payload. `replace` swaps each provided collection,
+   * `merge` unions rows by id with incoming winning. Balances are recomputed either way.
+   */
+  importData: (data: ImportPayload, options?: { mode?: ImportMode }) => void;
 
   setHydrated: (hydrated: boolean) => void;
 }

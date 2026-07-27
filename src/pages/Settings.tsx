@@ -17,6 +17,8 @@ import {
   Target,
   Repeat,
   HardDrive,
+  Scale,
+  AlertTriangle,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -45,7 +47,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Theme } from '@/types';
+import {
+  ENTITY_LABELS,
+  IMPORT_ENTITIES,
+  validateBackup,
+  type ValidatedBackup,
+} from '@/utils/importValidation';
+import { formatCurrency } from '@/utils/formatters';
+import type { ImportMode, Theme } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
@@ -61,6 +70,7 @@ export default function Settings() {
   const updateSettings = useFinanceStore((s) => s.updateSettings);
   const resetToDefaults = useFinanceStore((s) => s.resetToDefaults);
   const importData = useFinanceStore((s) => s.importData);
+  const recomputeBalances = useFinanceStore((s) => s.recomputeBalances);
 
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
@@ -74,6 +84,7 @@ export default function Settings() {
   const [restoring, setRestoring] = useState(false);
   const [backupFolderName, setBackupFolderName] = useState<string | null>(null);
   const [showFolderSetupInfo, setShowFolderSetupInfo] = useState(false);
+  const [preview, setPreview] = useState<(ValidatedBackup & { file: File }) | null>(null);
 
   useEffect(() => {
     if (!isFolderPickerSupported()) return;
@@ -127,27 +138,35 @@ export default function Settings() {
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const parsed = JSON.parse(event.target?.result as string);
-          if (!parsed || typeof parsed !== 'object') throw new Error('Invalid');
-          const hasAny =
-            Array.isArray(parsed.accounts) ||
-            Array.isArray(parsed.transactions) ||
-            Array.isArray(parsed.categories) ||
-            Array.isArray(parsed.labels) ||
-            Array.isArray(parsed.budgets) ||
-            Array.isArray(parsed.recurring) ||
-            (parsed.settings && typeof parsed.settings === 'object');
-          if (!hasAny) throw new Error('Empty');
-          if (!confirm('Import will replace your current data. Continue?')) return;
-          importData(parsed);
-          toast.success('Data imported');
-        } catch {
-          toast.error('Invalid backup file');
+          // Validate and preview first — an import rewrites every row in the app.
+          setPreview({ ...validateBackup(JSON.parse(event.target?.result as string)), file });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Invalid backup file');
         }
       };
       reader.readAsText(file);
     };
     input.click();
+  };
+
+  const runImport = (mode: ImportMode) => {
+    if (!preview) return;
+    importData(preview.data, { mode });
+    setPreview(null);
+    toast.success(mode === 'merge' ? 'Backup merged' : 'Data replaced from backup');
+  };
+
+  const handleReconcile = () => {
+    const { changed, totalDrift } = recomputeBalances();
+    if (changed === 0) {
+      toast.success('All balances already match their transactions');
+      return;
+    }
+    toast.success(
+      `Reconciled ${changed} account${changed === 1 ? '' : 's'} · net ${
+        totalDrift >= 0 ? '+' : '−'
+      }${formatCurrency(Math.abs(totalDrift))}`,
+    );
   };
 
   const handleReset = () => {
@@ -460,11 +479,106 @@ export default function Settings() {
             <Upload size={18} className="text-muted-foreground" />
             <span className="text-sm font-medium">Import Data</span>
           </button>
+          <button onClick={handleReconcile} className="flex w-full items-center gap-3 p-4">
+            <Scale size={18} className="text-muted-foreground shrink-0" />
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium">Reconcile Balances</p>
+              <p className="text-muted-foreground text-xs">
+                Rebuild every account balance from its opening balance and transactions
+              </p>
+            </div>
+          </button>
           <button onClick={handleReset} className="flex w-full items-center gap-3 p-4">
             <RotateCcw size={18} className="text-destructive" />
             <span className="text-destructive text-sm font-medium">Reset to Defaults</span>
           </button>
         </div>
+
+        {/* Import dry-run preview */}
+        <Dialog open={preview !== null} onOpenChange={(open) => !open && setPreview(null)}>
+          <DialogContent className="bg-card mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-2xl sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Review Import</DialogTitle>
+              <DialogDescription className="truncate">{preview?.file.name}</DialogDescription>
+            </DialogHeader>
+
+            {preview && (
+              <div className="space-y-3">
+                <ul className="divide-border divide-y text-sm">
+                  {IMPORT_ENTITIES.filter((entity) => preview.report.counts[entity].present).map(
+                    (entity) => {
+                      const count = preview.report.counts[entity];
+                      return (
+                        <li key={entity} className="flex items-center justify-between py-2">
+                          <span className="text-muted-foreground">{ENTITY_LABELS[entity]}</span>
+                          <span className="font-medium">
+                            {count.accepted}
+                            {count.rejected > 0 && (
+                              <span className="text-destructive ml-2 text-xs font-normal">
+                                {count.rejected} skipped
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      );
+                    },
+                  )}
+                  {preview.report.hasSettings && (
+                    <li className="flex items-center justify-between py-2">
+                      <span className="text-muted-foreground">Settings</span>
+                      <span className="font-medium">included</span>
+                    </li>
+                  )}
+                </ul>
+
+                {(preview.report.warnings.length > 0 || preview.report.issues.length > 0) && (
+                  <div className="bg-muted/50 space-y-1.5 rounded-xl p-3">
+                    {preview.report.warnings.map((warning) => (
+                      <p key={warning} className="flex gap-2 text-xs">
+                        <AlertTriangle size={14} className="mt-px shrink-0 text-amber-500" />
+                        <span>{warning}</span>
+                      </p>
+                    ))}
+                    {preview.report.issues.map((issue) => (
+                      <p key={issue} className="text-muted-foreground text-xs">
+                        {issue}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-muted-foreground text-xs">
+                  Balances are recalculated from transactions after either option.
+                </p>
+
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={() => runImport('merge')}
+                    className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-lg py-2.5 text-sm font-medium text-white"
+                  >
+                    Merge with existing data
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => runImport('replace')}
+                      className="text-destructive bg-muted h-auto flex-1 rounded-lg py-2.5 text-sm font-medium"
+                    >
+                      Replace everything
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setPreview(null)}
+                      className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2.5 text-sm font-medium"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <p className="text-muted-foreground pt-2 text-center text-[11px]">
           Finio · Personal Finance

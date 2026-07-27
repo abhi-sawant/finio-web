@@ -22,7 +22,16 @@ npm run preview      # Serve the dist/ build locally
 # Code Quality
 npm run lint         # ESLint
 npm run format       # Prettier (with tailwindcss plugin)
+
+# Tests
+npm test             # Vitest (unit suite, run once)
+npm run test:watch   # Vitest watch mode
 ```
+
+Tests live next to their subject as `*.test.ts` and cover the pure money logic
+(`src/store/balance.ts`, `src/store/recurring.ts`, `src/utils/calculations.ts`,
+`src/utils/importValidation.ts`) plus the store itself. Config is in `vitest.config.ts` — separate
+from `vite.config.ts` and running in the `node` environment, so no browser plugins are loaded.
 
 ---
 
@@ -58,6 +67,8 @@ src/
 │   └── ThemeProvider.tsx     # dark/light/system theme context
 ├── store/
 │   ├── useFinanceStore.ts    # All finance data + actions (Zustand + localStorage)
+│   ├── balance.ts            # Pure balance math: deltas, opening-balance backfill, recompute
+│   ├── recurring.ts          # Pure recurring planner (planRecurring, nextOccurrence)
 │   └── useAuthStore.ts       # Token, user profile, lastBackupAt (Zustand + localStorage)
 ├── services/
 │   ├── api.ts                # Typed fetch wrapper, Bearer token injection
@@ -65,6 +76,7 @@ src/
 ├── types/index.ts            # All domain interfaces (Account, Transaction, Budget, etc.)
 ├── utils/
 │   ├── calculations.ts       # Financial aggregations, budget status, CSV export
+│   ├── importValidation.ts   # Backup shape validation + dry-run report
 │   └── formatters.ts         # Currency (INR), date, number formatting
 ├── lib/utils.ts              # shadcn cn() helper
 └── data/defaultData.ts       # Default categories, labels, and settings
@@ -74,7 +86,7 @@ src/
 
 Two Zustand stores, both persisted to localStorage:
 
-- **`useFinanceStore`** — accounts, transactions, categories, labels, budgets, recurring rules, settings. Exposes granular selector hooks (`useAccounts()`, `useTransactions()`, etc.) to avoid re-renders. Includes `processRecurring()` for generating due recurring transactions and `importData()` for bulk restore. Has migration support (currently v3).
+- **`useFinanceStore`** — accounts, transactions, categories, labels, budgets, recurring rules, settings. Exposes granular selector hooks (`useAccounts()`, `useTransactions()`, etc.) to avoid re-renders. Includes `processRecurring()` for generating due recurring transactions, `importData(payload, { mode })` for merge/replace restore, and `recomputeBalances()` to reconcile drift. Has migration support (currently v5).
 - **`useAuthStore`** — JWT token, user object, `lastBackupAt`. Use `loadAuth()` on app start to hydrate from storage.
 
 ### Routing
@@ -128,7 +140,7 @@ Defined in [src/types/index.ts](src/types/index.ts):
 
 | Type | Key fields |
 |------|-----------|
-| `Account` | id, name, type, color, icon, balance, creditLimit? |
+| `Account` | id, name, type, color, icon, balance, openingBalance, creditLimit? |
 | `Transaction` | id, type, amount, accountId, toAccountId?, categoryId, date, labels[], recurringId? |
 | `Category` | id, name, icon, color, type |
 | `Label` | id, name, color |
@@ -187,6 +199,8 @@ All page components are lazy-loaded. This keeps the initial bundle small.
 ## Common Gotchas
 
 - **Transfers are special:** `TransactionType.transfer` uses both `accountId` (source) and `toAccountId` (destination). Balance calculations must handle this pair atomically.
+- **Balances are derived, not authoritative:** `Account.openingBalance` is the source of truth and `Account.balance` is a cache of `openingBalance + Σ(transaction deltas)`, kept up to date incrementally by `applyBalanceDelta`. Anything that mutates transactions in bulk must either apply deltas or call `recomputeAccountBalances()`. Setting `balance` via `updateAccount` shifts `openingBalance` by the same amount so the invariant survives a reconcile — pass `openingBalance` explicitly to override that.
+- **Imports are validated, never trusted:** route every backup (file *or* cloud) through `validateBackup()` before `importData()`. It drops malformed rows, dedupes ids, strips unknown settings keys, and produces the report the Settings preview dialog renders.
 - **INR only:** Multi-currency was removed in persisted-schema v4. `formatCurrency(amount, compact?)` hardcodes INR/`en-IN`; there is no per-account or per-setting currency field. Old persisted state and old backup JSON are stripped of the legacy `currency` key on load and on import.
 - **Overall budget:** A `Budget` with `categoryId === ''` means it applies to all spending (overall budget), not a category budget.
 - **Recurring processing:** Call `processRecurring()` (from `useFinanceStore`) when the app mounts or resumes from background to generate any overdue recurring transactions.

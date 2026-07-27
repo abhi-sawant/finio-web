@@ -52,28 +52,37 @@ These are defects in a money app — they should land before any new feature wor
 - [x] **[S] `ProtectedRoute` is dead code.** [`src/components/ProtectedRoute.tsx`](src/components/ProtectedRoute.tsx)
   is imported by nothing. Correct for an offline-first app where auth is optional — just delete it.
 
-- [ ] **[M] Import replaces everything with almost no validation.**
-  [`src/pages/Settings.tsx:140`](src/pages/Settings.tsx) checks only "is this an array" and then
-  overwrites all state. No shape validation, no merge option, no dry-run preview, no balance
-  recompute afterward.
+- [x] **[M] Import replaces everything with almost no validation.**
+  Fixed: [`src/utils/importValidation.ts`](src/utils/importValidation.ts) shape-validates every
+  row (types, finite amounts, parseable dates, transfer destinations, duplicate ids) and returns a
+  report; [`src/pages/Settings.tsx`](src/pages/Settings.tsx) shows it as a dry-run preview dialog
+  with per-entity accepted/skipped counts and referential warnings, then offers **Merge** (union by
+  id) or **Replace**. Rejected rows are dropped and counted; orphan references are kept and warned
+  about. Balances are recomputed after either mode, and cloud restores go through the same
+  validation.
 
 - [x] ~~**[L] Multi-currency is decorative.**~~ **Resolved by removing the feature.** The app is
   now INR-only: `Currency`, `Account.currency`, `Settings.currency`, and the Settings currency
   selector are gone; `formatCurrency` hardcodes INR/`en-IN`. Persisted schema bumped to v4, which
   strips the legacy `currency` key from stored settings and accounts (and from imported backups).
 
-- [ ] **[L] Balances cannot be recomputed.** `Account.balance` is a mutable stored field seeded at
-  creation and mutated by deltas. There is no `openingBalance`, so current balance is *not*
-  derivable from transactions, and any drift (from the delete bug above, a partial import, a manual
-  edit) is permanent and invisible.
-  **Fix:** add `Account.openingBalance`, migrate to v5 by computing
-  `openingBalance = balance − Σ(deltas of existing transactions)`, then add a `recomputeBalances()`
-  action and a "Reconcile balances" button in Settings. This is the safety net that makes every
-  other money bug recoverable.
+- [x] **[L] Balances cannot be recomputed.** Fixed: `Account.openingBalance` is now the source of
+  truth and `balance` is a recomputable cache of `openingBalance + Σ(transaction deltas)`.
+  Persisted schema v5 seeds `openingBalance = balance − Σ(deltas)`, so existing balances are
+  preserved exactly and become derivable from that point on. New primitives live in
+  [`src/store/balance.ts`](src/store/balance.ts) (`recomputeAccountBalances`,
+  `backfillOpeningBalances`, `diffBalances`, plus paise rounding on every delta); the store exposes
+  `recomputeBalances()` and Settings has a **Reconcile Balances** action that reports how many
+  accounts moved and the net drift corrected. Editing an account's current balance shifts its
+  opening balance so the invariant holds.
 
-- [ ] **[S] No tests anywhere.** `applyBalanceDelta`, `processRecurring`, and
-  `computeBudgetStatuses` are pure functions and exactly where money bugs hide. Add Vitest and
-  cover them.
+- [x] **[S] No tests anywhere.** Fixed: Vitest added (`npm test`), with the money-critical logic
+  extracted into pure, testable modules — [`src/store/balance.ts`](src/store/balance.ts) and
+  [`src/store/recurring.ts`](src/store/recurring.ts) (`planRecurring` is now a pure planner the
+  store just applies). 55 tests cover `applyBalanceDelta` (including transfers and rounding),
+  balance recompute/backfill, the per-rule recurring cap, `computeBudgetStatuses`, `savingsRate`,
+  backup validation, and the store itself (import merge/replace, `deleteAccount` transfer reversal,
+  and a balance-neutral v5 migration).
 
 ---
 
@@ -188,8 +197,10 @@ All of these endpoints are implemented in PHP and wired up in
 
 ## Suggested sequencing
 
-1. **Bug batch** (section 1, the `[S]` items) — correctness first, everything else builds on it.
-2. **`openingBalance` + reconcile** (`[L]`) — the safety net.
-3. **One flagship**: savings goals if the app should feel more complete, or CSV import +
+1. ~~**Bug batch** (section 1) — correctness first, everything else builds on it.~~ **Done:**
+   section 1 is fully checked off, including `openingBalance` + reconcile and the Vitest suite.
+2. **One flagship**: savings goals if the app should feel more complete, or CSV import +
    auto-categorization if new-user onboarding matters more.
-4. **Backup history UI** — nearly free, the backend already supports it.
+3. **Backup history UI** — nearly free, the backend already supports it.
+4. **Section 2 quick wins** — search breadth, `AlertDialog` instead of `confirm()`, archive
+   accounts. All small, all user-visible.
