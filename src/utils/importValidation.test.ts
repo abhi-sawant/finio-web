@@ -320,6 +320,56 @@ describe('validateBackup', () => {
     expect(report.counts.templates).toEqual({ present: true, total: 2, accepted: 1, rejected: 1 });
   });
 
+  it('accepts a well-formed rule and rejects malformed ones', () => {
+    const validRule = {
+      id: 'rule-1',
+      pattern: 'Uber',
+      matchType: 'contains',
+      scope: 'expense',
+      categoryId: 'cat-2',
+      labelIds: ['lbl-1'],
+      enabled: true,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    const { data, report } = validateBackup({
+      rules: [
+        validRule,
+        { ...validRule, id: 'rule-2', pattern: '' },
+        { ...validRule, id: 'rule-3', matchType: 'sounds-like' },
+        { ...validRule, id: 'rule-4', categoryId: '' },
+        // An unparseable regex would match nothing on every transaction, forever.
+        { ...validRule, id: 'rule-5', matchType: 'regex', pattern: '([' },
+      ],
+    });
+    expect(data.rules?.map((r) => r.id)).toEqual(['rule-1']);
+    expect(report.counts.rules).toEqual({ present: true, total: 5, accepted: 1, rejected: 4 });
+  });
+
+  it('defaults a rule to any-scope and enabled when those fields are missing', () => {
+    const { data } = validateBackup({
+      rules: [{ id: 'rule-1', pattern: 'Uber', matchType: 'contains', categoryId: 'cat-2' }],
+    });
+    expect(data.rules?.[0]).toMatchObject({ scope: 'any', enabled: true, labelIds: [] });
+  });
+
+  it('warns when a rule files into a category the file does not carry', () => {
+    const { report } = validateBackup({
+      categories: [
+        { id: 'cat-1', name: 'Food', icon: 'utensils', color: '#ef4444', type: 'expense' },
+      ],
+      rules: [
+        {
+          id: 'rule-1',
+          pattern: 'Uber',
+          matchType: 'contains',
+          categoryId: 'cat-gone',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(report.warnings.some((w) => w.includes('categorization rule'))).toBe(true);
+  });
+
   it('accepts a well-formed goal and rejects one with a non-positive target amount', () => {
     const validGoal = {
       id: 'goal-1',

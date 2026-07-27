@@ -19,6 +19,7 @@ type BackupPayload = Pick<
   | 'budgets'
   | 'recurring'
   | 'templates'
+  | 'rules'
   | 'goals'
   | 'goalContributions'
   | 'people'
@@ -68,6 +69,7 @@ export async function uploadBackup(): Promise<string> {
     budgets,
     recurring,
     templates,
+    rules,
     goals,
     goalContributions,
     people,
@@ -82,6 +84,7 @@ export async function uploadBackup(): Promise<string> {
     budgets,
     recurring,
     templates,
+    rules,
     goals,
     goalContributions,
     people,
@@ -133,6 +136,7 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
     budgets,
     recurring,
     templates,
+    rules,
     goals,
     goalContributions,
     people,
@@ -167,6 +171,7 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
       budgets,
       recurring,
       templates,
+      rules,
       goals,
       goalContributions,
       people,

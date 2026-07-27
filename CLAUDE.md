@@ -30,7 +30,8 @@ npm run test:watch   # Vitest watch mode
 
 Tests live next to their subject as `*.test.ts` and cover the pure money logic
 (`src/store/balance.ts`, `src/store/recurring.ts`, `src/utils/calculations.ts`,
-`src/utils/period.ts`, `src/utils/importValidation.ts`) plus the store itself. Config is in `vitest.config.ts` — separate
+`src/utils/period.ts`, `src/utils/importValidation.ts`, `src/utils/csvImport.ts`,
+`src/utils/autoCategorize.ts`) plus the store itself. Config is in `vitest.config.ts` — separate
 from `vite.config.ts` and running in the `node` environment, so no browser plugins are loaded.
 
 ---
@@ -78,6 +79,8 @@ src/
 │   ├── calculations.ts       # Financial aggregations, budget status/history, CSV export
 │   ├── period.ts             # Weekly/monthly/yearly period math (honours monthStartDay)
 │   ├── importValidation.ts   # Backup shape validation + dry-run report
+│   ├── csvImport.ts          # Bank-statement CSV parsing + column mapping
+│   ├── autoCategorize.ts     # Pure rule engine: note pattern → category + labels
 │   └── formatters.ts         # Currency (INR), date, number formatting
 ├── lib/utils.ts              # shadcn cn() helper
 └── data/defaultData.ts       # Default categories, labels, and settings
@@ -87,7 +90,7 @@ src/
 
 Two Zustand stores, both persisted to localStorage:
 
-- **`useFinanceStore`** — accounts, transactions, categories, labels, budgets, recurring rules, settings. Exposes granular selector hooks (`useAccounts()`, `useTransactions()`, etc.) to avoid re-renders. Includes `processRecurring()` for generating due recurring transactions, `importData(payload, { mode })` for merge/replace restore, and `recomputeBalances()` to reconcile drift. Has migration support (currently v7).
+- **`useFinanceStore`** — accounts, transactions, categories, labels, budgets, recurring rules, settings. Exposes granular selector hooks (`useAccounts()`, `useTransactions()`, etc.) to avoid re-renders. Includes `processRecurring()` for generating due recurring transactions, `importData(payload, { mode })` for merge/replace restore, and `recomputeBalances()` to reconcile drift. Has migration support (currently v11).
 - **`useAuthStore`** — JWT token, user object, `lastBackupAt`. Use `loadAuth()` on app start to hydrate from storage.
 
 ### Routing
@@ -97,7 +100,8 @@ React Router v7. All pages are lazy-loaded (dynamic `import()`). Route structure
 - `/` — Dashboard (index, protected)
 - `/accounts`, `/transactions`, `/analytics`, `/settings`, `/budgets`, `/recurring` — protected
 - `/add-transaction`, `/edit-transaction/:id`, `/add-account`, `/edit-account/:id` — protected
-- `/manage-categories`, `/manage-labels` — protected
+- `/manage-categories`, `/manage-labels`, `/category-rules` — protected
+- `/goals`, `/debts`, `/import-csv` — protected
 - `/login`, `/register`, `/verify-otp`, `/forgot-password`, `/reset-password` — public auth routes
 - `*` → redirects to `/`
 
@@ -147,9 +151,10 @@ Defined in [src/types/index.ts](src/types/index.ts):
 | `Label` | id, name, color |
 | `Budget` | id, categoryId ('' = overall budget), labelId?, amount, period, rollover |
 | `RecurringTransaction` | id, type, amount, accountId, toAccountId?, categoryId, frequency, startDate, endDate?, maxOccurrences?, occurrenceCount, pausedAt?, lastRunDate |
+| `CategoryRule` | id, pattern, matchType, scope, categoryId, labelIds[], enabled |
 | `Settings` | theme, userName, autoLocalBackup, monthStartDay |
 
-Enums: `AccountType`, `TransactionType` (expense/income/transfer), `RecurrenceFrequency` (daily/weekly/monthly/yearly), `BudgetPeriod` (weekly/monthly/yearly), `Theme` (dark/light/system).
+Enums: `AccountType`, `TransactionType` (expense/income/transfer), `RecurrenceFrequency` (daily/weekly/monthly/yearly), `BudgetPeriod` (weekly/monthly/yearly), `RuleMatchType` (contains/startsWith/endsWith/equals/regex), `RuleScope` (expense/income/any), `Theme` (dark/light/system).
 
 ---
 
@@ -205,6 +210,14 @@ All page components are lazy-loaded. This keeps the initial bundle small.
 - **INR only:** Multi-currency was removed in persisted-schema v4. `formatCurrency(amount, compact?)` hardcodes INR/`en-IN`; there is no per-account or per-setting currency field. Old persisted state and old backup JSON are stripped of the legacy `currency` key on load and on import.
 - **"This month" is a financial month:** every month window comes from `src/utils/period.ts` and starts on `Settings.monthStartDay` (1–28, default 1), so a 25th-of-the-month salary cycle runs 25 Jun–24 Jul. Never call `startOfMonth`/`endOfMonth` directly in feature code — use `periodRange`/`monthPeriodStart` (or `getCurrentMonthTransactions(txns, monthStartDay)`) or the app will disagree with itself.
 - **Budget scope and period:** a `Budget` is scoped by `labelId` if set, otherwise by `categoryId` (`''` = overall across all expenses) — `budgetScopeKey()` is the identity, and `addBudget` replaces any budget sharing it. Each budget carries its own `period`, so `computeBudgetStatuses(budgets, transactions, { monthStartDay })` takes the *full* transaction list and slices per budget. With `rollover`, `status.limit` is `amount + carryover` (carryover is signed — an overspend carries forward as a debt) and the chain never reaches back past the budget's `createdAt` period, capped at `MAX_ROLLOVER_LOOKBACK`.
+- **Auto-categorization is first-match-wins and never destructive:** the order of `rules` in the
+  store *is* their priority, so anything that rewrites the array (reorder, import merge) changes
+  which rule fires. Every consumer goes through [`src/utils/autoCategorize.ts`](src/utils/autoCategorize.ts)
+  — never re-implement matching. Two invariants the engine enforces and callers must not work
+  around: a rule never fires on a `transfer`, and never touches a transaction with `splits`.
+  Rule labels are additive (`mergeLabels`), and a user-typed regex is compiled defensively — an
+  invalid one matches nothing rather than throwing. On CSV import, a category the file itself
+  supplied always outranks a rule.
 - **Recurring processing:** Call `processRecurring()` (from `useFinanceStore`) when the app mounts or resumes from background to generate any overdue recurring transactions. `planRecurring` skips paused rules, stops at `endDate` and `maxOccurrences`, and requires both accounts to exist for a transfer rule. Before saving a rule dated in the past, preview it with `previewBackfill()` — "start from today" is expressed as `lastRunDate = lastOccurrenceOnOrBefore(rule, now)`, which keeps the cadence anchored to `startDate` while skipping the history.
 - **Auth state:** Always call `useAuthStore.getState().loadAuth()` (or rely on Zustand hydration) before making authenticated API calls.
 - **Tailwind v4:** There is no `tailwind.config.js`. All customizations go in CSS files using `@theme`, `@layer`, etc.

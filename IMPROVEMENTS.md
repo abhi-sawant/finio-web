@@ -230,9 +230,25 @@ All of these endpoints are implemented in PHP and wired up in
   does. Confirming calls a new `bulkAddTransactions` store action (single balance-delta pass over
   every row, mirroring how `processRecurring` inserts a batch). No persisted-schema bump — it's a
   new store method, not a state shape change.
-- [ ] **[M] Auto-categorization rules.** `if note contains "Uber" → Transport + Essential`. Runs on
-  manual add and, crucially, on CSV import. The existing note-suggestions datalist proves the data
-  is there; this makes the import feature genuinely usable.
+- [x] **[M] Auto-categorization rules.** Fixed: `CategoryRule { pattern, matchType, scope,
+  categoryId, labelIds, enabled }` is a new store collection (persisted-schema v11, seeded empty
+  so nothing is recategorized on upgrade) whose array order *is* its priority — first enabled
+  match wins. [`src/utils/autoCategorize.ts`](src/utils/autoCategorize.ts) is the pure engine:
+  `ruleMatches`/`findMatchingRule` (contains / starts with / ends with / is exactly / regex, all
+  case-insensitive, with an unparseable regex treated as matching nothing rather than throwing),
+  `mergeLabels` (a rule's labels are additive, never a replacement) and `planRuleApplication`,
+  which compiles each pattern once and returns only the rows that would actually move. Two
+  invariants hold everywhere: a rule never fires on a transfer, and never flattens a split.
+  Rules run in three places — Add Transaction applies one live as you type the note, showing
+  "Filed as Transport by your 'Uber' rule" with an Undo, and backs itself out if the note stops
+  matching (it never fires while editing an existing transaction, or once you've touched the
+  category picker yourself); `buildTransactionsFromCsv` applies them during import, but only to
+  rows the statement's own category column didn't already claim, and the review step flags each
+  rule-categorized row; and the [Rules page](src/pages/CategoryRules.tsx) can replay them over
+  existing history — "uncategorized only" or "all transactions" — with a live count of what would
+  change and a single-toast undo via `restoreCategorization`. Deleting a category repoints its
+  rules at Miscellaneous and deleting a label strips it from every rule, same as the existing
+  cascades. Backup export/import and validation carry rules like every other entity.
 
 ### Quick wins
 
@@ -305,9 +321,11 @@ All of these endpoints are implemented in PHP and wired up in
 
 1. ~~**Bug batch** (section 1) — correctness first, everything else builds on it.~~ **Done:**
    section 1 is fully checked off, including `openingBalance` + reconcile and the Vitest suite.
-2. **One flagship**: savings goals if the app should feel more complete, or CSV import +
-   auto-categorization if new-user onboarding matters more.
-3. **Backup history UI** — nearly free, the backend already supports it.
+2. ~~**One flagship**: savings goals if the app should feel more complete, or CSV import +
+   auto-categorization if new-user onboarding matters more.~~ **Done** — every flagship candidate
+   has landed. Section 3's remaining work is analytics depth, platform/PWA and the strategic
+   encrypted-backup item.
+3. ~~**Backup history UI** — nearly free, the backend already supports it.~~ **Done.**
 4. ~~**Section 2 quick wins** — search breadth, `AlertDialog` instead of `confirm()`, archive
    accounts.~~ **Done**, plus onboarding.
 5. ~~**Period work** — custom month start day, budget periods/rollover/history, recurring rule

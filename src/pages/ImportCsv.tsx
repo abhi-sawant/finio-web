@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, AlertTriangle, FileUp } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, FileUp, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MISC_CATEGORY_ID } from '@/data/defaultData';
 import { useFinanceStore } from '@/store/useFinanceStore';
@@ -50,6 +50,7 @@ export default function ImportCsv() {
   const accounts = useFinanceStore((s) => s.accounts);
   const categories = useFinanceStore((s) => s.categories);
   const transactions = useFinanceStore((s) => s.transactions);
+  const rules = useFinanceStore((s) => s.rules);
   const bulkAddTransactions = useFinanceStore((s) => s.bulkAddTransactions);
 
   const activeAccounts = useMemo(() => accounts.filter((a) => !a.archivedAt), [accounts]);
@@ -69,6 +70,7 @@ export default function ImportCsv() {
   const [creditCol, setCreditCol] = useState(NONE);
   const [noteCol, setNoteCol] = useState(NONE);
   const [categoryCol, setCategoryCol] = useState(NONE);
+  const [applyRules, setApplyRules] = useState(true);
 
   const [result, setResult] = useState<CsvImportResult | null>(null);
   const [duplicateRows, setDuplicateRows] = useState<Set<number>>(new Set());
@@ -153,6 +155,7 @@ export default function ImportCsv() {
       accountId,
       categories,
       fallbackCategoryId: MISC_CATEGORY_ID,
+      rules: applyRules ? rules : undefined,
     });
 
     setResult(built);
@@ -166,6 +169,11 @@ export default function ImportCsv() {
       ? result.accepted.filter((r) => !duplicateRows.has(r.rowIndex))
       : result.accepted;
   }, [result, duplicateRows, skipDuplicates]);
+
+  const ruleMatchedCount = useMemo(
+    () => toImport.filter((r) => r.matchedRuleId).length,
+    [toImport],
+  );
 
   const handleImport = () => {
     if (toImport.length === 0) return;
@@ -190,12 +198,7 @@ export default function ImportCsv() {
   return (
     <>
       <Header innerClassName="lg:max-w-2xl">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleBack}
-          className="h-9 w-9 rounded-full"
-        >
+        <Button variant="ghost" size="icon" onClick={handleBack} className="h-9 w-9 rounded-full">
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-base font-semibold">{stepTitle}</h1>
@@ -222,8 +225,8 @@ export default function ImportCsv() {
               <>
                 <div className="card-elevated space-y-3 rounded-2xl p-4">
                   <p className="text-sm">
-                    Import transactions from a bank or card statement CSV. You'll map its columns
-                    to Finio's fields on the next step, and review everything before it's added.
+                    Import transactions from a bank or card statement CSV. You'll map its columns to
+                    Finio's fields on the next step, and review everything before it's added.
                   </p>
                   <div>
                     <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
@@ -335,7 +338,11 @@ export default function ImportCsv() {
 
                 {amountMode === 'signed' ? (
                   <div className="grid grid-cols-2 gap-3">
-                    <ColumnSelect headers={parsed.headers} value={amountCol} onChange={setAmountCol} />
+                    <ColumnSelect
+                      headers={parsed.headers}
+                      value={amountCol}
+                      onChange={setAmountCol}
+                    />
                     <Select
                       value={negativeIsExpense ? 'expense' : 'income'}
                       onValueChange={(v) => setNegativeIsExpense((v ?? 'expense') === 'expense')}
@@ -353,7 +360,11 @@ export default function ImportCsv() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-muted-foreground mb-1 text-[11px]">Debit (money out)</p>
-                      <ColumnSelect headers={parsed.headers} value={debitCol} onChange={setDebitCol} />
+                      <ColumnSelect
+                        headers={parsed.headers}
+                        value={debitCol}
+                        onChange={setDebitCol}
+                      />
                     </div>
                     <div>
                       <p className="text-muted-foreground mb-1 text-[11px]">Credit (money in)</p>
@@ -394,6 +405,35 @@ export default function ImportCsv() {
                   Miscellaneous.
                 </p>
               </div>
+
+              {rules.length > 0 && (
+                <div className="border-border flex items-center gap-3 border-t pt-3">
+                  <Wand2 size={18} className="text-muted-foreground shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Apply categorization rules</p>
+                    <p className="text-muted-foreground text-xs">
+                      {rules.filter((r) => r.enabled).length} active rule
+                      {rules.filter((r) => r.enabled).length === 1 ? '' : 's'} will categorize rows
+                      the file doesn't already categorize
+                    </p>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={applyRules}
+                    aria-label="Apply categorization rules"
+                    onClick={() => setApplyRules((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                      applyRules ? 'bg-primary' : 'bg-muted'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                        applyRules ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              )}
             </div>
 
             <Button
@@ -422,6 +462,13 @@ export default function ImportCsv() {
                 <p className="text-muted-foreground text-[11px]">Possible duplicates</p>
               </div>
             </div>
+
+            {ruleMatchedCount > 0 && (
+              <p className="text-muted-foreground flex items-center gap-1.5 px-1 text-xs">
+                <Wand2 size={13} className="text-primary shrink-0" />
+                {ruleMatchedCount} row{ruleMatchedCount === 1 ? '' : 's'} categorized by your rules
+              </p>
+            )}
 
             {duplicateRows.size > 0 && (
               <button
@@ -471,9 +518,19 @@ export default function ImportCsv() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{row.transaction.note || '—'}</p>
-                      <p className="text-muted-foreground truncate text-xs">
-                        {formatFullDate(row.transaction.date)} · {categoryName(row.transaction.categoryId)}
-                        {isDup && ' · Duplicate'}
+                      <p className="text-muted-foreground flex items-center gap-1 truncate text-xs">
+                        {row.matchedRuleId && (
+                          <Wand2
+                            size={11}
+                            className="text-primary shrink-0"
+                            aria-label="Categorized by a rule"
+                          />
+                        )}
+                        <span className="truncate">
+                          {formatFullDate(row.transaction.date)} ·{' '}
+                          {categoryName(row.transaction.categoryId)}
+                          {isDup && ' · Duplicate'}
+                        </span>
                       </p>
                     </div>
                     <span
@@ -504,7 +561,9 @@ export default function ImportCsv() {
               disabled={importing || toImport.length === 0}
               className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-2xl py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {importing ? 'Importing...' : `Import ${toImport.length} Transaction${toImport.length === 1 ? '' : 's'}`}
+              {importing
+                ? 'Importing...'
+                : `Import ${toImport.length} Transaction${toImport.length === 1 ? '' : 's'}`}
             </Button>
           </div>
         )}
