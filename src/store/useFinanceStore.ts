@@ -15,12 +15,14 @@ import {
   sumTransactionDeltas,
 } from './balance';
 import { planRecurring } from './recurring';
+import { planRuleApplication } from '@/utils/autoCategorize';
 import { budgetScopeKey } from '@/utils/calculations';
 import { normalizeMonthStartDay } from '@/utils/period';
 import type {
   Account,
   Budget,
   Category,
+  CategoryRule,
   DebtEntry,
   FinanceStore,
   Goal,
@@ -105,6 +107,7 @@ const defaultState = {
   budgets: [] as Budget[],
   recurring: [] as RecurringTransaction[],
   templates: [] as TransactionTemplate[],
+  rules: [] as CategoryRule[],
   goals: [] as Goal[],
   goalContributions: [] as GoalContribution[],
   people: [] as Person[],
@@ -370,6 +373,11 @@ export const useFinanceStore = create<FinanceStore>()(
             recurring: state.recurring.map((r) =>
               r.categoryId === id ? { ...r, categoryId: fallbackId } : r,
             ),
+            // A rule filing into a deleted category would keep firing and keep producing
+            // "Unknown" rows — point it at the same catch-all everything else falls back to.
+            rules: state.rules.map((r) =>
+              r.categoryId === id ? { ...r, categoryId: fallbackId } : r,
+            ),
           };
         });
       },
@@ -400,6 +408,11 @@ export const useFinanceStore = create<FinanceStore>()(
                     : t,
                 )
               : state.transactions,
+            rules: state.rules.map((r) =>
+              r.labelIds.includes(id)
+                ? { ...r, labelIds: r.labelIds.filter((lId) => lId !== id) }
+                : r,
+            ),
           };
         });
       },
@@ -515,6 +528,74 @@ export const useFinanceStore = create<FinanceStore>()(
 
       deleteTemplate: (id) => {
         set((state) => ({ templates: state.templates.filter((t) => t.id !== id) }));
+      },
+
+      addRule: (ruleData) => {
+        const rule: CategoryRule = {
+          ...ruleData,
+          id: generateUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        // Appended, not prepended: a new rule must not silently outrank every existing one.
+        set((state) => ({ rules: [...state.rules, rule] }));
+        return rule.id;
+      },
+
+      updateRule: (id, updates) => {
+        set((state) => ({
+          rules: state.rules.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+        }));
+      },
+
+      deleteRule: (id) => {
+        set((state) => ({ rules: state.rules.filter((r) => r.id !== id) }));
+      },
+
+      moveRule: (id, direction) => {
+        set((state) => {
+          const index = state.rules.findIndex((r) => r.id === id);
+          if (index === -1) return state;
+          const target = direction === 'up' ? index - 1 : index + 1;
+          if (target < 0 || target >= state.rules.length) return state;
+
+          const rules = [...state.rules];
+          [rules[index], rules[target]] = [rules[target], rules[index]];
+          return { rules };
+        });
+      },
+
+      applyRulesToExisting: (options) => {
+        const state = get();
+        const applications = planRuleApplication(state.transactions, state.rules, {
+          restrictToCategoryId: options?.restrictToCategoryId,
+        });
+        if (applications.length === 0) return { changed: 0, previous: [] };
+
+        const byId = new Map(applications.map((a) => [a.transactionId, a.after]));
+        set((s) => ({
+          transactions: s.transactions.map((t) => {
+            const after = byId.get(t.id);
+            return after ? { ...t, categoryId: after.categoryId, labels: after.labels } : t;
+          }),
+        }));
+
+        return { changed: applications.length, previous: applications.map((a) => a.before) };
+      },
+
+      restoreCategorization: (rows) => {
+        if (rows.length === 0) return;
+        const byId = new Map(rows.map((row) => [row.id, row]));
+        set((state) => ({
+          transactions: state.transactions.map((t) => {
+            const row = byId.get(t.id);
+            if (!row) return t;
+            const restored = { ...t, categoryId: row.categoryId, labels: row.labels };
+            // Match how splits serialize elsewhere: absent rather than explicitly undefined.
+            if (row.splits) restored.splits = row.splits;
+            else delete restored.splits;
+            return restored;
+          }),
+        }));
       },
 
       addGoal: (goalData) => {
@@ -634,6 +715,7 @@ export const useFinanceStore = create<FinanceStore>()(
           budgets: [],
           recurring: [],
           templates: [],
+          rules: [],
           goals: [],
           goalContributions: [],
           people: [],
@@ -657,6 +739,7 @@ export const useFinanceStore = create<FinanceStore>()(
                   budgets: mergeById(state.budgets, data.budgets),
                   recurring: mergeById(state.recurring, data.recurring),
                   templates: mergeById(state.templates, data.templates),
+                  rules: mergeById(state.rules, data.rules),
                   goals: mergeById(state.goals, data.goals),
                   goalContributions: mergeById(state.goalContributions, data.goalContributions),
                   people: mergeById(state.people, data.people),
@@ -670,6 +753,7 @@ export const useFinanceStore = create<FinanceStore>()(
                   budgets: data.budgets ?? state.budgets,
                   recurring: data.recurring ?? state.recurring,
                   templates: data.templates ?? state.templates,
+                  rules: data.rules ?? state.rules,
                   goals: data.goals ?? state.goals,
                   goalContributions: data.goalContributions ?? state.goalContributions,
                   people: data.people ?? state.people,
@@ -694,7 +778,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 10,
+      version: 11,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -819,6 +903,15 @@ export const useFinanceStore = create<FinanceStore>()(
           };
         }
 
+        if (version < 11) {
+          // Auto-categorization rules are new. Nobody gets seeded rules — an empty list means
+          // nothing is silently recategorized on upgrade.
+          s = {
+            ...s,
+            rules: Array.isArray(s.rules) ? s.rules : [],
+          };
+        }
+
         return s as FinanceStore;
       },
       onRehydrateStorage: () => (state) => {
@@ -838,6 +931,7 @@ export const useLabels = () => useFinanceStore((s) => s.labels);
 export const useBudgets = () => useFinanceStore((s) => s.budgets);
 export const useRecurring = () => useFinanceStore((s) => s.recurring);
 export const useTemplates = () => useFinanceStore((s) => s.templates);
+export const useRules = () => useFinanceStore((s) => s.rules);
 export const useGoals = () => useFinanceStore((s) => s.goals);
 export const useGoalContributions = () => useFinanceStore((s) => s.goalContributions);
 export const usePeople = () => useFinanceStore((s) => s.people);

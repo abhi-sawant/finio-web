@@ -4,6 +4,9 @@ export type CategoryType = 'expense' | 'income' | 'both';
 export type Theme = 'dark' | 'light' | 'system';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type BudgetPeriod = 'weekly' | 'monthly' | 'yearly';
+export type RuleMatchType = 'contains' | 'startsWith' | 'endsWith' | 'equals' | 'regex';
+/** Which transaction types a rule is allowed to fire on. Transfers are never matched. */
+export type RuleScope = 'expense' | 'income' | 'any';
 
 export interface Account {
   id: string;
@@ -199,6 +202,26 @@ export interface DebtEntry {
   createdAt: string;
 }
 
+/**
+ * "If the note contains 'Uber', file it under Transport and tag it Essential." Rules run on
+ * manual add and on CSV import, and can be replayed over existing history. Order in the
+ * `rules` array is priority — the first enabled rule that matches wins, and no rule ever
+ * fires on a transfer or overwrites a split.
+ */
+export interface CategoryRule {
+  id: string;
+  /** What to look for in the transaction's note. Interpreted per `matchType`, case-insensitively. */
+  pattern: string;
+  matchType: RuleMatchType;
+  scope: RuleScope;
+  categoryId: string;
+  /** Labels to add on top of whatever the transaction already carries. May be empty. */
+  labelIds: string[];
+  /** A disabled rule is kept but skipped, the same way a paused recurring rule is. */
+  enabled: boolean;
+  createdAt: string;
+}
+
 /** A saved shape for quickly re-adding a common transaction — everything but the date. */
 export interface TransactionTemplate {
   id: string;
@@ -215,6 +238,12 @@ export interface TransactionTemplate {
   splits?: TransactionSplit[];
 }
 
+/** The only fields a rule may rewrite on an existing transaction — enough to undo one pass. */
+export type TransactionCategorization = Pick<
+  Transaction,
+  'id' | 'categoryId' | 'labels' | 'splits'
+>;
+
 /** Sanitized backup contents accepted by `importData`. */
 export interface ImportPayload {
   accounts?: ImportedAccount[];
@@ -224,6 +253,7 @@ export interface ImportPayload {
   budgets?: Budget[];
   recurring?: RecurringTransaction[];
   templates?: TransactionTemplate[];
+  rules?: CategoryRule[];
   goals?: Goal[];
   goalContributions?: GoalContribution[];
   people?: Person[];
@@ -241,6 +271,7 @@ export interface FinanceStore {
   budgets: Budget[];
   recurring: RecurringTransaction[];
   templates: TransactionTemplate[];
+  rules: CategoryRule[];
   goals: Goal[];
   goalContributions: GoalContribution[];
   people: Person[];
@@ -288,6 +319,26 @@ export interface FinanceStore {
   /** Save a transaction's shape (everything but date) as a reusable template. */
   addTemplate: (template: Omit<TransactionTemplate, 'id' | 'createdAt'>) => string;
   deleteTemplate: (id: string) => void;
+
+  /** New rules go last — array order is match priority, and an existing rule keeps its place. */
+  addRule: (rule: Omit<CategoryRule, 'id' | 'createdAt'>) => string;
+  updateRule: (id: string, updates: Partial<Omit<CategoryRule, 'id'>>) => void;
+  deleteRule: (id: string) => void;
+  /** Shift a rule one slot up or down, changing which rule wins when both match. */
+  moveRule: (id: string, direction: 'up' | 'down') => void;
+  /**
+   * Replay the rules over transactions already in the ledger. Returns how many changed plus
+   * their prior categorization, so the caller can offer an undo.
+   */
+  applyRulesToExisting: (options?: { restrictToCategoryId?: string }) => {
+    changed: number;
+    previous: TransactionCategorization[];
+  };
+  /**
+   * Undo for a bulk categorization change: restores each row's category, splits and labels by
+   * id. Balance-neutral by construction — it cannot touch an amount or an account.
+   */
+  restoreCategorization: (rows: TransactionCategorization[]) => void;
 
   addGoal: (goal: Omit<Goal, 'id' | 'createdAt'>) => string;
   updateGoal: (id: string, updates: Partial<Omit<Goal, 'id'>>) => void;

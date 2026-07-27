@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
-import type { Category, Transaction } from '@/types';
+import { findMatchingRule, mergeLabels } from './autoCategorize';
+import type { Category, CategoryRule, Transaction } from '@/types';
 
 /**
  * Bank CSV exports are free-form: unknown headers, unknown date format, and either a single
@@ -135,6 +136,12 @@ export interface CsvImportOptions {
   categories: Category[];
   /** Category to fall back to when no category column is mapped, or its value matches nothing. */
   fallbackCategoryId: string;
+  /**
+   * Auto-categorization rules, in priority order. They fill the gap the statement leaves: a
+   * rule only fires when the file's own category column didn't already say where the row goes,
+   * so explicit data from the bank always outranks a guess from a note pattern.
+   */
+  rules?: CategoryRule[];
 }
 
 export interface ParsedCsvTransaction {
@@ -143,6 +150,8 @@ export interface ParsedCsvTransaction {
   transaction: Omit<Transaction, 'id' | 'createdAt'>;
   /** False when a category column was mapped but its value didn't match any existing category. */
   categoryMatched: boolean;
+  /** Set when an auto-categorization rule picked this row's category. */
+  matchedRuleId?: string;
 }
 
 export interface CsvImportResult {
@@ -158,7 +167,7 @@ export function buildTransactionsFromCsv(
   rows: string[][],
   options: CsvImportOptions,
 ): CsvImportResult {
-  const { mapping, dateFormat, accountId, categories, fallbackCategoryId } = options;
+  const { mapping, dateFormat, accountId, categories, fallbackCategoryId, rules } = options;
   const accepted: ParsedCsvTransaction[] = [];
   const allIssues: string[] = [];
 
@@ -221,9 +230,22 @@ export function buildTransactionsFromCsv(
       }
     }
 
+    // The statement had nothing to say about this row's category — let the rules try.
+    let labels: string[] = [];
+    let matchedRuleId: string | undefined;
+    if (!categoryMatched && rules?.length) {
+      const rule = findMatchingRule(rules, note, type);
+      if (rule) {
+        categoryId = rule.categoryId;
+        labels = mergeLabels(labels, rule.labelIds);
+        matchedRuleId = rule.id;
+      }
+    }
+
     accepted.push({
       rowIndex: index,
       categoryMatched,
+      ...(matchedRuleId ? { matchedRuleId } : {}),
       transaction: {
         type,
         amount,
@@ -231,7 +253,7 @@ export function buildTransactionsFromCsv(
         categoryId,
         date,
         note,
-        labels: [],
+        labels,
       },
     });
   });
@@ -257,9 +279,7 @@ export function findDuplicateRows(
   candidates: ParsedCsvTransaction[],
   existing: Transaction[],
 ): Set<number> {
-  const existingKeys = new Set(
-    existing.map((t) => dedupeKey(t.date, t.amount, t.note, t.type)),
-  );
+  const existingKeys = new Set(existing.map((t) => dedupeKey(t.date, t.amount, t.note, t.type)));
   const seenInBatch = new Set<string>();
   const duplicates = new Set<number>();
 

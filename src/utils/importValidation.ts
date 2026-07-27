@@ -1,8 +1,10 @@
 import { defaultSettings } from '@/data/defaultData';
+import { isValidPattern } from './autoCategorize';
 import { normalizeMonthStartDay } from './period';
 import type {
   Budget,
   Category,
+  CategoryRule,
   DebtEntry,
   Goal,
   GoalContribution,
@@ -32,6 +34,7 @@ export type ImportEntity =
   | 'budgets'
   | 'recurring'
   | 'templates'
+  | 'rules'
   | 'goals'
   | 'goalContributions'
   | 'people'
@@ -45,6 +48,7 @@ export const IMPORT_ENTITIES: ImportEntity[] = [
   'budgets',
   'recurring',
   'templates',
+  'rules',
   'goals',
   'goalContributions',
   'people',
@@ -59,6 +63,7 @@ export const ENTITY_LABELS: Record<ImportEntity, string> = {
   budgets: 'Budgets',
   recurring: 'Recurring rules',
   templates: 'Templates',
+  rules: 'Categorization rules',
   goals: 'Savings goals',
   goalContributions: 'Goal contributions',
   people: 'People',
@@ -93,6 +98,8 @@ const TRANSACTION_TYPES = new Set(['expense', 'income', 'transfer']);
 const CATEGORY_TYPES = new Set(['expense', 'income', 'both']);
 const FREQUENCIES = new Set(['daily', 'weekly', 'monthly', 'yearly']);
 const BUDGET_PERIODS = new Set(['weekly', 'monthly', 'yearly']);
+const MATCH_TYPES = new Set(['contains', 'startsWith', 'endsWith', 'equals', 'regex']);
+const RULE_SCOPES = new Set(['expense', 'income', 'any']);
 const THEMES = new Set(['dark', 'light', 'system']);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -339,6 +346,38 @@ const parseTemplate: RowParser<TransactionTemplate> = (row) => {
   };
 };
 
+const parseRule: RowParser<CategoryRule> = (row) => {
+  const id = asId(row.id);
+  if (!id) return 'missing id';
+  const pattern = asId(row.pattern);
+  if (!pattern) return 'missing pattern';
+  const matchType =
+    typeof row.matchType === 'string' && MATCH_TYPES.has(row.matchType) ? row.matchType : undefined;
+  if (!matchType) return `unknown match type "${String(row.matchType)}"`;
+  // A rule that files nowhere is not recoverable the way a stray label is — drop it.
+  const categoryId = asId(row.categoryId);
+  if (!categoryId) return 'missing categoryId';
+  // An unparseable regex would silently match nothing on every transaction forever.
+  if (matchType === 'regex' && !isValidPattern(pattern, 'regex')) {
+    return `invalid regex "${pattern}"`;
+  }
+
+  return {
+    id,
+    pattern,
+    matchType: matchType as CategoryRule['matchType'],
+    scope:
+      typeof row.scope === 'string' && RULE_SCOPES.has(row.scope)
+        ? (row.scope as CategoryRule['scope'])
+        : 'any',
+    categoryId,
+    labelIds: asStringArray(row.labelIds),
+    // Anything but an explicit `false` stays on — a rule in a backup was presumably wanted.
+    enabled: row.enabled !== false,
+    createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
+  };
+};
+
 const parseGoal: RowParser<Goal> = (row) => {
   const id = asId(row.id);
   if (!id) return 'missing id';
@@ -509,8 +548,13 @@ export function validateBackup(raw: unknown): ValidatedBackup {
   const budgets = collect(raw.budgets, 'budgets', parseBudget);
   const recurring = collect(raw.recurring, 'recurring', parseRecurring);
   const templates = collect(raw.templates, 'templates', parseTemplate);
+  const rules = collect(raw.rules, 'rules', parseRule);
   const goals = collect(raw.goals, 'goals', parseGoal);
-  const goalContributions = collect(raw.goalContributions, 'goalContributions', parseGoalContribution);
+  const goalContributions = collect(
+    raw.goalContributions,
+    'goalContributions',
+    parseGoalContribution,
+  );
   const people = collect(raw.people, 'people', parsePerson);
   const debtEntries = collect(raw.debtEntries, 'debtEntries', parseDebtEntry);
   const settings = parseSettings(raw.settings);
@@ -523,6 +567,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     budgets: budgets.report,
     recurring: recurring.report,
     templates: templates.report,
+    rules: rules.report,
     goals: goals.report,
     goalContributions: goalContributions.report,
     people: people.report,
@@ -540,6 +585,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     ...budgets.issues,
     ...recurring.issues,
     ...templates.issues,
+    ...rules.issues,
     ...goals.issues,
     ...goalContributions.issues,
     ...people.issues,
@@ -590,6 +636,16 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     }
   }
 
+  if (categories.rows && rules.rows) {
+    const ids = new Set(categories.rows.map((c) => c.id));
+    const orphans = rules.rows.filter((r) => !ids.has(r.categoryId)).length;
+    if (orphans > 0) {
+      warnings.push(
+        `${orphans} categorization rule${orphans === 1 ? '' : 's'} reference a category that is not in this file`,
+      );
+    }
+  }
+
   if (labels.rows && budgets.rows) {
     const ids = new Set(labels.rows.map((l) => l.id));
     const orphans = budgets.rows.filter((b) => b.labelId && !ids.has(b.labelId)).length;
@@ -636,6 +692,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
       ...(budgets.rows ? { budgets: budgets.rows } : {}),
       ...(recurring.rows ? { recurring: recurring.rows } : {}),
       ...(templates.rows ? { templates: templates.rows } : {}),
+      ...(rules.rows ? { rules: rules.rows } : {}),
       ...(goals.rows ? { goals: goals.rows } : {}),
       ...(goalContributions.rows ? { goalContributions: goalContributions.rows } : {}),
       ...(people.rows ? { people: people.rows } : {}),

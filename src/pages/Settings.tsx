@@ -27,6 +27,7 @@ import {
   Trash2,
   UserX,
   FileSpreadsheet,
+  Wand2,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -118,9 +119,11 @@ export default function Settings() {
   const [showMonthStartPicker, setShowMonthStartPicker] = useState(false);
 
   const [showBackupHistory, setShowBackupHistory] = useState(false);
-  const [backupList, setBackupList] = useState<
-    Array<{ backup_date: string; file_size: number; created_at: string }> | null
-  >(null);
+  const [backupList, setBackupList] = useState<Array<{
+    backup_date: string;
+    file_size: number;
+    created_at: string;
+  }> | null>(null);
   const [backupListLoading, setBackupListLoading] = useState(false);
   const [busyBackupDate, setBusyBackupDate] = useState<string | null>(null);
 
@@ -156,6 +159,7 @@ export default function Settings() {
         budgets: state.budgets,
         recurring: state.recurring,
         templates: state.templates,
+        rules: state.rules,
         goals: state.goals,
         goalContributions: state.goalContributions,
         people: state.people,
@@ -485,10 +489,7 @@ export default function Settings() {
                 {restoring ? 'Restoring...' : 'Restore from Cloud'}
               </span>
             </button>
-            <button
-              onClick={openBackupHistory}
-              className="flex w-full items-center gap-3 p-4"
-            >
+            <button onClick={openBackupHistory} className="flex w-full items-center gap-3 p-4">
               <History size={18} className="text-muted-foreground" />
               <span className="text-sm font-medium">Backup History</span>
             </button>
@@ -656,6 +657,21 @@ export default function Settings() {
             <div className="flex items-center gap-3">
               <Tag size={18} className="text-muted-foreground" />
               <span className="text-sm font-medium">Manage Labels</span>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => navigate('/category-rules')}
+            className="flex w-full items-center justify-between p-4"
+          >
+            <div className="flex items-center gap-3">
+              <Wand2 size={18} className="text-muted-foreground" />
+              <div className="text-left">
+                <p className="text-sm font-medium">Categorization Rules</p>
+                <p className="text-muted-foreground text-xs">
+                  File transactions automatically from their note
+                </p>
+              </div>
             </div>
             <ChevronRight size={16} className="text-muted-foreground" />
           </button>
@@ -980,8 +996,8 @@ export default function Settings() {
             <DialogHeader>
               <DialogTitle>Delete Cloud Account?</DialogTitle>
               <DialogDescription>
-                Your account and every backup on the server will be permanently deleted. This
-                cannot be undone. Finance data on this device is not affected.
+                Your account and every backup on the server will be permanently deleted. This cannot
+                be undone. Finance data on this device is not affected.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3">

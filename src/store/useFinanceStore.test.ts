@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { getNetWorth, getTotalAccountBalance } from '@/utils/calculations';
 import { defaultSettings } from '@/data/defaultData';
-import type { Account, ImportPayload, RecurringTransaction, Transaction } from '@/types';
+import type {
+  Account,
+  CategoryRule,
+  ImportPayload,
+  RecurringTransaction,
+  Transaction,
+} from '@/types';
 
 // The store creates its persist middleware at import time, so localStorage has to exist
 // before the module is pulled in. A Map-backed stub keeps the suite in the node
@@ -335,8 +341,24 @@ describe('bulkAddTransactions', () => {
     seed([account('a', 1000)]);
 
     const added = useFinanceStore.getState().bulkAddTransactions([
-      { type: 'expense', amount: 100, accountId: 'a', categoryId: 'cat-1', date: '2026-06-01T00:00:00.000Z', note: 'Coffee', labels: [] },
-      { type: 'income', amount: 5000, accountId: 'a', categoryId: 'cat-1', date: '2026-06-02T00:00:00.000Z', note: 'Salary', labels: [] },
+      {
+        type: 'expense',
+        amount: 100,
+        accountId: 'a',
+        categoryId: 'cat-1',
+        date: '2026-06-01T00:00:00.000Z',
+        note: 'Coffee',
+        labels: [],
+      },
+      {
+        type: 'income',
+        amount: 5000,
+        accountId: 'a',
+        categoryId: 'cat-1',
+        date: '2026-06-02T00:00:00.000Z',
+        note: 'Salary',
+        labels: [],
+      },
     ]);
 
     expect(added).toBe(2);
@@ -454,6 +476,124 @@ describe('addTemplate / deleteTemplate', () => {
 
     useFinanceStore.getState().resetToDefaults();
     expect(useFinanceStore.getState().templates).toEqual([]);
+  });
+});
+
+describe('categorization rules', () => {
+  function addUberRule(overrides: Partial<Omit<CategoryRule, 'id' | 'createdAt'>> = {}) {
+    return useFinanceStore.getState().addRule({
+      pattern: 'uber',
+      matchType: 'contains',
+      scope: 'any',
+      categoryId: 'cat-2',
+      labelIds: ['lbl-1'],
+      enabled: true,
+      ...overrides,
+    });
+  }
+
+  it('appends new rules so an existing rule keeps its priority', () => {
+    addUberRule({ pattern: 'first' });
+    addUberRule({ pattern: 'second' });
+    expect(useFinanceStore.getState().rules.map((r) => r.pattern)).toEqual(['first', 'second']);
+  });
+
+  it('moveRule swaps neighbours and stops at the ends', () => {
+    const a = addUberRule({ pattern: 'a' });
+    const b = addUberRule({ pattern: 'b' });
+
+    useFinanceStore.getState().moveRule(b, 'up');
+    expect(useFinanceStore.getState().rules.map((r) => r.pattern)).toEqual(['b', 'a']);
+
+    useFinanceStore.getState().moveRule(b, 'up');
+    expect(useFinanceStore.getState().rules.map((r) => r.pattern)).toEqual(['b', 'a']);
+
+    useFinanceStore.getState().moveRule(a, 'down');
+    expect(useFinanceStore.getState().rules.map((r) => r.pattern)).toEqual(['b', 'a']);
+  });
+
+  it('applyRulesToExisting recategorizes matching rows and reports them for undo', () => {
+    seed(
+      [account('a', 1000)],
+      [
+        tx({ id: 't1', type: 'expense', amount: 100, accountId: 'a', note: 'Uber to work' }),
+        tx({ id: 't2', type: 'expense', amount: 50, accountId: 'a', note: 'Groceries' }),
+      ],
+    );
+    addUberRule();
+
+    const { changed, previous } = useFinanceStore.getState().applyRulesToExisting();
+    expect(changed).toBe(1);
+
+    const [t1, t2] = useFinanceStore.getState().transactions;
+    expect(t1).toMatchObject({ id: 't1', categoryId: 'cat-2', labels: ['lbl-1'] });
+    expect(t2).toMatchObject({ id: 't2', categoryId: 'cat-1', labels: [] });
+
+    useFinanceStore.getState().restoreCategorization(previous);
+    expect(useFinanceStore.getState().transactions[0]).toMatchObject({
+      categoryId: 'cat-1',
+      labels: [],
+    });
+  });
+
+  it('leaves balances alone — recategorizing is not a money change', () => {
+    seed(
+      [account('a', 900, 1000)],
+      [tx({ id: 't1', type: 'expense', amount: 100, accountId: 'a', note: 'Uber' })],
+    );
+    addUberRule();
+
+    useFinanceStore.getState().applyRulesToExisting();
+    expect(useFinanceStore.getState().accounts[0].balance).toBe(900);
+  });
+
+  it('restricts the replay to one category when asked', () => {
+    seed(
+      [account('a', 1000)],
+      [
+        tx({
+          id: 't1',
+          type: 'expense',
+          amount: 10,
+          accountId: 'a',
+          note: 'Uber',
+          categoryId: 'cat-24',
+        }),
+        tx({
+          id: 't2',
+          type: 'expense',
+          amount: 10,
+          accountId: 'a',
+          note: 'Uber',
+          categoryId: 'cat-3',
+        }),
+      ],
+    );
+    addUberRule();
+
+    const { changed } = useFinanceStore
+      .getState()
+      .applyRulesToExisting({ restrictToCategoryId: 'cat-24' });
+    expect(changed).toBe(1);
+    expect(useFinanceStore.getState().transactions[1].categoryId).toBe('cat-3');
+  });
+
+  it('deleting a category repoints rules at the fallback instead of orphaning them', () => {
+    addUberRule({ categoryId: 'cat-2' });
+    useFinanceStore.getState().deleteCategory('cat-2');
+    expect(useFinanceStore.getState().rules[0].categoryId).toBe('cat-24');
+  });
+
+  it('deleting a label strips it from every rule that applied it', () => {
+    addUberRule({ labelIds: ['lbl-1', 'lbl-2'] });
+    useFinanceStore.getState().deleteLabel('lbl-1');
+    expect(useFinanceStore.getState().rules[0].labelIds).toEqual(['lbl-2']);
+  });
+
+  it('is cleared by resetToDefaults, same as every other finance collection', () => {
+    addUberRule();
+    useFinanceStore.getState().resetToDefaults();
+    expect(useFinanceStore.getState().rules).toEqual([]);
   });
 });
 
@@ -595,7 +735,9 @@ describe('deleteAccount clears dangling goal links', () => {
 
 describe('addPerson / updatePerson / deletePerson', () => {
   it('creates a person and returns its id', () => {
-    const id = useFinanceStore.getState().addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+    const id = useFinanceStore
+      .getState()
+      .addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
 
     const [created] = useFinanceStore.getState().people;
     expect(created.id).toBe(id);
@@ -604,7 +746,9 @@ describe('addPerson / updatePerson / deletePerson', () => {
   });
 
   it('updates only the given fields', () => {
-    const id = useFinanceStore.getState().addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+    const id = useFinanceStore
+      .getState()
+      .addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
 
     useFinanceStore.getState().updatePerson(id, { name: 'Rahul Sharma' });
     const [updated] = useFinanceStore.getState().people;
@@ -613,7 +757,9 @@ describe('addPerson / updatePerson / deletePerson', () => {
   });
 
   it('deleting a person removes every debt entry logged against them, not other people', () => {
-    const id = useFinanceStore.getState().addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+    const id = useFinanceStore
+      .getState()
+      .addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
     const otherId = useFinanceStore
       .getState()
       .addPerson({ name: 'Priya', icon: 'user', color: '#f59e0b' });
@@ -628,7 +774,9 @@ describe('addPerson / updatePerson / deletePerson', () => {
   });
 
   it('is cleared by resetToDefaults, same as every other finance collection', () => {
-    const id = useFinanceStore.getState().addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+    const id = useFinanceStore
+      .getState()
+      .addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
     useFinanceStore.getState().addDebtEntry({ personId: id, amount: 500, date: '', note: '' });
 
     useFinanceStore.getState().resetToDefaults();
@@ -1032,6 +1180,36 @@ describe('v10 migration', () => {
 
     expect(state.people).toEqual([]);
     expect(state.debtEntries).toEqual([]);
+  });
+});
+
+describe('v11 migration', () => {
+  it('seeds an empty rules array for pre-v11 state, recategorizing nothing on upgrade', async () => {
+    backing.set(
+      'finio-storage',
+      JSON.stringify({
+        version: 10,
+        state: {
+          accounts: [account('a', 100)],
+          transactions: [
+            tx({ id: 't1', type: 'expense', amount: 20, accountId: 'a', note: 'Uber' }),
+          ],
+          settings: {
+            theme: 'dark',
+            userName: 'Alex',
+            autoLocalBackup: false,
+            monthStartDay: 1,
+            hideAmounts: false,
+          },
+        },
+      }),
+    );
+
+    await useFinanceStore.persist.rehydrate();
+    const state = useFinanceStore.getState();
+
+    expect(state.rules).toEqual([]);
+    expect(state.transactions[0].categoryId).toBe('cat-1');
   });
 });
 

@@ -8,12 +8,29 @@ import {
   parseDateWithFormat,
   type ParsedCsvTransaction,
 } from './csvImport';
-import type { Category, Transaction } from '@/types';
+import type { Category, CategoryRule, Transaction } from '@/types';
+
+const uberRule: CategoryRule = {
+  id: 'rule-uber',
+  pattern: 'uber',
+  matchType: 'contains',
+  scope: 'any',
+  categoryId: 'cat-food',
+  labelIds: ['lbl-essential'],
+  enabled: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+};
 
 const categories: Category[] = [
   { id: 'cat-food', name: 'Food', icon: 'utensils', color: '#ef4444', type: 'expense' },
   { id: 'cat-salary', name: 'Salary', icon: 'briefcase', color: '#22c55e', type: 'income' },
-  { id: 'cat-misc', name: 'Miscellaneous', icon: 'circle-ellipsis', color: '#94a3b8', type: 'both' },
+  {
+    id: 'cat-misc',
+    name: 'Miscellaneous',
+    icon: 'circle-ellipsis',
+    color: '#94a3b8',
+    type: 'both',
+  },
 ];
 
 describe('parseCsvText', () => {
@@ -192,6 +209,63 @@ describe('buildTransactionsFromCsv', () => {
     expect(result.accepted).toHaveLength(0);
     expect(result.issues).toHaveLength(9); // 8 reasons + "...and N more"
     expect(result.issues.at(-1)).toMatch(/…and \d+ more/);
+  });
+
+  it('applies an auto-categorization rule to rows the file does not categorize', () => {
+    const rows = [
+      ['2026-01-01', '-250', 'UBER *TRIP 1234'],
+      ['2026-01-02', '-80', 'Something else'],
+    ];
+    const result = buildTransactionsFromCsv(rows, {
+      mapping: { dateCol: 0, amountMode: 'signed', amountCol: 1, noteCol: 2 },
+      dateFormat: 'YYYY-MM-DD',
+      accountId: 'acc-1',
+      categories,
+      fallbackCategoryId: 'cat-misc',
+      rules: [uberRule],
+    });
+
+    expect(result.accepted[0]).toMatchObject({
+      matchedRuleId: 'rule-uber',
+      transaction: { categoryId: 'cat-food', labels: ['lbl-essential'] },
+    });
+    // No rule matched — the fallback category still applies and no labels are invented.
+    expect(result.accepted[1].matchedRuleId).toBeUndefined();
+    expect(result.accepted[1].transaction).toMatchObject({ categoryId: 'cat-misc', labels: [] });
+  });
+
+  it("lets the file's own category column outrank a rule", () => {
+    const rows = [['2026-01-01', '-250', 'UBER *TRIP', 'Salary']];
+    const result = buildTransactionsFromCsv(rows, {
+      mapping: { dateCol: 0, amountMode: 'signed', amountCol: 1, noteCol: 2, categoryCol: 3 },
+      dateFormat: 'YYYY-MM-DD',
+      accountId: 'acc-1',
+      // 'Salary' is income-only, so it does not match an expense row and the rule gets its turn.
+      categories: [
+        ...categories,
+        { id: 'cat-cab', name: 'Cab', icon: 'car', color: '#000', type: 'expense' },
+      ],
+      fallbackCategoryId: 'cat-misc',
+      rules: [uberRule],
+    });
+    expect(result.accepted[0]).toMatchObject({
+      matchedRuleId: 'rule-uber',
+      transaction: { categoryId: 'cat-food' },
+    });
+
+    const mapped = buildTransactionsFromCsv([['2026-01-01', '-250', 'UBER *TRIP', 'Cab']], {
+      mapping: { dateCol: 0, amountMode: 'signed', amountCol: 1, noteCol: 2, categoryCol: 3 },
+      dateFormat: 'YYYY-MM-DD',
+      accountId: 'acc-1',
+      categories: [
+        ...categories,
+        { id: 'cat-cab', name: 'Cab', icon: 'car', color: '#000', type: 'expense' },
+      ],
+      fallbackCategoryId: 'cat-misc',
+      rules: [uberRule],
+    });
+    expect(mapped.accepted[0].matchedRuleId).toBeUndefined();
+    expect(mapped.accepted[0].transaction.categoryId).toBe('cat-cab');
   });
 
   it('rejects debit/credit rows where both or neither are filled', () => {

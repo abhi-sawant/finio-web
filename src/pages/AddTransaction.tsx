@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Trash2, Split, Plus, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Split, Plus, X, Wand2 } from 'lucide-react';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { roundMoney } from '@/store/balance';
+import { findMatchingRule, mergeLabels } from '@/utils/autoCategorize';
 import { formatCurrency, toLocalDateTimeInputValue } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { TransactionType } from '@/types';
+import type { CategoryRule, TransactionType } from '@/types';
 import Main from '@/components/ui/main';
 import Header from '@/components/ui/header';
 
@@ -29,6 +30,7 @@ export default function AddTransaction() {
   const accounts = useFinanceStore((s) => s.accounts);
   const categories = useFinanceStore((s) => s.categories);
   const labels = useFinanceStore((s) => s.labels);
+  const rules = useFinanceStore((s) => s.rules);
   const addTransaction = useFinanceStore((s) => s.addTransaction);
   const updateTransaction = useFinanceStore((s) => s.updateTransaction);
   const deleteTransaction = useFinanceStore((s) => s.deleteTransaction);
@@ -60,6 +62,69 @@ export default function AddTransaction() {
           { categoryId: '', amount: '' },
         ],
   );
+
+  /**
+   * Auto-categorization only ever fills a blank the user hasn't filled themselves. Once they
+   * touch the category picker (or dismiss a suggestion) rules stop firing for this form, and
+   * editing an existing transaction never triggers them at all — a saved category is a decision.
+   */
+  const categoryTouched = useRef(false);
+  const [appliedRule, setAppliedRule] = useState<{
+    rule: CategoryRule;
+    prevCategoryId: string;
+    prevLabels: string[];
+  } | null>(null);
+
+  const applyRulesToNote = (value: string, txType: TransactionType, splitting: boolean) => {
+    if (existing || categoryTouched.current || (txType === 'expense' && splitting)) return;
+
+    const rule = findMatchingRule(rules, value, txType);
+    if (rule && appliedRule?.rule.id === rule.id) return;
+
+    // Baseline is whatever the user had before *any* rule touched the form, so re-matching a
+    // different rule (or matching nothing) never compounds an earlier rule's edits.
+    const baseCategoryId = appliedRule ? appliedRule.prevCategoryId : categoryId;
+    const baseLabels = appliedRule ? appliedRule.prevLabels : selectedLabels;
+
+    if (!rule) {
+      // The note no longer matches — back out, rather than leaving behind a category the
+      // user never chose.
+      if (!appliedRule) return;
+      setCategoryId(baseCategoryId);
+      setSelectedLabels(baseLabels);
+      setAppliedRule(null);
+      return;
+    }
+
+    setCategoryId(rule.categoryId);
+    setSelectedLabels(mergeLabels(baseLabels, rule.labelIds));
+    setAppliedRule({ rule, prevCategoryId: baseCategoryId, prevLabels: baseLabels });
+  };
+
+  const handleNoteChange = (value: string) => {
+    setNote(value);
+    applyRulesToNote(value, type, splitMode);
+  };
+
+  const handleTypeChange = (next: TransactionType) => {
+    setType(next);
+    // A rule is scoped to expense or income, so switching type can change which one wins.
+    applyRulesToNote(note, next, splitMode);
+  };
+
+  const dismissAppliedRule = () => {
+    if (!appliedRule) return;
+    setCategoryId(appliedRule.prevCategoryId);
+    setSelectedLabels(appliedRule.prevLabels);
+    setAppliedRule(null);
+    categoryTouched.current = true;
+  };
+
+  const chooseCategory = (id: string) => {
+    categoryTouched.current = true;
+    setAppliedRule(null);
+    setCategoryId(id);
+  };
 
   const notesSuggestions = useMemo(() => {
     const seen = new Set<string>();
@@ -108,6 +173,10 @@ export default function AddTransaction() {
   };
 
   const toggleSplitMode = () => {
+    // Either direction is the user taking charge of the category — a rule has no business
+    // flattening a split, or re-firing once they fold one back down.
+    categoryTouched.current = true;
+    setAppliedRule(null);
     if (splitMode) {
       const first = splitRows.find((r) => r.categoryId);
       if (first) setCategoryId(first.categoryId);
@@ -169,12 +238,19 @@ export default function AddTransaction() {
       accountId,
       toAccountId: type === 'transfer' ? toAccountId : undefined,
       categoryId:
-        type === 'transfer' ? (transferCategory?.id ?? categoryId ?? '') : useSplits ? '' : categoryId,
+        type === 'transfer'
+          ? (transferCategory?.id ?? categoryId ?? '')
+          : useSplits
+            ? ''
+            : categoryId,
       date: new Date(date).toISOString(),
       note,
       labels: selectedLabels,
       splits: useSplits
-        ? splitRows.map((r) => ({ categoryId: r.categoryId, amount: roundMoney(parseFloat(r.amount)) }))
+        ? splitRows.map((r) => ({
+            categoryId: r.categoryId,
+            amount: roundMoney(parseFloat(r.amount)),
+          }))
         : undefined,
     };
 
@@ -248,7 +324,7 @@ export default function AddTransaction() {
             return (
               <button
                 key={t}
-                onClick={() => setType(t)}
+                onClick={() => handleTypeChange(t)}
                 className={`rounded-xl py-2 text-sm font-medium capitalize transition-all ${
                   isActive ? `${grad} text-white shadow` : 'text-muted-foreground'
                 }`}
@@ -430,7 +506,7 @@ export default function AddTransaction() {
                   return (
                     <button
                       key={cat.id}
-                      onClick={() => setCategoryId(cat.id)}
+                      onClick={() => chooseCategory(cat.id)}
                       className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition-all ${
                         selected
                           ? 'ring-grad-primary border-transparent'
@@ -476,7 +552,7 @@ export default function AddTransaction() {
             type="text"
             placeholder="Add a note..."
             value={note}
-            onChange={(e) => setNote(e.target.value)}
+            onChange={(e) => handleNoteChange(e.target.value)}
             className="bg-card h-auto rounded-xl px-4 py-3"
             list="note-suggestions"
           />
@@ -485,6 +561,22 @@ export default function AddTransaction() {
               <option key={n} value={n} />
             ))}
           </datalist>
+          {appliedRule && (
+            <div className="text-primary mt-1.5 flex items-center gap-1.5 text-xs">
+              <Wand2 size={12} className="shrink-0" />
+              <span className="min-w-0 flex-1 truncate">
+                Filed as {categories.find((c) => c.id === appliedRule.rule.categoryId)?.name} by
+                your "{appliedRule.rule.pattern}" rule
+              </span>
+              <button
+                type="button"
+                onClick={dismissAppliedRule}
+                className="text-muted-foreground shrink-0 underline"
+              >
+                Undo
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Labels */}
