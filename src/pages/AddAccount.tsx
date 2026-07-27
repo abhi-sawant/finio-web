@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NumberPad } from '@/components/ui/number-pad';
-import type { AccountType, Currency } from '@/types';
+import type { AccountType } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
@@ -69,7 +69,6 @@ export default function AddAccount() {
   const navigate = useNavigate();
   const { id } = useParams();
   const accounts = useFinanceStore((s) => s.accounts);
-  const settings = useFinanceStore((s) => s.settings);
   const addAccount = useFinanceStore((s) => s.addAccount);
   const updateAccount = useFinanceStore((s) => s.updateAccount);
   const deleteAccount = useFinanceStore((s) => s.deleteAccount);
@@ -85,7 +84,6 @@ export default function AddAccount() {
     existing?.type === 'credit' ? Math.abs(existing.balance).toString() : '0',
   );
   const [color, setColor] = useState(existing?.color ?? accountColors[0]);
-  const [currency] = useState<Currency>(existing?.currency ?? settings.currency);
   const [creditLimit, setCreditLimit] = useState(existing?.creditLimit?.toString() ?? '0');
 
   const handleSubmit = () => {
@@ -97,7 +95,6 @@ export default function AddAccount() {
       balance: type === 'credit' ? -(parseFloat(due) || 0) : parseFloat(balance) || 0,
       color,
       icon: existing?.icon ?? accountTypes.find((t) => t.value === type)?.icon ?? 'landmark',
-      currency,
       creditLimit: type === 'credit' ? parseFloat(creditLimit) || undefined : undefined,
     };
 

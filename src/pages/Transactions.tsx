@@ -29,7 +29,6 @@ export default function Transactions() {
   const transactions = useFinanceStore((s) => s.transactions);
   const categories = useFinanceStore((s) => s.categories);
   const accounts = useFinanceStore((s) => s.accounts);
-  const currency = useFinanceStore((s) => s.settings.currency);
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
@@ -176,13 +175,13 @@ export default function Transactions() {
           <span className="text-muted-foreground text-xs">
             Earned{' '}
             <span className="font-bold text-emerald-500">
-              {formatCurrency(totalIncome, currency)}
+              {formatCurrency(totalIncome)}
             </span>
           </span>
           <span className="text-muted-foreground text-xs">
             Spent{' '}
             <span className="font-bold text-rose-500">
-              {formatCurrency(totalExpense, currency)}
+              {formatCurrency(totalExpense)}
             </span>
           </span>
         </div>
@@ -284,7 +283,6 @@ export default function Transactions() {
                         transaction={row.tx}
                         categories={categories}
                         accounts={accounts}
-                        currency={currency}
                         onClick={() => handleNavigate(row.tx.id)}
                       />
                     </div>

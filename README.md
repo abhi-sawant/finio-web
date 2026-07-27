@@ -52,7 +52,7 @@ Finio is a mobile-first personal finance tracker that works completely offline. 
 - **Installable** — add to your home screen on iOS/Android or install on desktop via the browser's install prompt.
 - **Privacy-first** — zero analytics, zero telemetry; your data is yours.
 - **Optional cloud backup** — create a free account on the live hosted backend at [finio.slowatcoding.com](https://finio.slowatcoding.com) to get daily auto-backups that you can restore on any device. Self-hosting is also supported for maximum privacy.
-- **Multi-currency** — supports INR, USD, EUR, GBP, JPY, CAD, and AUD with proper currency formatting.
+- **Rupee-native** — all amounts are in INR, formatted with the Indian numbering system (lakh/crore).
 - **Themeable** — light, dark, and system-follow themes.
 
 ---
@@ -92,7 +92,7 @@ Manage all your financial accounts in one place.
 
 **Features:**
 
-- Add accounts with a custom name, icon, color, starting balance, and currency.
+- Add accounts with a custom name, icon, color, and starting balance.
 - Credit accounts additionally accept a **credit limit** so you can track how much of your limit you've used.
 - The Accounts page shows the **net balance** (sum of all non-credit accounts) and the **total credit due** (sum of outstanding balances on credit cards).
 - Tap any account card to edit it; swipe or press the delete button to remove it (all associated transactions are also removed).
@@ -245,7 +245,6 @@ Accessible via the gear icon on the Dashboard.
 | Setting | Options |
 |---|---|
 | **Display name** | Any text — shown in the dashboard greeting |
-| **Currency** | INR ₹, USD $, EUR €, GBP £, JPY ¥, CAD $, AUD $ |
 | **Theme** | System (follows OS), Light, Dark |
 | **Auto-download daily backup** | On / Off — guests only; automatically downloads a backup JSON once per day on app open |
 
@@ -267,7 +266,7 @@ Additional actions available in Settings:
 ## How to Use
 
 1. **Open the app** and you land on the Dashboard.
-2. **Add an account** — tap the accounts row or navigate to Accounts → tap **+** → fill in name, type, starting balance, and currency → Save.
+2. **Add an account** — tap the accounts row or navigate to Accounts → tap **+** → fill in name, type, and starting balance → Save.
 3. **Add a transaction** — tap **+** on the Dashboard → choose Expense / Income / Transfer → fill in amount, account, category, date, note, labels → Save.
 4. **Set budgets** — go to Settings → Budgets → tap **+** → choose "Overall" or a specific category → enter a monthly limit → Save.
 5. **Set up recurring rules** — go to Settings → Recurring → tap **+** → fill in type, amount, account, category, frequency, and start date → Save. Past-due entries are generated immediately.
@@ -661,7 +660,7 @@ finio-web/
 │   │   └── index.ts             # TypeScript type definitions
 │   └── utils/
 │       ├── calculations.ts      # Financial calculations and aggregations
-│       └── formatters.ts        # Currency, date, and number formatters
+│       └── formatters.ts        # Currency (INR), date, and number formatters
 ├── backend/
 │   ├── public/
 │   │   ├── index.php            # Single entry point for all API requests

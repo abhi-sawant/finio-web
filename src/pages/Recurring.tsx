@@ -32,7 +32,6 @@ export default function Recurring() {
   const recurring = useFinanceStore((s) => s.recurring);
   const accounts = useFinanceStore((s) => s.accounts);
   const categories = useFinanceStore((s) => s.categories);
-  const currency = useFinanceStore((s) => s.settings.currency);
   const addRecurring = useFinanceStore((s) => s.addRecurring);
   const deleteRecurring = useFinanceStore((s) => s.deleteRecurring);
   const processRecurring = useFinanceStore((s) => s.processRecurring);
@@ -251,7 +250,7 @@ export default function Recurring() {
                   className={`text-sm font-semibold ${r.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}
                 >
                   {r.type === 'income' ? '+' : '-'}
-                  {formatCurrency(r.amount, currency, true)}
+                  {formatCurrency(r.amount, true)}
                 </p>
                 <Button
                   variant="ghost"

@@ -14,8 +14,21 @@ import type {
   FinanceStore,
   Label,
   RecurringTransaction,
+  Settings,
   Transaction,
 } from '@/types';
+
+/**
+ * Multi-currency was removed in v4 (the app is INR-only). Persisted state and older
+ * backup files still carry `currency` on settings and accounts — drop it on the way in
+ * so it does not linger in storage or get re-uploaded on the next backup.
+ */
+function dropLegacyCurrency<T extends object>(value: T): T {
+  if (!value || typeof value !== 'object') return value;
+  const next = { ...value } as Record<string, unknown>;
+  delete next.currency;
+  return next as T;
+}
 
 function generateUUID(): string {
   try {
@@ -356,7 +369,9 @@ export const useFinanceStore = create<FinanceStore>()(
 
       importData: (data) => {
         set((state) => ({
-          accounts: Array.isArray(data.accounts) ? data.accounts : state.accounts,
+          accounts: Array.isArray(data.accounts)
+            ? data.accounts.map(dropLegacyCurrency)
+            : state.accounts,
           transactions: Array.isArray(data.transactions) ? data.transactions : state.transactions,
           categories: Array.isArray(data.categories) ? data.categories : state.categories,
           labels: Array.isArray(data.labels) ? data.labels : state.labels,
@@ -364,26 +379,29 @@ export const useFinanceStore = create<FinanceStore>()(
           recurring: Array.isArray(data.recurring) ? data.recurring : state.recurring,
           settings:
             data.settings && typeof data.settings === 'object'
-              ? { ...state.settings, ...data.settings }
+              ? dropLegacyCurrency({ ...state.settings, ...data.settings })
               : state.settings,
         }));
       },
     }),
     {
       name: 'finio-storage',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
+      // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
-        const s = (persistedState ?? {}) as Partial<FinanceStore>;
+        let s = (persistedState ?? {}) as Partial<FinanceStore>;
+
         if (version < 2) {
-          return {
+          s = {
             ...s,
             budgets: Array.isArray(s.budgets) ? s.budgets : [],
             recurring: Array.isArray(s.recurring) ? s.recurring : [],
-          } as FinanceStore;
+          };
         }
+
         if (version < 3) {
-          return {
+          s = {
             ...s,
             lastLocalBackupAt: null,
             settings: {
@@ -391,8 +409,21 @@ export const useFinanceStore = create<FinanceStore>()(
               ...(s.settings ?? {}),
               autoLocalBackup: false,
             },
-          } as FinanceStore;
+          };
         }
+
+        if (version < 4) {
+          // Multi-currency removed — the app is INR-only.
+          s = {
+            ...s,
+            settings: dropLegacyCurrency({
+              ...defaultSettings,
+              ...(s.settings ?? {}),
+            } as Settings),
+            accounts: Array.isArray(s.accounts) ? s.accounts.map(dropLegacyCurrency) : s.accounts,
+          };
+        }
+
         return s as FinanceStore;
       },
       onRehydrateStorage: () => (state) => {
@@ -412,4 +443,3 @@ export const useLabels = () => useFinanceStore((s) => s.labels);
 export const useBudgets = () => useFinanceStore((s) => s.budgets);
 export const useRecurring = () => useFinanceStore((s) => s.recurring);
 export const useSettings = () => useFinanceStore((s) => s.settings);
-export const useCurrency = () => useFinanceStore((s) => s.settings.currency);

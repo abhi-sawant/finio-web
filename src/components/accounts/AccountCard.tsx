@@ -1,6 +1,5 @@
 import { memo } from 'react';
 import { formatCurrency } from '@/utils/formatters';
-import { useCurrency } from '@/store/useFinanceStore';
 import type { Account } from '@/types';
 import {
   Trash2,
@@ -50,8 +49,6 @@ export const AccountCard = memo(function AccountCard({
   onClick,
   onDelete,
 }: AccountCardProps) {
-  const currency = useCurrency();
-
   const isCredit = account.type === 'credit';
   const utilization =
     isCredit && account.creditLimit
@@ -93,7 +90,7 @@ export const AccountCard = memo(function AccountCard({
         </div>
         <p className="mb-1 truncate text-sm font-medium">{account.name}</p>
         <p className={`text-base font-bold ${account.balance < 0 ? 'text-rose-500' : ''}`}>
-          {formatCurrency(account.balance, currency, true)}
+          {formatCurrency(account.balance, true)}
         </p>
         {isCredit && account.creditLimit && (
           <div className="mt-2">
@@ -142,7 +139,7 @@ export const AccountCard = memo(function AccountCard({
       </div>
       <p className="truncate text-sm font-medium">{account.name}</p>
       <p className={`mt-0.5 text-base font-bold ${account.balance < 0 ? 'text-rose-500' : ''}`}>
-        {formatCurrency(account.balance, currency, true)}
+        {formatCurrency(account.balance, true)}
       </p>
     </div>
   );

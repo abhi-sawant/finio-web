@@ -10,7 +10,6 @@ interface Props {
 
 export function SpendingDonut({ transactions }: Props) {
   const categories = useFinanceStore((s) => s.categories);
-  const currency = useFinanceStore((s) => s.settings.currency);
 
   const data = useMemo(() => {
     const catMap = new Map(categories.map((c) => [c.id, c]));
@@ -62,13 +61,13 @@ export function SpendingDonut({ transactions }: Props) {
                   borderRadius: 12,
                   fontSize: 12,
                 }}
-                formatter={(v) => formatCurrency(Number(v) || 0, currency)}
+                formatter={(v) => formatCurrency(Number(v) || 0)}
               />
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-muted-foreground text-[10px]">Total</span>
-            <span className="text-sm font-bold">{formatCurrency(total, currency, true)}</span>
+            <span className="text-sm font-bold">{formatCurrency(total, true)}</span>
           </div>
         </div>
         <div className="flex-1 space-y-1.5 overflow-y-auto">
@@ -81,7 +80,7 @@ export function SpendingDonut({ transactions }: Props) {
                 />
                 <span className="text-muted-foreground max-w-25 truncate">{item.name}</span>
               </div>
-              <span className="ml-2 font-medium">{formatCurrency(item.value, currency, true)}</span>
+              <span className="ml-2 font-medium">{formatCurrency(item.value, true)}</span>
             </div>
           ))}
         </div>

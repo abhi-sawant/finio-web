@@ -21,7 +21,6 @@ type FilterType = 'all' | 'month' | '3months' | '6months' | 'year' | 'custom';
 export default function Analytics() {
   const navigate = useNavigate();
   const transactions = useFinanceStore((s) => s.transactions);
-  const currency = useFinanceStore((s) => s.settings.currency);
   const budgets = useFinanceStore((s) => s.budgets);
   const recurring = useFinanceStore((s) => s.recurring);
 
@@ -155,7 +154,7 @@ export default function Analytics() {
                     Income
                   </p>
                   <p className="text-sm font-semibold text-emerald-500">
-                    {formatCurrency(totalIncome, currency, true)}
+                    {formatCurrency(totalIncome, true)}
                   </p>
                 </div>
                 <div>
@@ -163,7 +162,7 @@ export default function Analytics() {
                     Expenses
                   </p>
                   <p className="text-sm font-semibold text-rose-500">
-                    {formatCurrency(totalExpenses, currency, true)}
+                    {formatCurrency(totalExpenses, true)}
                   </p>
                 </div>
                 <div>
@@ -171,7 +170,7 @@ export default function Analytics() {
                   <p
                     className={`text-sm font-semibold ${net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
                   >
-                    {formatCurrency(net, currency, true)}
+                    {formatCurrency(net, true)}
                   </p>
                 </div>
               </div>

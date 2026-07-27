@@ -1,13 +1,12 @@
 import { memo } from 'react';
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Repeat } from 'lucide-react';
 import { formatCurrency, formatTime } from '@/utils/formatters';
-import type { Transaction, Category, Account, Currency } from '@/types';
+import type { Transaction, Category, Account } from '@/types';
 
 interface TransactionItemProps {
   transaction: Transaction;
   categories: Category[];
   accounts: Account[];
-  currency: Currency;
   onClick?: () => void;
 }
 
@@ -15,7 +14,6 @@ export const TransactionItem = memo(function TransactionItem({
   transaction,
   categories,
   accounts,
-  currency,
   onClick,
 }: TransactionItemProps) {
   const category = categories.find((c) => c.id === transaction.categoryId);
@@ -70,7 +68,7 @@ export const TransactionItem = memo(function TransactionItem({
       </div>
       <p className={`text-sm font-semibold ${amountColor}`}>
         {amountPrefix}
-        {formatCurrency(transaction.amount, currency)}
+        {formatCurrency(transaction.amount)}
       </p>
     </button>
   );
