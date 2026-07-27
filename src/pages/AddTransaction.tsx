@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Split, Plus, X } from 'lucide-react';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { toLocalDateTimeInputValue } from '@/utils/formatters';
+import { roundMoney } from '@/store/balance';
+import { formatCurrency, toLocalDateTimeInputValue } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
@@ -50,6 +51,16 @@ export default function AddTransaction() {
   const [note, setNote] = useState(existing?.note ?? '');
   const [selectedLabels, setSelectedLabels] = useState<string[]>(existing?.labels ?? []);
 
+  const [splitMode, setSplitMode] = useState(!!existing?.splits?.length);
+  const [splitRows, setSplitRows] = useState<{ categoryId: string; amount: string }[]>(
+    existing?.splits?.length
+      ? existing.splits.map((s) => ({ categoryId: s.categoryId, amount: s.amount.toString() }))
+      : [
+          { categoryId: '', amount: '' },
+          { categoryId: '', amount: '' },
+        ],
+  );
+
   const notesSuggestions = useMemo(() => {
     const seen = new Set<string>();
     return transactions
@@ -68,6 +79,51 @@ export default function AddTransaction() {
     if (type === 'transfer') return categories.filter((c) => c.type === 'both');
     return categories.filter((c) => c.type === type || c.type === 'both');
   }, [categories, type]);
+
+  const useSplits = type === 'expense' && splitMode;
+  const splitTotal = splitRows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+  const splitRemaining = roundMoney((parseFloat(amount) || 0) - splitTotal);
+
+  const updateSplitRow = (idx: number, patch: Partial<{ categoryId: string; amount: string }>) => {
+    setSplitRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+
+  const handleAddSplitRow = () => {
+    setSplitRows((prev) => [...prev, { categoryId: '', amount: '' }]);
+  };
+
+  const handleRemoveSplitRow = (idx: number) => {
+    if (splitRows.length <= 2) {
+      // Down to one row is just an unsplit category — fold back to the plain picker.
+      const keep = splitRows[idx === 0 ? 1 : 0];
+      setCategoryId(keep?.categoryId ?? '');
+      setSplitRows([
+        { categoryId: '', amount: '' },
+        { categoryId: '', amount: '' },
+      ]);
+      setSplitMode(false);
+      return;
+    }
+    setSplitRows((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const toggleSplitMode = () => {
+    if (splitMode) {
+      const first = splitRows.find((r) => r.categoryId);
+      if (first) setCategoryId(first.categoryId);
+      setSplitMode(false);
+    } else {
+      setSplitRows((prev) =>
+        prev.some((r) => r.categoryId || r.amount)
+          ? prev
+          : [
+              { categoryId, amount: '' },
+              { categoryId: '', amount: '' },
+            ],
+      );
+      setSplitMode(true);
+    }
+  };
 
   const handleSubmit = () => {
     const parsedAmount = parseFloat(amount);
@@ -88,6 +144,19 @@ export default function AddTransaction() {
         toast.error('Source and destination must differ');
         return;
       }
+    } else if (useSplits) {
+      if (splitRows.some((r) => !r.categoryId || !r.amount.trim() || parseFloat(r.amount) <= 0)) {
+        toast.error('Fill in every split row');
+        return;
+      }
+      if (Math.abs(splitRemaining) > 0.01) {
+        toast.error(
+          splitRemaining > 0
+            ? `${formatCurrency(splitRemaining)} left to allocate`
+            : `${formatCurrency(-splitRemaining)} over the total`,
+        );
+        return;
+      }
     } else if (!categoryId) {
       toast.error('Select a category');
       return;
@@ -99,10 +168,14 @@ export default function AddTransaction() {
       amount: parsedAmount,
       accountId,
       toAccountId: type === 'transfer' ? toAccountId : undefined,
-      categoryId: type === 'transfer' ? (transferCategory?.id ?? categoryId ?? '') : categoryId,
+      categoryId:
+        type === 'transfer' ? (transferCategory?.id ?? categoryId ?? '') : useSplits ? '' : categoryId,
       date: new Date(date).toISOString(),
       note,
       labels: selectedLabels,
+      splits: useSplits
+        ? splitRows.map((r) => ({ categoryId: r.categoryId, amount: roundMoney(parseFloat(r.amount)) }))
+        : undefined,
     };
 
     if (existing) {
@@ -277,42 +350,114 @@ export default function AddTransaction() {
         {/* Category */}
         {type !== 'transfer' && (
           <div>
-            <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
-              Category
-            </Label>
-            <div className="scrollbar-hide grid max-h-44 grid-cols-4 gap-2 overflow-y-auto">
-              {filteredCategories.map((cat) => {
-                const selected = categoryId === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setCategoryId(cat.id)}
-                    className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition-all ${
-                      selected
-                        ? 'ring-grad-primary border-transparent'
-                        : 'border-border bg-card hover:bg-muted'
-                    }`}
-                    style={
-                      selected
-                        ? {
-                            backgroundImage: `linear-gradient(135deg, ${cat.color}22, ${cat.color}11)`,
-                          }
-                        : undefined
-                    }
-                  >
-                    <div
-                      className="flex h-8 w-8 items-center justify-center rounded-full"
-                      style={{
-                        backgroundImage: `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)`,
-                      }}
-                    >
-                      <CategoryIcon icon={cat.icon} size={16} color="white" />
-                    </div>
-                    <span className="line-clamp-2 text-[10px] leading-tight">{cat.name}</span>
-                  </button>
-                );
-              })}
+            <div className="mb-1.5 flex items-center justify-between">
+              <Label className="text-muted-foreground block text-xs font-medium">Category</Label>
+              {type === 'expense' && (
+                <button
+                  type="button"
+                  onClick={toggleSplitMode}
+                  className={`flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-all ${
+                    splitMode ? 'bg-grad-primary text-white' : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  <Split size={12} /> Split
+                </button>
+              )}
             </div>
+
+            {splitMode ? (
+              <div className="space-y-2">
+                {splitRows.map((row, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Select
+                      value={row.categoryId}
+                      onValueChange={(v) => updateSplitRow(idx, { categoryId: v ?? '' })}
+                    >
+                      <SelectTrigger className="bg-card h-auto min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm">
+                        <SelectValue placeholder="Category">
+                          {filteredCategories.find((c) => c.id === row.categoryId)?.name}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredCategories.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="Amount"
+                      value={row.amount}
+                      onChange={(e) => updateSplitRow(idx, { amount: e.target.value })}
+                      className="bg-card h-auto w-24 shrink-0 rounded-xl px-3 py-2.5 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSplitRow(idx)}
+                      className="text-muted-foreground hover:text-destructive shrink-0 p-1"
+                      aria-label="Remove split"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleAddSplitRow}
+                  className="text-primary flex items-center gap-1 text-xs font-medium"
+                >
+                  <Plus size={14} /> Add split
+                </button>
+                <p
+                  className={`text-xs ${
+                    Math.abs(splitRemaining) < 0.01 ? 'text-muted-foreground' : 'text-rose-500'
+                  }`}
+                >
+                  {Math.abs(splitRemaining) < 0.01
+                    ? 'Fully allocated'
+                    : splitRemaining > 0
+                      ? `${formatCurrency(splitRemaining)} left to allocate`
+                      : `${formatCurrency(-splitRemaining)} over the total`}
+                </p>
+              </div>
+            ) : (
+              <div className="scrollbar-hide grid max-h-44 grid-cols-4 gap-2 overflow-y-auto">
+                {filteredCategories.map((cat) => {
+                  const selected = categoryId === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setCategoryId(cat.id)}
+                      className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition-all ${
+                        selected
+                          ? 'ring-grad-primary border-transparent'
+                          : 'border-border bg-card hover:bg-muted'
+                      }`}
+                      style={
+                        selected
+                          ? {
+                              backgroundImage: `linear-gradient(135deg, ${cat.color}22, ${cat.color}11)`,
+                            }
+                          : undefined
+                      }
+                    >
+                      <div
+                        className="flex h-8 w-8 items-center justify-center rounded-full"
+                        style={{
+                          backgroundImage: `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)`,
+                        }}
+                      >
+                        <CategoryIcon icon={cat.icon} size={16} color="white" />
+                      </div>
+                      <span className="line-clamp-2 text-[10px] leading-tight">{cat.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

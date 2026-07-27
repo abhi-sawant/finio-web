@@ -49,6 +49,7 @@ export function Layout() {
       date: new Date().toISOString(),
       note: template.note,
       labels: template.labels,
+      ...(template.splits ? { splits: template.splits } : {}),
     });
     setTemplatesOpen(false);
     toast.success(`Added "${template.name}"`, {

@@ -288,6 +288,31 @@ describe('bulkRecategorize / bulkAddLabel', () => {
     expect(byId.get('t3')?.categoryId).toBe('cat-1');
   });
 
+  it('clears splits when flattening a split transaction to a single category', () => {
+    seed(
+      [account('a', 100)],
+      [
+        tx({
+          id: 't1',
+          type: 'expense',
+          amount: 100,
+          accountId: 'a',
+          categoryId: '',
+          splits: [
+            { categoryId: 'cat-1', amount: 60 },
+            { categoryId: 'cat-2', amount: 40 },
+          ],
+        }),
+      ],
+    );
+
+    useFinanceStore.getState().bulkRecategorize(['t1'], 'cat-3');
+
+    const t1 = useFinanceStore.getState().transactions.find((t) => t.id === 't1');
+    expect(t1?.categoryId).toBe('cat-3');
+    expect(t1?.splits).toBeUndefined();
+  });
+
   it('adds a label without duplicating it on a transaction that already carries it', () => {
     seed(
       [account('a', 100)],
@@ -302,6 +327,60 @@ describe('bulkRecategorize / bulkAddLabel', () => {
     const byId = new Map(useFinanceStore.getState().transactions.map((t) => [t.id, t]));
     expect(byId.get('t1')?.labels).toEqual(['lbl-1']);
     expect(byId.get('t2')?.labels).toEqual(['lbl-1']);
+  });
+});
+
+describe('deleteCategory with split transactions', () => {
+  it('reassigns a dangling split entry to the fallback category', () => {
+    seed(
+      [account('a', 100)],
+      [
+        tx({
+          id: 't1',
+          type: 'expense',
+          amount: 150,
+          accountId: 'a',
+          categoryId: '',
+          splits: [
+            { categoryId: 'cat-1', amount: 100 },
+            { categoryId: 'cat-2', amount: 50 },
+          ],
+        }),
+      ],
+    );
+
+    useFinanceStore.getState().deleteCategory('cat-1');
+
+    const t1 = useFinanceStore.getState().transactions.find((t) => t.id === 't1');
+    expect(t1?.splits).toEqual([
+      { categoryId: 'cat-24', amount: 100 },
+      { categoryId: 'cat-2', amount: 50 },
+    ]);
+  });
+
+  it('merges duplicate categories and collapses a split down to a plain category', () => {
+    seed(
+      [account('a', 150)],
+      [
+        tx({
+          id: 't1',
+          type: 'expense',
+          amount: 150,
+          accountId: 'a',
+          categoryId: '',
+          splits: [
+            { categoryId: 'cat-1', amount: 100 },
+            { categoryId: 'cat-24', amount: 50 },
+          ],
+        }),
+      ],
+    );
+
+    useFinanceStore.getState().deleteCategory('cat-1');
+
+    const t1 = useFinanceStore.getState().transactions.find((t) => t.id === 't1');
+    expect(t1?.splits).toBeUndefined();
+    expect(t1?.categoryId).toBe('cat-24');
   });
 });
 

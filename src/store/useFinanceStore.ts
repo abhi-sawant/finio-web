@@ -46,6 +46,33 @@ function dropLegacyCurrency<T extends object>(value: T): T {
   return next as T;
 }
 
+/**
+ * Reassign a transaction off a deleted category to `fallbackId` — including inside `splits`,
+ * where reassigning two entries onto the same fallback category merges them (summing their
+ * amounts) so a split never lists the same category twice. If the merge collapses `splits`
+ * down to a single entry, drop it entirely and fold back into a plain `categoryId` — a
+ * length-1 "split" is just a normal category.
+ */
+function reassignTransactionCategory<T extends Pick<Transaction, 'categoryId' | 'splits'>>(
+  t: T,
+  deletedId: string,
+  fallbackId: string,
+): T {
+  if (t.splits && t.splits.length > 0) {
+    const merged = new Map<string, number>();
+    for (const split of t.splits) {
+      const categoryId = split.categoryId === deletedId ? fallbackId : split.categoryId;
+      merged.set(categoryId, (merged.get(categoryId) ?? 0) + split.amount);
+    }
+    const splits = Array.from(merged, ([categoryId, amount]) => ({ categoryId, amount }));
+    if (splits.length === 1) {
+      return { ...t, categoryId: splits[0].categoryId, splits: undefined };
+    }
+    return { ...t, splits };
+  }
+  return t.categoryId === deletedId ? { ...t, categoryId: fallbackId } : t;
+}
+
 function generateUUID(): string {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -273,7 +300,7 @@ export const useFinanceStore = create<FinanceStore>()(
         const idSet = new Set(ids);
         set((state) => ({
           transactions: state.transactions.map((t) =>
-            idSet.has(t.id) ? { ...t, categoryId } : t,
+            idSet.has(t.id) ? { ...t, categoryId, splits: undefined } : t,
           ),
         }));
       },
@@ -319,7 +346,7 @@ export const useFinanceStore = create<FinanceStore>()(
             categories: remaining,
             budgets: state.budgets.filter((b) => b.categoryId !== id),
             transactions: state.transactions.map((t) =>
-              t.categoryId === id ? { ...t, categoryId: fallbackId } : t,
+              reassignTransactionCategory(t, id, fallbackId),
             ),
             recurring: state.recurring.map((r) =>
               r.categoryId === id ? { ...r, categoryId: fallbackId } : r,

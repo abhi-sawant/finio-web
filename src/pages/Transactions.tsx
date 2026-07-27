@@ -201,6 +201,7 @@ export default function Transactions() {
         date: new Date().toISOString(),
         note: tx.note,
         labels: tx.labels,
+        ...(tx.splits ? { splits: tx.splits } : {}),
       });
       toast.success('Transaction duplicated', {
         action: { label: 'Undo', onClick: () => deleteTransaction(newId) },
@@ -231,6 +232,7 @@ export default function Transactions() {
       categoryId: templateTx.categoryId,
       note: templateTx.note,
       labels: templateTx.labels,
+      ...(templateTx.splits ? { splits: templateTx.splits } : {}),
     });
     toast.success('Template saved');
     setTemplateTx(null);

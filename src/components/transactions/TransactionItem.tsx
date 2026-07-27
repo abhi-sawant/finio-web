@@ -8,6 +8,7 @@ import {
   BookmarkPlus,
   CheckSquare,
   Trash2,
+  Split,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useLongPress } from '@/hooks/useLongPress';
@@ -65,14 +66,16 @@ export const TransactionItem = memo(function TransactionItem({
     onLongPressAction?.(action, transaction);
   };
 
+  const isSplit = !!transaction.splits && transaction.splits.length > 0;
   const category = categories.find((c) => c.id === transaction.categoryId);
   const account = accounts.find((a) => a.id === transaction.accountId);
   const toAccount = transaction.toAccountId
     ? accounts.find((a) => a.id === transaction.toAccountId)
     : undefined;
 
-  const TypeIcon =
-    transaction.type === 'income'
+  const TypeIcon = isSplit
+    ? Split
+    : transaction.type === 'income'
       ? ArrowDownLeft
       : transaction.type === 'expense'
         ? ArrowUpRight
@@ -88,7 +91,13 @@ export const TransactionItem = memo(function TransactionItem({
   const amountPrefix =
     transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '';
 
-  const tint = category?.color ?? '#94a3b8';
+  const splitTitle = isSplit
+    ? transaction
+        .splits!.map((s) => categories.find((c) => c.id === s.categoryId)?.name ?? 'Unknown')
+        .join(' + ')
+    : undefined;
+
+  const tint = isSplit ? '#94a3b8' : (category?.color ?? '#94a3b8');
 
   return (
     <>
@@ -110,7 +119,7 @@ export const TransactionItem = memo(function TransactionItem({
         </div>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 truncate text-sm font-medium">
-            {transaction.note || category?.name || 'Transaction'}
+            {transaction.note || splitTitle || category?.name || 'Transaction'}
             {transaction.recurringId && (
               <Repeat size={12} className="text-muted-foreground" aria-label="Recurring" />
             )}
