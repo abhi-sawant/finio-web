@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { computeBudgetStatuses, getDashboardStats } from './calculations';
-import type { Budget, Category, Transaction } from '@/types';
+import {
+  buildSearchIndex,
+  computeBudgetStatuses,
+  getDashboardStats,
+  transactionMatchesQuery,
+} from './calculations';
+import type { Account, Budget, Category, Label, Transaction } from '@/types';
 
 function tx(partial: Partial<Transaction> & Pick<Transaction, 'type' | 'amount'>): Transaction {
   return {
@@ -68,6 +73,91 @@ describe('computeBudgetStatuses', () => {
     const [unused] = computeBudgetStatuses([budget('cat-99', 500)], monthTxns);
     expect(unused.spent).toBe(0);
     expect(unused.remaining).toBe(500);
+  });
+});
+
+describe('transactionMatchesQuery', () => {
+  const accounts: Account[] = [
+    {
+      id: 'acc-1',
+      name: 'HDFC Savings',
+      type: 'savings',
+      color: '#000',
+      icon: 'landmark',
+      balance: 0,
+      openingBalance: 0,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    },
+    {
+      id: 'acc-2',
+      name: 'Cash Wallet',
+      type: 'cash',
+      color: '#000',
+      icon: 'wallet',
+      balance: 0,
+      openingBalance: 0,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    },
+  ];
+  const labels: Label[] = [
+    { id: 'lbl-1', name: 'Essential', color: '#22c55e' },
+    { id: 'lbl-2', name: 'Discretionary', color: '#f59e0b' },
+  ];
+  const index = buildSearchIndex(categories, accounts, labels);
+
+  const groceries = tx({
+    type: 'expense',
+    amount: 1200.5,
+    note: 'Weekly groceries',
+    categoryId: 'cat-1',
+    accountId: 'acc-1',
+    labels: ['lbl-1'],
+  });
+  const transfer = tx({
+    type: 'transfer',
+    amount: 500,
+    accountId: 'acc-1',
+    toAccountId: 'acc-2',
+    note: '',
+  });
+
+  it('matches an empty query against everything', () => {
+    expect(transactionMatchesQuery(groceries, '   ', index)).toBe(true);
+  });
+
+  it('matches the note case-insensitively', () => {
+    expect(transactionMatchesQuery(groceries, 'GROCER', index)).toBe(true);
+  });
+
+  it('matches the category name', () => {
+    expect(transactionMatchesQuery(groceries, 'food', index)).toBe(true);
+  });
+
+  it('matches the source account name', () => {
+    expect(transactionMatchesQuery(groceries, 'hdfc', index)).toBe(true);
+  });
+
+  it('matches the destination account of a transfer', () => {
+    expect(transactionMatchesQuery(transfer, 'cash wallet', index)).toBe(true);
+  });
+
+  it('matches a label name', () => {
+    expect(transactionMatchesQuery(groceries, 'essential', index)).toBe(true);
+    expect(transactionMatchesQuery(groceries, 'discretionary', index)).toBe(false);
+  });
+
+  it('matches the amount, ignoring grouping and currency symbols', () => {
+    expect(transactionMatchesQuery(groceries, '1200', index)).toBe(true);
+    expect(transactionMatchesQuery(groceries, '₹1,200', index)).toBe(true);
+    expect(transactionMatchesQuery(groceries, '1200.5', index)).toBe(true);
+  });
+
+  it('does not treat a bare separator as an amount match', () => {
+    expect(transactionMatchesQuery(transfer, '.', index)).toBe(false);
+  });
+
+  it('returns false when nothing matches', () => {
+    expect(transactionMatchesQuery(groceries, 'zzz', index)).toBe(false);
   });
 });
 

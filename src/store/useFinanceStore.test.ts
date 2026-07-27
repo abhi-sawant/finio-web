@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { getNetWorth, getTotalAccountBalance } from '@/utils/calculations';
+import { defaultSettings } from '@/data/defaultData';
 import type { Account, ImportPayload, Transaction } from '@/types';
 
 // The store creates its persist middleware at import time, so localStorage has to exist
@@ -51,6 +53,8 @@ function seed(accounts: Account[], transactions: Transaction[] = []) {
 beforeEach(() => {
   backing.clear();
   useFinanceStore.getState().resetToDefaults();
+  // resetToDefaults deliberately leaves settings alone, so clear them here for isolation.
+  useFinanceStore.setState({ settings: defaultSettings });
 });
 
 describe('addAccount / updateAccount', () => {
@@ -118,6 +122,105 @@ describe('deleteAccount', () => {
     expect(useFinanceStore.getState().transactions).toHaveLength(0);
     // And the survivor is still internally consistent.
     expect(useFinanceStore.getState().recomputeBalances().changed).toBe(0);
+  });
+});
+
+describe('setAccountArchived', () => {
+  it('closes an account without touching its transactions or balance', () => {
+    seed(
+      [account('a', 800, 1000)],
+      [tx({ id: 't1', type: 'expense', amount: 200, accountId: 'a' })],
+    );
+
+    useFinanceStore.getState().setAccountArchived('a', true);
+
+    const state = useFinanceStore.getState();
+    expect(state.accounts[0].archivedAt).toEqual(expect.any(String));
+    expect(state.accounts[0].balance).toBe(800);
+    expect(state.transactions).toHaveLength(1);
+  });
+
+  it('drops the flag entirely when reopening, rather than leaving a falsy value behind', () => {
+    seed([account('a', 100)]);
+    useFinanceStore.getState().setAccountArchived('a', true);
+    useFinanceStore.getState().setAccountArchived('a', false);
+
+    expect('archivedAt' in useFinanceStore.getState().accounts[0]).toBe(false);
+  });
+
+  it('excludes archived accounts from running totals but keeps them in the list', () => {
+    seed([account('a', 1000), account('b', 500)]);
+    useFinanceStore.getState().setAccountArchived('b', true);
+
+    const { accounts } = useFinanceStore.getState();
+    expect(accounts).toHaveLength(2);
+    expect(getTotalAccountBalance(accounts)).toBe(1000);
+    expect(getNetWorth(accounts)).toBe(1000);
+  });
+});
+
+describe('deleteTransaction / restoreTransaction', () => {
+  it('returns the removed row and reverses its balance delta', () => {
+    seed(
+      [account('a', 800, 1000)],
+      [tx({ id: 't1', type: 'expense', amount: 200, accountId: 'a' })],
+    );
+
+    const removed = useFinanceStore.getState().deleteTransaction('t1');
+
+    expect(removed?.id).toBe('t1');
+    expect(useFinanceStore.getState().accounts[0].balance).toBe(1000);
+  });
+
+  it('returns null for an unknown id', () => {
+    seed([account('a', 100)]);
+    expect(useFinanceStore.getState().deleteTransaction('nope')).toBeNull();
+  });
+
+  it('restores the row under its original id and re-applies the delta', () => {
+    seed(
+      [account('a', 800, 1000)],
+      [tx({ id: 't1', type: 'expense', amount: 200, accountId: 'a' })],
+    );
+
+    const removed = useFinanceStore.getState().deleteTransaction('t1')!;
+    useFinanceStore.getState().restoreTransaction(removed);
+
+    const state = useFinanceStore.getState();
+    expect(state.transactions.map((t) => t.id)).toEqual(['t1']);
+    expect(state.accounts[0].balance).toBe(800);
+  });
+
+  it('ignores a repeated restore instead of double-counting the delta', () => {
+    seed(
+      [account('a', 800, 1000)],
+      [tx({ id: 't1', type: 'expense', amount: 200, accountId: 'a' })],
+    );
+
+    const removed = useFinanceStore.getState().deleteTransaction('t1')!;
+    useFinanceStore.getState().restoreTransaction(removed);
+    useFinanceStore.getState().restoreTransaction(removed);
+
+    const state = useFinanceStore.getState();
+    expect(state.transactions).toHaveLength(1);
+    expect(state.accounts[0].balance).toBe(800);
+  });
+
+  it('reverses both sides of a transfer and puts them back on restore', () => {
+    seed(
+      [account('a', 700, 1000), account('b', 800, 500)],
+      [tx({ id: 't1', type: 'transfer', amount: 300, accountId: 'a', toAccountId: 'b' })],
+    );
+
+    const removed = useFinanceStore.getState().deleteTransaction('t1')!;
+    let accounts = useFinanceStore.getState().accounts;
+    expect(accounts.find((a) => a.id === 'a')!.balance).toBe(1000);
+    expect(accounts.find((a) => a.id === 'b')!.balance).toBe(500);
+
+    useFinanceStore.getState().restoreTransaction(removed);
+    accounts = useFinanceStore.getState().accounts;
+    expect(accounts.find((a) => a.id === 'a')!.balance).toBe(700);
+    expect(accounts.find((a) => a.id === 'b')!.balance).toBe(800);
   });
 });
 
@@ -206,5 +309,49 @@ describe('v5 migration', () => {
     expect(accounts.map((a) => a.openingBalance)).toEqual([1200, 1000]);
     // Reconciling straight after a migration must be a no-op.
     expect(useFinanceStore.getState().recomputeBalances().changed).toBe(0);
+  });
+});
+
+describe('v6 migration', () => {
+  it('marks an existing install as onboarded so the first-run wizard stays hidden', async () => {
+    backing.set(
+      'finio-storage',
+      JSON.stringify({
+        version: 5,
+        state: {
+          accounts: [account('a', 100)],
+          transactions: [],
+          settings: { theme: 'dark', userName: 'Alex', autoLocalBackup: false },
+        },
+      }),
+    );
+
+    await useFinanceStore.persist.rehydrate();
+    const { settings } = useFinanceStore.getState();
+
+    expect(settings.onboardedAt).toEqual(expect.any(String));
+    // The migration must not overwrite settings the user already chose.
+    expect(settings.userName).toBe('Alex');
+    expect(settings.theme).toBe('dark');
+  });
+
+  it('leaves a fresh install un-onboarded so the wizard runs', () => {
+    expect(defaultSettings.onboardedAt).toBeUndefined();
+    expect(defaultSettings.userName).toBe('');
+  });
+
+  it('keeps the user onboarded after a data reset', () => {
+    useFinanceStore.setState({
+      settings: { ...defaultSettings, userName: 'Riya', onboardedAt: '2026-01-01T00:00:00.000Z' },
+    });
+    seed([account('a', 100)], [tx({ id: 't1', type: 'expense', amount: 10, accountId: 'a' })]);
+
+    useFinanceStore.getState().resetToDefaults();
+
+    const state = useFinanceStore.getState();
+    expect(state.accounts).toEqual([]);
+    expect(state.transactions).toEqual([]);
+    expect(state.settings.onboardedAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(state.settings.userName).toBe('Riya');
   });
 });

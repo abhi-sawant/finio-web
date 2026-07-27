@@ -5,7 +5,12 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency, formatDate } from '@/utils/formatters';
-import { groupTransactionsByDate, transactionsToCsv } from '@/utils/calculations';
+import {
+  buildSearchIndex,
+  groupTransactionsByDate,
+  transactionMatchesQuery,
+  transactionsToCsv,
+} from '@/utils/calculations';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -29,6 +34,7 @@ export default function Transactions() {
   const transactions = useFinanceStore((s) => s.transactions);
   const categories = useFinanceStore((s) => s.categories);
   const accounts = useFinanceStore((s) => s.accounts);
+  const labels = useFinanceStore((s) => s.labels);
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
@@ -41,8 +47,8 @@ export default function Transactions() {
   const scrollRef = useRef<HTMLElement>(null);
 
   const filtered = useMemo(() => {
-    const catMap = new Map(categories.map((c) => [c.id, c.name.toLowerCase()]));
-    const q = search.trim().toLowerCase();
+    const index = buildSearchIndex(categories, accounts, labels);
+    const q = search.trim();
     const fromMs = fromDate ? new Date(fromDate + 'T00:00:00').getTime() : null;
     const toMs = toDate ? new Date(toDate + 'T23:59:59').getTime() : null;
 
@@ -59,15 +65,19 @@ export default function Transactions() {
         if (fromMs !== null && ts < fromMs) return false;
         if (toMs !== null && ts > toMs) return false;
       }
-      if (q) {
-        if (t.note.toLowerCase().includes(q)) return true;
-        const catName = catMap.get(t.categoryId);
-        if (catName?.includes(q)) return true;
-        return false;
-      }
-      return true;
+      return transactionMatchesQuery(t, q, index);
     });
-  }, [transactions, search, typeFilter, accountFilter, categories, fromDate, toDate]);
+  }, [
+    transactions,
+    search,
+    typeFilter,
+    accountFilter,
+    categories,
+    accounts,
+    labels,
+    fromDate,
+    toDate,
+  ]);
 
   const { totalIncome, totalExpense } = useMemo(() => {
     let income = 0;
@@ -164,7 +174,7 @@ export default function Transactions() {
           />
           <Input
             type="text"
-            placeholder="Search notes or categories..."
+            placeholder="Search notes, categories, accounts, labels, amounts..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="bg-card h-auto w-full rounded-xl py-2.5 pr-4 pl-9"
@@ -173,16 +183,10 @@ export default function Transactions() {
 
         <div className="flex items-center justify-end gap-3">
           <span className="text-muted-foreground text-xs">
-            Earned{' '}
-            <span className="font-bold text-emerald-500">
-              {formatCurrency(totalIncome)}
-            </span>
+            Earned <span className="font-bold text-emerald-500">{formatCurrency(totalIncome)}</span>
           </span>
           <span className="text-muted-foreground text-xs">
-            Spent{' '}
-            <span className="font-bold text-rose-500">
-              {formatCurrency(totalExpense)}
-            </span>
+            Spent <span className="font-bold text-rose-500">{formatCurrency(totalExpense)}</span>
           </span>
         </div>
 

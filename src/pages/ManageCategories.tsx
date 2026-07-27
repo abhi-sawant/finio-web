@@ -6,6 +6,7 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useConfirm } from '@/components/ui/use-confirm';
 import type { CategoryType } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -39,6 +40,7 @@ const categoryColors = [
 
 export default function ManageCategories() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const categories = useFinanceStore((s) => s.categories);
   const addCategory = useFinanceStore((s) => s.addCategory);
   const updateCategory = useFinanceStore((s) => s.updateCategory);
@@ -221,8 +223,14 @@ export default function ManageCategories() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => {
-                    if (confirm(`Delete "${cat.name}"?`)) deleteCategory(cat.id);
+                  onClick={async () => {
+                    const confirmed = await confirm({
+                      title: `Delete "${cat.name}"?`,
+                      description:
+                        'Transactions and recurring rules using it move to Miscellaneous, and any budget for it is removed.',
+                      confirmLabel: 'Delete category',
+                    });
+                    if (confirmed) deleteCategory(cat.id);
                   }}
                   className="h-8 w-8"
                 >

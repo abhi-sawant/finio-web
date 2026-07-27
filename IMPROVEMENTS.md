@@ -88,8 +88,10 @@ These are defects in a money app — they should land before any new feature wor
 
 ## 2. Gaps in existing features
 
-- [ ] **[S] Search is too narrow.** [`src/pages/Transactions.tsx:44`](src/pages/Transactions.tsx)
-  matches only note and category name — not amount, account name, or labels.
+- [x] **[S] Search is too narrow.** Fixed: matching moved into a pure
+  `transactionMatchesQuery(tx, query, index)` in [`src/utils/calculations.ts`](src/utils/calculations.ts)
+  and now covers note, category, both sides of a transfer's accounts, labels, and amount.
+  Amount matching strips grouping and currency symbols, so `₹1,200` finds `1200`.
 - [ ] **[M] Recurring rules can only be created and deleted.** No edit, no pause, no end date, no
   occurrence count, no transfer support. A rule with an old `startDate` also retroactively injects
   hundreds of transactions and moves balances with no preview or confirmation.
@@ -97,17 +99,33 @@ These are defects in a money app — they should land before any new feature wor
   per-label budgets, no budget history ("did I hit it last month?").
 - [ ] **[S] Custom month start day.** All "this month" math hardcodes the calendar month. People on
   a 25th-of-the-month salary cycle need budget periods to match.
-- [ ] **[S] Archive accounts instead of deleting.** Closing a bank account currently destroys its
-  entire transaction history.
+- [x] **[S] Archive accounts instead of deleting.** Fixed: `Account.archivedAt` marks a closed
+  account. Transactions, balances and recurring rules survive; the account drops out of every
+  running total (`activeAccounts()` in [`src/utils/calculations.ts`](src/utils/calculations.ts)
+  gates `getTotalAccountBalance` / `getNetWorth` / `getTotalCreditOutstanding`), out of the
+  Dashboard carousel, and out of the account pickers — except on a transaction that already
+  sits on it, so editing history can't silently reassign it. The Accounts page shows archived
+  accounts in a collapsed section with restore and permanent-delete, and the delete dialog now
+  names the transaction count and points at archiving instead.
 - [ ] **[M] Credit card lifecycle.** `creditLimit` is stored and barely used. Add statement close
   day, due date, minimum due, utilization %, and a "payment due in N days" Dashboard card. Credit
   is one of six account types and gets the least support.
-- [ ] **[S] Native `confirm()` everywhere.** Every destructive action uses the browser dialog —
-  inconsistent with the shadcn UI and unstylable. Replace with `AlertDialog`, and prefer
-  undo-via-toast over confirm-first for transaction deletes.
-- [ ] **[S] Onboarding.** First run greets you as "Alex" (the default in
-  [`src/data/defaultData.ts`](src/data/defaultData.ts)). Add a wizard: name → first account →
-  opening balance.
+- [x] **[S] Native `confirm()` everywhere.** Fixed: all 11 call sites now go through a
+  promise-based `useConfirm()` backed by a single shadcn `AlertDialog`
+  ([`src/components/ui/confirm.tsx`](src/components/ui/confirm.tsx)), so `await confirm({...})`
+  reads like the old call but is styled, focus-trapped and Escape-cancellable. Each prompt also
+  gained a description of what actually happens (category deletes reassign to Miscellaneous,
+  signing out keeps local data, and so on). Transaction deletes skip the prompt entirely in
+  favour of undo-via-toast, backed by `deleteTransaction` returning the removed row and a new
+  `restoreTransaction` that re-inserts it under its original id. Also closes the
+  `confirm()`-breaks-focus item in section 4.
+- [x] **[S] Onboarding.** Fixed: [`src/components/onboarding/Onboarding.tsx`](src/components/onboarding/Onboarding.tsx)
+  is a three-step wizard (name → first account → opening balance) shown in place of the app
+  while `settings.onboardedAt` is unset. The "Alex" default is gone. Steps after the name are
+  skippable so someone reinstalling can reach Settings and restore a backup without inventing an
+  account first, and a credit card's opening balance is entered as an amount owed. Persisted
+  schema v6 backdates `onboardedAt` for existing installs so the wizard never appears for them;
+  `resetToDefaults` now clears finance data only, so wiping data no longer resets the user's name.
 
 ### Backend features with no UI
 
@@ -191,7 +209,8 @@ All of these endpoints are implemented in PHP and wired up in
 - [ ] **[S]** Budget and transaction status is communicated by color alone (rose/emerald) with no
   text or icon alternative.
 - [ ] **[S]** Charts have no text alternative or data table fallback for screen readers.
-- [ ] **[S]** `confirm()` dialogs break focus management on mobile.
+- [x] ~~**[S]** `confirm()` dialogs break focus management on mobile.~~ Resolved by the
+  `AlertDialog` migration in section 2.
 
 ---
 
@@ -202,5 +221,7 @@ All of these endpoints are implemented in PHP and wired up in
 2. **One flagship**: savings goals if the app should feel more complete, or CSV import +
    auto-categorization if new-user onboarding matters more.
 3. **Backup history UI** — nearly free, the backend already supports it.
-4. **Section 2 quick wins** — search breadth, `AlertDialog` instead of `confirm()`, archive
-   accounts. All small, all user-visible.
+4. ~~**Section 2 quick wins** — search breadth, `AlertDialog` instead of `confirm()`, archive
+   accounts.~~ **Done**, plus onboarding. What remains in section 2 is the larger work: recurring
+   rule lifecycle, budget periods, custom month start day, credit card lifecycle, and the three
+   backend-backed UIs.

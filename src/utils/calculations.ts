@@ -7,7 +7,7 @@ import {
   getDaysInMonth,
   getDate,
 } from 'date-fns';
-import type { Transaction, Account, Budget, Category } from '@/types';
+import type { Transaction, Account, Budget, Category, Label } from '@/types';
 
 export function getTotalIncome(transactions: Transaction[]): number {
   return transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -17,17 +17,27 @@ export function getTotalExpenses(transactions: Transaction[]): number {
   return transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
 }
 
+/**
+ * Accounts still in use. Archived (closed) accounts keep their history but are excluded from
+ * every running total and picker — filtering here keeps that rule in one place.
+ */
+export function activeAccounts(accounts: Account[]): Account[] {
+  return accounts.filter((a) => !a.archivedAt);
+}
+
 export function getTotalAccountBalance(accounts: Account[]): number {
-  return accounts.filter((a) => a.type !== 'credit').reduce((sum, a) => sum + a.balance, 0);
+  return activeAccounts(accounts)
+    .filter((a) => a.type !== 'credit')
+    .reduce((sum, a) => sum + a.balance, 0);
 }
 
 export function getNetWorth(accounts: Account[]): number {
   // Includes credit (negative balances reduce net worth)
-  return accounts.reduce((sum, a) => sum + a.balance, 0);
+  return activeAccounts(accounts).reduce((sum, a) => sum + a.balance, 0);
 }
 
 export function getTotalCreditOutstanding(accounts: Account[]): number {
-  return accounts
+  return activeAccounts(accounts)
     .filter((a) => a.type === 'credit')
     .reduce((sum, a) => sum + Math.abs(Math.min(a.balance, 0)), 0);
 }
@@ -71,6 +81,59 @@ export function groupTransactionsByDate(
   }
 
   return Array.from(map.entries()).map(([date, txs]) => ({ date, transactions: txs }));
+}
+
+/**
+ * Lookup tables for `transactionMatchesQuery`, built once per search rather than per row.
+ * Every name is pre-lowercased so matching is a plain `includes`.
+ */
+export interface SearchIndex {
+  categoryNames: Map<string, string>;
+  accountNames: Map<string, string>;
+  labelNames: Map<string, string>;
+}
+
+export function buildSearchIndex(
+  categories: Category[],
+  accounts: Account[],
+  labels: Label[],
+): SearchIndex {
+  return {
+    categoryNames: new Map(categories.map((c) => [c.id, c.name.toLowerCase()])),
+    accountNames: new Map(accounts.map((a) => [a.id, a.name.toLowerCase()])),
+    labelNames: new Map(labels.map((l) => [l.id, l.name.toLowerCase()])),
+  };
+}
+
+/**
+ * Match a transaction against a free-text query across note, category, account (both
+ * sides of a transfer), labels, and amount.
+ *
+ * Amounts are compared digit-wise against the raw number, so a query typed with
+ * grouping or a currency symbol ("₹1,200") still finds `1200`.
+ */
+export function transactionMatchesQuery(
+  transaction: Transaction,
+  rawQuery: string,
+  index: SearchIndex,
+): boolean {
+  const q = rawQuery.trim().toLowerCase();
+  if (!q) return true;
+
+  if (transaction.note.toLowerCase().includes(q)) return true;
+  if (index.categoryNames.get(transaction.categoryId)?.includes(q)) return true;
+  if (index.accountNames.get(transaction.accountId)?.includes(q)) return true;
+  if (transaction.toAccountId && index.accountNames.get(transaction.toAccountId)?.includes(q)) {
+    return true;
+  }
+  for (const labelId of transaction.labels) {
+    if (index.labelNames.get(labelId)?.includes(q)) return true;
+  }
+
+  const numeric = q.replace(/[^\d.]/g, '');
+  if (numeric && numeric !== '.' && transaction.amount.toString().includes(numeric)) return true;
+
+  return false;
 }
 
 /** Sort copy of transactions by date desc. */

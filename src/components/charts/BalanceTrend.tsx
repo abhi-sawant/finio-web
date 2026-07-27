@@ -11,6 +11,7 @@ import {
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { subDays, format, differenceInDays, startOfMonth, addMonths } from 'date-fns';
 import { formatCurrency } from '@/utils/formatters';
+import { getNetWorth } from '@/utils/calculations';
 
 interface Props {
   from: Date;
@@ -23,7 +24,8 @@ export function BalanceTrend({ from, to }: Props) {
 
   const data = useMemo(() => {
     const today = new Date();
-    const currentBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+    // Matches the net worth shown elsewhere: closed accounts are excluded.
+    const currentBalance = getNetWorth(accounts);
 
     // Build daily delta map from ALL transactions for accurate balance reconstruction.
     const dayDelta = new Map<string, number>();
@@ -60,7 +62,9 @@ export function BalanceTrend({ from, to }: Props) {
       }
       // Always include the 'to' endpoint
       const lastKey = format(to, 'yyyy-MM-dd');
-      const lastPoint = allDaily.findLast ? allDaily.findLast((p) => p.dateKey <= lastKey) : [...allDaily].reverse().find((p) => p.dateKey <= lastKey);
+      const lastPoint = allDaily.findLast
+        ? allDaily.findLast((p) => p.dateKey <= lastKey)
+        : [...allDaily].reverse().find((p) => p.dateKey <= lastKey);
       if (lastPoint) monthly.push({ date: format(to, 'MMM yy'), balance: lastPoint.balance });
       return monthly;
     }
@@ -103,7 +107,13 @@ export function BalanceTrend({ from, to }: Props) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
-            <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} interval={xAxisInterval} />
+            <XAxis
+              dataKey="date"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              interval={xAxisInterval}
+            />
             <YAxis fontSize={10} tickLine={false} axisLine={false} width={50} />
             <Tooltip
               cursor={{ stroke: 'rgba(124,92,255,0.25)', strokeWidth: 1 }}

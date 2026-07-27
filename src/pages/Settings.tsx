@@ -40,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useConfirm } from '@/components/ui/use-confirm';
 import {
   Select,
   SelectContent,
@@ -66,6 +67,7 @@ const themes: { value: Theme; label: string }[] = [
 
 export default function Settings() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const settings = useFinanceStore((s) => s.settings);
   const updateSettings = useFinanceStore((s) => s.updateSettings);
   const resetToDefaults = useFinanceStore((s) => s.resetToDefaults);
@@ -169,8 +171,14 @@ export default function Settings() {
     );
   };
 
-  const handleReset = () => {
-    if (confirm('Reset all data to defaults? This cannot be undone.')) {
+  const handleReset = async () => {
+    const confirmed = await confirm({
+      title: 'Reset all data?',
+      description:
+        'Accounts, transactions, budgets and recurring rules will be erased and categories restored to defaults. This cannot be undone.',
+      confirmLabel: 'Reset everything',
+    });
+    if (confirmed) {
       resetToDefaults();
       toast.success('Reset complete');
     }
@@ -189,7 +197,12 @@ export default function Settings() {
   };
 
   const handleCloudRestore = async () => {
-    if (!confirm('Restore from cloud backup? This will replace your current data.')) return;
+    const confirmed = await confirm({
+      title: 'Restore from cloud backup?',
+      description: 'Your current data will be replaced by the most recent backup on the server.',
+      confirmLabel: 'Restore',
+    });
+    if (!confirmed) return;
     setRestoring(true);
     try {
       await restoreLatestBackup();
@@ -215,8 +228,13 @@ export default function Settings() {
     }
   };
 
-  const handleLogout = () => {
-    if (confirm('Sign out of your account?')) {
+  const handleLogout = async () => {
+    const confirmed = await confirm({
+      title: 'Sign out?',
+      description: 'Your finance data stays on this device — only cloud backup is disconnected.',
+      confirmLabel: 'Sign out',
+    });
+    if (confirmed) {
       clearAuth();
       toast.success('Signed out');
     }
@@ -403,7 +421,9 @@ export default function Settings() {
             <HardDrive size={18} className="text-muted-foreground shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Auto-download daily backup</p>
-              <p className="text-muted-foreground text-xs">Download a backup JSON once per day when the app opens</p>
+              <p className="text-muted-foreground text-xs">
+                Download a backup JSON once per day when the app opens
+              </p>
             </div>
             <button
               role="switch"
@@ -433,7 +453,9 @@ export default function Settings() {
               </div>
               <button
                 onClick={
-                  backupFolderName ? handleDisconnectBackupFolder : () => setShowFolderSetupInfo(true)
+                  backupFolderName
+                    ? handleDisconnectBackupFolder
+                    : () => setShowFolderSetupInfo(true)
                 }
                 className="bg-muted shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium"
               >
@@ -448,10 +470,10 @@ export default function Settings() {
                 <DialogTitle>Set Up Backup Folder</DialogTitle>
                 <DialogDescription>
                   In the folder picker that opens next, create a new folder named{' '}
-                  <strong className="text-foreground">"Finio"</strong> inside your Downloads
-                  folder, then select it. This is the recommended setup — it keeps backups
-                  organized in one place and lets Finio automatically keep only the 10 most
-                  recent, deleting older ones for you.
+                  <strong className="text-foreground">"Finio"</strong> inside your Downloads folder,
+                  then select it. This is the recommended setup — it keeps backups organized in one
+                  place and lets Finio automatically keep only the 10 most recent, deleting older
+                  ones for you.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex gap-2">

@@ -49,6 +49,8 @@ export const defaultLabels: Label[] = [
 
 export const defaultSettings: Settings = {
   theme: 'system',
-  userName: 'Alex',
+  // Deliberately blank: the first-run wizard asks for a name rather than greeting a stranger
+  // by a placeholder one.
+  userName: '',
   autoLocalBackup: false,
 };
