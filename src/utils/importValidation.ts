@@ -13,6 +13,7 @@ import type {
   RecurringTransaction,
   Settings,
   Transaction,
+  TransactionSplit,
   TransactionTemplate,
 } from '@/types';
 
@@ -119,6 +120,26 @@ function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 }
 
+/**
+ * Splits are only kept when the shape is right and they add up — a malformed or
+ * mismatched-sum split isn't a reason to drop the whole transaction, it's just not usable as a
+ * split, so it silently falls back to the transaction's own `categoryId`.
+ */
+function asSplits(value: unknown, amount: number): TransactionSplit[] | undefined {
+  if (!Array.isArray(value) || value.length < 2) return undefined;
+  const splits: TransactionSplit[] = [];
+  for (const row of value) {
+    if (!isRecord(row)) return undefined;
+    const categoryId = asId(row.categoryId);
+    const splitAmount = asFiniteNumber(row.amount);
+    if (!categoryId || splitAmount === undefined || splitAmount <= 0) return undefined;
+    splits.push({ categoryId, amount: splitAmount });
+  }
+  const total = splits.reduce((sum, s) => sum + s.amount, 0);
+  if (Math.abs(total - amount) > 0.01) return undefined;
+  return splits;
+}
+
 /** A parser returns the sanitized row, or a string explaining why the row was dropped. */
 type RowParser<T> = (row: Record<string, unknown>) => T | string;
 
@@ -169,19 +190,21 @@ const parseTransaction: RowParser<Transaction> = (row) => {
   if (type === 'transfer' && !toAccountId) return 'transfer has no destination account';
 
   const recurringId = asId(row.recurringId);
+  const splits = type === 'expense' ? asSplits(row.splits, amount) : undefined;
 
   return {
     id,
     type: type as Transaction['type'],
     amount,
     accountId,
-    categoryId: asString(row.categoryId, ''),
+    categoryId: splits ? '' : asString(row.categoryId, ''),
     date,
     note: asString(row.note, ''),
     labels: asStringArray(row.labels),
     createdAt: asIsoDate(row.createdAt) ?? date,
     ...(toAccountId ? { toAccountId } : {}),
     ...(recurringId ? { recurringId } : {}),
+    ...(splits ? { splits } : {}),
   };
 };
 
@@ -299,17 +322,20 @@ const parseTemplate: RowParser<TransactionTemplate> = (row) => {
   const toAccountId = asId(row.toAccountId);
   if (type === 'transfer' && !toAccountId) return 'transfer template has no destination account';
 
+  const splits = type === 'expense' ? asSplits(row.splits, amount) : undefined;
+
   return {
     id,
     name,
     type: type as TransactionTemplate['type'],
     amount,
     accountId,
-    categoryId: asString(row.categoryId, ''),
+    categoryId: splits ? '' : asString(row.categoryId, ''),
     note: asString(row.note, ''),
     labels: asStringArray(row.labels),
     createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
     ...(toAccountId && type === 'transfer' ? { toAccountId } : {}),
+    ...(splits ? { splits } : {}),
   };
 };
 

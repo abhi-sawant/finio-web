@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { transactionCategoryAmounts } from '@/utils/calculations';
 import { formatCurrency } from '@/utils/formatters';
 import type { Transaction } from '@/types';
 
@@ -17,7 +18,9 @@ export function SpendingDonut({ transactions }: Props) {
     const byCategory = new Map<string, number>();
 
     for (const tx of transactions.filter((t) => t.type === 'expense')) {
-      byCategory.set(tx.categoryId, (byCategory.get(tx.categoryId) ?? 0) + tx.amount);
+      for (const { categoryId, amount } of transactionCategoryAmounts(tx)) {
+        byCategory.set(categoryId, (byCategory.get(categoryId) ?? 0) + amount);
+      }
     }
 
     return Array.from(byCategory.entries())

@@ -12,7 +12,9 @@ import {
   getDashboardStats,
   getTotalOwedToYou,
   getTotalYouOwe,
+  transactionCategoryAmounts,
   transactionMatchesQuery,
+  transactionsToCsv,
 } from './calculations';
 import type {
   Account,
@@ -124,6 +126,29 @@ const categories: Category[] = [
   { id: 'cat-1', name: 'Food', icon: 'utensils', color: '#ef4444', type: 'expense' },
   { id: 'cat-2', name: 'Transport', icon: 'car', color: '#f97316', type: 'expense' },
 ];
+
+describe('transactionCategoryAmounts', () => {
+  it('returns a single entry for an unsplit transaction', () => {
+    const t = tx({ type: 'expense', amount: 500, categoryId: 'cat-1' });
+    expect(transactionCategoryAmounts(t)).toEqual([{ categoryId: 'cat-1', amount: 500 }]);
+  });
+
+  it('returns the splits verbatim when present', () => {
+    const t = tx({
+      type: 'expense',
+      amount: 500,
+      categoryId: '',
+      splits: [
+        { categoryId: 'cat-1', amount: 300 },
+        { categoryId: 'cat-2', amount: 200 },
+      ],
+    });
+    expect(transactionCategoryAmounts(t)).toEqual([
+      { categoryId: 'cat-1', amount: 300 },
+      { categoryId: 'cat-2', amount: 200 },
+    ]);
+  });
+});
 
 describe('computeBudgetStatuses', () => {
   const monthTxns = [
@@ -237,6 +262,20 @@ describe('transactionMatchesQuery', () => {
     expect(transactionMatchesQuery(transfer, 'cash wallet', index)).toBe(true);
   });
 
+  it("matches a split's category name", () => {
+    const split = tx({
+      type: 'expense',
+      amount: 500,
+      categoryId: '',
+      splits: [
+        { categoryId: 'cat-1', amount: 300 },
+        { categoryId: 'cat-2', amount: 200 },
+      ],
+    });
+    expect(transactionMatchesQuery(split, 'transport', index)).toBe(true);
+    expect(transactionMatchesQuery(split, 'zzz', index)).toBe(false);
+  });
+
   it('matches a label name', () => {
     expect(transactionMatchesQuery(groceries, 'essential', index)).toBe(true);
     expect(transactionMatchesQuery(groceries, 'discretionary', index)).toBe(false);
@@ -308,6 +347,72 @@ describe('getDashboardStats', () => {
     expect(calendar.dailyAverage).toBe(250);
     expect(cycle.dailyAverage).toBe(100);
   });
+
+  it('distributes a split expense across its categories', () => {
+    const stats = getDashboardStats(
+      [
+        tx({
+          type: 'expense',
+          amount: 500,
+          categoryId: '',
+          splits: [
+            { categoryId: 'cat-1', amount: 300 },
+            { categoryId: 'cat-2', amount: 200 },
+          ],
+        }),
+        tx({ type: 'expense', amount: 100, categoryId: 'cat-2', id: 'b' }),
+      ],
+      [],
+      categories,
+    );
+    expect(stats.topCategory?.category.id).toBe('cat-1');
+    expect(stats.topCategory?.amount).toBe(300);
+  });
+});
+
+describe('transactionsToCsv', () => {
+  const accounts: Account[] = [
+    {
+      id: 'acc-1',
+      name: 'HDFC Savings',
+      type: 'savings',
+      color: '#000',
+      icon: 'landmark',
+      balance: 0,
+      openingBalance: 0,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    },
+  ];
+
+  it('exports a plain transaction with an empty split detail column', () => {
+    const csv = transactionsToCsv([tx({ type: 'expense', amount: 500 })], categories, accounts);
+    const [header, row] = csv.split('\n');
+    expect(header).toBe('Date,Type,Amount,Account,To Account,Category,Note,Split Detail');
+    expect(row.endsWith(',""')).toBe(true);
+    expect(row).toContain('"Food"');
+  });
+
+  it('summarizes a split transaction without double-counting the amount', () => {
+    const csv = transactionsToCsv(
+      [
+        tx({
+          type: 'expense',
+          amount: 500,
+          categoryId: '',
+          splits: [
+            { categoryId: 'cat-1', amount: 300 },
+            { categoryId: 'cat-2', amount: 200 },
+          ],
+        }),
+      ],
+      categories,
+      accounts,
+    );
+    const [, row] = csv.split('\n');
+    expect(row).toContain('500');
+    expect(row).toContain('"Split (2)"');
+    expect(row).toContain('"Food: 300.00 | Transport: 200.00"');
+  });
 });
 
 describe('budget scopes', () => {
@@ -371,6 +476,42 @@ describe('budget scopes', () => {
     });
     expect(status.spent).toBe(250);
     expect(status.range.start).toEqual(new Date(2026, 5, 25));
+  });
+
+  describe('with a split expense', () => {
+    const splitTx = tx({
+      type: 'expense',
+      amount: 500,
+      id: 'split',
+      categoryId: '',
+      date: on(2026, 7, 5),
+      labels: ['lbl-1'],
+      splits: [
+        { categoryId: 'cat-1', amount: 300 },
+        { categoryId: 'cat-2', amount: 200 },
+      ],
+    });
+
+    it('counts only the matching portion toward a category budget', () => {
+      const [food] = computeBudgetStatuses([budget('cat-1', 1000)], [splitTx], inJuly);
+      expect(food.spent).toBe(300);
+      const [transport] = computeBudgetStatuses([budget('cat-2', 1000)], [splitTx], inJuly);
+      expect(transport.spent).toBe(200);
+    });
+
+    it('counts the full amount toward an overall budget', () => {
+      const [overall] = computeBudgetStatuses([budget('', 1000)], [splitTx], inJuly);
+      expect(overall.spent).toBe(500);
+    });
+
+    it('counts the full amount toward a matching label budget', () => {
+      const [status] = computeBudgetStatuses(
+        [budget('', 1000, { labelId: 'lbl-1' })],
+        [splitTx],
+        inJuly,
+      );
+      expect(status.spent).toBe(500);
+    });
   });
 });
 

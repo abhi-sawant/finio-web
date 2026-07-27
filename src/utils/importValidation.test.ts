@@ -73,6 +73,60 @@ describe('validateBackup', () => {
     expect(report.issues[0]).toMatch(/destination/);
   });
 
+  it('accepts a valid split and blanks the top-level categoryId', () => {
+    const { data } = validateBackup({
+      transactions: [
+        {
+          ...validTransaction,
+          splits: [
+            { categoryId: 'cat-1', amount: 150 },
+            { categoryId: 'cat-2', amount: 100 },
+          ],
+        },
+      ],
+    });
+    expect(data.transactions?.[0].categoryId).toBe('');
+    expect(data.transactions?.[0].splits).toEqual([
+      { categoryId: 'cat-1', amount: 150 },
+      { categoryId: 'cat-2', amount: 100 },
+    ]);
+  });
+
+  it('drops a split that does not sum to the amount, keeping the transaction unsplit', () => {
+    const { data } = validateBackup({
+      transactions: [
+        {
+          ...validTransaction,
+          splits: [
+            { categoryId: 'cat-1', amount: 150 },
+            { categoryId: 'cat-2', amount: 999 },
+          ],
+        },
+      ],
+    });
+    expect(data.transactions).toHaveLength(1);
+    expect(data.transactions?.[0].splits).toBeUndefined();
+    expect(data.transactions?.[0].categoryId).toBe('cat-1');
+  });
+
+  it('drops a malformed split (a single entry, or a missing categoryId), keeping the transaction unsplit', () => {
+    const { data } = validateBackup({
+      transactions: [
+        { ...validTransaction, id: 'tx-a', splits: [{ categoryId: 'cat-1', amount: 250 }] },
+        {
+          ...validTransaction,
+          id: 'tx-b',
+          splits: [
+            { categoryId: '', amount: 150 },
+            { categoryId: 'cat-2', amount: 100 },
+          ],
+        },
+      ],
+    });
+    expect(data.transactions).toHaveLength(2);
+    expect(data.transactions?.every((t) => t.splits === undefined)).toBe(true);
+  });
+
   it('keeps the first of two rows sharing an id', () => {
     const { data, report } = validateBackup({
       accounts: [validAccount, { ...validAccount, name: 'Impostor' }],

@@ -22,6 +22,17 @@ import type {
   DebtEntry,
 } from '@/types';
 
+/**
+ * The category/amount pairs a transaction counts against — its `splits` if it has any,
+ * otherwise its own `categoryId`/`amount` as a single entry. The one place every category
+ * aggregation should go through, so a split expense is never mistaken for a single-category one.
+ */
+export function transactionCategoryAmounts(
+  t: Pick<Transaction, 'categoryId' | 'amount' | 'splits'>,
+): Array<{ categoryId: string; amount: number }> {
+  return t.splits && t.splits.length > 0 ? t.splits : [{ categoryId: t.categoryId, amount: t.amount }];
+}
+
 export function getTotalIncome(transactions: Transaction[]): number {
   return transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
 }
@@ -197,6 +208,9 @@ export function transactionMatchesQuery(
 
   if (transaction.note.toLowerCase().includes(q)) return true;
   if (index.categoryNames.get(transaction.categoryId)?.includes(q)) return true;
+  for (const split of transaction.splits ?? []) {
+    if (index.categoryNames.get(split.categoryId)?.includes(q)) return true;
+  }
   if (index.accountNames.get(transaction.accountId)?.includes(q)) return true;
   if (transaction.toAccountId && index.accountNames.get(transaction.toAccountId)?.includes(q)) {
     return true;
@@ -230,15 +244,22 @@ export function budgetScopeKey(budget: Pick<Budget, 'categoryId' | 'labelId'>): 
   return budget.labelId ? `label:${budget.labelId}` : `category:${budget.categoryId}`;
 }
 
-/** Does this expense count against the budget? Income and transfers never do. */
-export function budgetMatchesTransaction(
+/**
+ * How much of this transaction counts against the budget. Income and transfers never count.
+ * A label budget or an overall budget counts the transaction's full amount (a label is
+ * transaction-level, and an overall budget doesn't care how an expense is split across
+ * categories); a category-scoped budget counts only the matching portion of a split expense.
+ */
+export function budgetMatchedAmount(
   budget: Pick<Budget, 'categoryId' | 'labelId'>,
   transaction: Transaction,
-): boolean {
-  if (transaction.type !== 'expense') return false;
-  if (budget.labelId) return transaction.labels.includes(budget.labelId);
-  if (budget.categoryId === '') return true;
-  return transaction.categoryId === budget.categoryId;
+): number {
+  if (transaction.type !== 'expense') return 0;
+  if (budget.labelId) return transaction.labels.includes(budget.labelId) ? transaction.amount : 0;
+  if (budget.categoryId === '') return transaction.amount;
+  return transactionCategoryAmounts(transaction)
+    .filter((s) => s.categoryId === budget.categoryId)
+    .reduce((sum, s) => sum + s.amount, 0);
 }
 
 export interface BudgetPeriodResult {
@@ -263,7 +284,7 @@ export interface BudgetStatus extends BudgetPeriodResult {
  */
 function priorPeriods(
   budget: Budget,
-  matching: Transaction[],
+  transactions: Transaction[],
   currentRange: PeriodRange,
   monthStartDay: number,
   lookback: number,
@@ -284,14 +305,14 @@ function priorPeriods(
   let carry = 0;
   return ranges.map((range) => {
     const limit = budget.amount + (budget.rollover ? carry : 0);
-    const spent = sumAmounts(transactionsInPeriod(matching, range));
+    const spent = sumBudgetMatched(budget, transactionsInPeriod(transactions, range));
     if (budget.rollover) carry = limit - spent;
     return { range, spent, limit, isOver: spent > limit };
   });
 }
 
-function sumAmounts(transactions: Transaction[]): number {
-  return transactions.reduce((sum, t) => sum + t.amount, 0);
+function sumBudgetMatched(budget: Budget, transactions: Transaction[]): number {
+  return transactions.reduce((sum, t) => sum + budgetMatchedAmount(budget, t), 0);
 }
 
 /**
@@ -308,13 +329,12 @@ export function computeBudgetStatuses(
   const monthStartDay = options.monthStartDay ?? DEFAULT_MONTH_START_DAY;
 
   return budgets.map((budget) => {
-    const matching = transactions.filter((t) => budgetMatchesTransaction(budget, t));
     const range = periodRange(budget.period, now, monthStartDay);
-    const spent = sumAmounts(transactionsInPeriod(matching, range));
+    const spent = sumBudgetMatched(budget, transactionsInPeriod(transactions, range));
 
     let carryover = 0;
     if (budget.rollover) {
-      const priors = priorPeriods(budget, matching, range, monthStartDay, MAX_ROLLOVER_LOOKBACK);
+      const priors = priorPeriods(budget, transactions, range, monthStartDay, MAX_ROLLOVER_LOOKBACK);
       const previous = priors[priors.length - 1];
       if (previous) carryover = previous.limit - previous.spent;
     }
@@ -346,11 +366,10 @@ export function computeBudgetHistory(
 ): BudgetPeriodResult[] {
   const now = options.now ?? new Date();
   const monthStartDay = options.monthStartDay ?? DEFAULT_MONTH_START_DAY;
-  const matching = transactions.filter((t) => budgetMatchesTransaction(budget, t));
   const range = periodRange(budget.period, now, monthStartDay);
   // Walk the full rollover window so carried-over limits are right, then show the tail.
   const lookback = Math.max(count, budget.rollover ? MAX_ROLLOVER_LOOKBACK : count);
-  const priors = priorPeriods(budget, matching, range, monthStartDay, lookback);
+  const priors = priorPeriods(budget, transactions, range, monthStartDay, lookback);
   return priors.slice(-count).reverse();
 }
 
@@ -388,7 +407,11 @@ export function getDashboardStats(
   }
 
   const byCat = new Map<string, number>();
-  for (const t of expenses) byCat.set(t.categoryId, (byCat.get(t.categoryId) ?? 0) + t.amount);
+  for (const t of expenses) {
+    for (const { categoryId, amount: splitAmount } of transactionCategoryAmounts(t)) {
+      byCat.set(categoryId, (byCat.get(categoryId) ?? 0) + splitAmount);
+    }
+  }
   let topCategory: { category: Category; amount: number } | null = null;
   for (const [catId, amount] of byCat) {
     const category = categories.find((c) => c.id === catId);
@@ -510,17 +533,33 @@ export function transactionsToCsv(
   const catMap = new Map(categories.map((c) => [c.id, c.name]));
   const accMap = new Map(accounts.map((a) => [a.id, a.name]));
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-  const header = ['Date', 'Type', 'Amount', 'Account', 'To Account', 'Category', 'Note'].join(',');
-  const rows = transactions.map((t) =>
-    [
+  const header = [
+    'Date',
+    'Type',
+    'Amount',
+    'Account',
+    'To Account',
+    'Category',
+    'Note',
+    'Split Detail',
+  ].join(',');
+  const rows = transactions.map((t) => {
+    const isSplit = !!t.splits && t.splits.length > 0;
+    const splitDetail = isSplit
+      ? t.splits!
+          .map((s) => `${catMap.get(s.categoryId) ?? 'Unknown'}: ${s.amount.toFixed(2)}`)
+          .join(' | ')
+      : '';
+    return [
       t.date,
       t.type,
       t.amount.toString(),
       escape(accMap.get(t.accountId) ?? ''),
       escape(t.toAccountId ? (accMap.get(t.toAccountId) ?? '') : ''),
-      escape(catMap.get(t.categoryId) ?? ''),
+      escape(isSplit ? `Split (${t.splits!.length})` : (catMap.get(t.categoryId) ?? '')),
       escape(t.note ?? ''),
-    ].join(','),
-  );
+      escape(splitDetail),
+    ].join(',');
+  });
   return [header, ...rows].join('\n');
 }
