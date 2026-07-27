@@ -203,9 +203,17 @@ All of these endpoints are implemented in PHP and wired up in
   a person cascades their debt entries, same as deleting a goal cascades its contributions. Backup
   export/import (local, cloud, and validation) carry people and debt entries alongside every other
   entity, persisted-schema v10.
-- [ ] **[L] Split transactions.** One receipt across multiple categories (groceries + household +
-  pharmacy). Needs `Transaction.splits?: {categoryId, amount}[]` and touches every aggregation, but
-  it's the difference between roughly categorized and actually accurate.
+- [x] **[L] Split transactions.** Fixed: `Transaction.splits?: TransactionSplit[]` allows one
+  expense across multiple categories. Every aggregation routes through a new
+  `transactionCategoryAmounts()` helper so splits are counted correctly in budgets (only the
+  matching portion toward category budgets, full amount toward overall/label budgets), dashboard
+  top-category, spending donut, search, and CSV export. Category deletion reassigns/merges split
+  entries; bulk recategorize flattens back to a single category. Add/Edit Transaction gained a
+  Split toggle with per-row category/amount, add-row/remove-row buttons, and a live allocation
+  indicator ("fully allocated" / "₹X left to allocate" / "₹X over"). Transactions list shows
+  split transactions with a split icon and joined category names ("Food + Housing") instead of a
+  single category. Import validation drops malformed/mismatched splits (falls back to unsplit) rather
+  than rejecting the whole row. No persisted-schema bump needed (optional field on new data).
 - [ ] **[M] CSV / bank statement import with column mapping.** Today the only way in is manual entry
   or a Finio JSON restore. Import plus a dedupe pass (date + amount + note) is the biggest adoption
   unlock for anyone with a year of history in their bank's CSV export.
