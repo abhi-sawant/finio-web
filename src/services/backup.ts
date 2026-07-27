@@ -77,6 +77,27 @@ export async function restoreLatestBackup(): Promise<void> {
   useFinanceStore.getState().importData(data, { mode: 'replace' });
 }
 
+export async function listCloudBackups() {
+  const { token } = useAuthStore.getState();
+  if (!token) throw new Error('Not signed in');
+  const { backups } = await api.listBackups(token);
+  return backups;
+}
+
+export async function restoreBackupByDate(date: string): Promise<void> {
+  const { token } = useAuthStore.getState();
+  if (!token) throw new Error('Not signed in');
+  const res = await api.getBackup(token, date);
+  const { data } = validateBackup(res);
+  useFinanceStore.getState().importData(data, { mode: 'replace' });
+}
+
+export async function deleteCloudBackup(date: string): Promise<void> {
+  const { token } = useAuthStore.getState();
+  if (!token) throw new Error('Not signed in');
+  await api.deleteBackup(token, date);
+}
+
 export async function autoLocalBackupIfNeeded(): Promise<void> {
   const { accounts, transactions, budgets, recurring, settings, lastLocalBackupAt, setLastLocalBackupAt } =
     useFinanceStore.getState();
