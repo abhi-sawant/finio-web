@@ -45,29 +45,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Currency, Theme } from '@/types';
+import type { Theme } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
-
-const currencySymbols: Record<Currency, string> = {
-  INR: '₹',
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-  JPY: '¥',
-  CAD: '$',
-  AUD: '$',
-};
-
-const currencies: { value: Currency; label: string }[] = [
-  { value: 'INR', label: '₹ INR' },
-  { value: 'USD', label: '$ USD' },
-  { value: 'EUR', label: '€ EUR' },
-  { value: 'GBP', label: '£ GBP' },
-  { value: 'JPY', label: '¥ JPY' },
-  { value: 'CAD', label: '$ CAD' },
-  { value: 'AUD', label: '$ AUD' },
-];
 
 const themes: { value: Theme; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -331,29 +311,6 @@ export default function Settings() {
 
         {/* Preferences */}
         <div className="card-elevated divide-border divide-y rounded-2xl">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex w-32 items-center gap-3">
-              <span className="text-lg">{currencySymbols[settings.currency]}</span>
-              <span className="text-sm font-medium">Currency</span>
-            </div>
-            <Select
-              value={settings.currency}
-              onValueChange={(v) => updateSettings({ currency: v as Currency })}
-            >
-              <SelectTrigger className="bg-muted h-auto rounded-lg border-0 px-3 py-1.5">
-                <SelectValue>
-                  {currencySymbols[settings.currency]} {settings.currency}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {currencies.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
           <div className="flex items-center justify-between p-4">
             <div className="flex w-32 items-center gap-3">
               <Palette size={18} className="text-muted-foreground" />

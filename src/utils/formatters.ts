@@ -1,15 +1,8 @@
-import type { Currency } from '@/types';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 
-const CURRENCY_LOCALE_MAP: Record<Currency, string> = {
-  INR: 'en-IN',
-  USD: 'en-US',
-  EUR: 'de-DE',
-  GBP: 'en-GB',
-  JPY: 'ja-JP',
-  CAD: 'en-CA',
-  AUD: 'en-AU',
-};
+/** Finio is INR-only. */
+const LOCALE = 'en-IN';
+const CURRENCY = 'INR';
 
 /**
  * Only shorten amounts at or above this magnitude. Below it, compact notation would
@@ -17,17 +10,12 @@ const CURRENCY_LOCALE_MAP: Record<Currency, string> = {
  */
 const COMPACT_THRESHOLD = 100_000;
 
-export function formatCurrency(
-  amount: number,
-  currency: Currency = 'INR',
-  compact = false,
-): string {
-  const locale = CURRENCY_LOCALE_MAP[currency];
+export function formatCurrency(amount: number, compact = false): string {
   const useCompact = compact && Math.abs(amount) >= COMPACT_THRESHOLD;
 
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(LOCALE, {
     style: 'currency',
-    currency,
+    currency: CURRENCY,
     notation: useCompact ? 'compact' : 'standard',
     minimumFractionDigits: 0,
     maximumFractionDigits: useCompact ? 1 : 2,
@@ -68,18 +56,15 @@ export function toLocalDateTimeInputValue(iso: string | Date): string {
 }
 
 /**
- * Format a raw numeric input string for display using the number system of the
- * given currency's locale. Keeps the decimal part intact while grouping the
- * integer part.
- * e.g. INR "122999" → "1,22,999"; USD "122999" → "122,999"
+ * Format a raw numeric input string for display using the Indian number system.
+ * Keeps the decimal part intact while grouping the integer part.
+ * e.g. "122999" → "1,22,999", "122999.5" → "1,22,999.5"
  */
-export function formatInputAmount(raw: string, currency: Currency = 'INR'): string {
+export function formatInputAmount(raw: string): string {
   if (!raw) return '0';
   const [intPart, decPart] = raw.split('.');
   const intNum = parseInt(intPart || '0', 10);
-  const formatted = Number.isNaN(intNum)
-    ? '0'
-    : new Intl.NumberFormat(CURRENCY_LOCALE_MAP[currency]).format(intNum);
+  const formatted = Number.isNaN(intNum) ? '0' : new Intl.NumberFormat(LOCALE).format(intNum);
   return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
 }
 

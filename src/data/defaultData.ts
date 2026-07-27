@@ -48,7 +48,6 @@ export const defaultLabels: Label[] = [
 ];
 
 export const defaultSettings: Settings = {
-  currency: 'INR',
   theme: 'system',
   userName: 'Alex',
   autoLocalBackup: false,

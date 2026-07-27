@@ -1,7 +1,6 @@
 export type AccountType = 'checking' | 'savings' | 'cash' | 'credit' | 'investment' | 'wallet';
 export type TransactionType = 'expense' | 'income' | 'transfer';
 export type CategoryType = 'expense' | 'income' | 'both';
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'CAD' | 'AUD';
 export type Theme = 'dark' | 'light' | 'system';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -9,7 +8,6 @@ export interface Account {
   id: string;
   name: string;
   type: AccountType;
-  currency: Currency;
   color: string;
   icon: string;
   balance: number;
@@ -50,7 +48,7 @@ export interface Budget {
   id: string;
   /** Empty string means "overall" budget across all expense categories. */
   categoryId: string;
-  /** Monthly limit in the user's primary currency. */
+  /** Monthly limit in INR. */
   amount: number;
   createdAt: string;
 }
@@ -72,7 +70,6 @@ export interface RecurringTransaction {
 }
 
 export interface Settings {
-  currency: Currency;
   theme: Theme;
   userName: string;
   /** Whether to automatically download a local backup JSON once per day. */

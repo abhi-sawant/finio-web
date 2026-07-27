@@ -49,7 +49,6 @@ export default function Dashboard() {
   const budgets = useFinanceStore((s) => s.budgets);
   const recurring = useFinanceStore((s) => s.recurring);
   const userName = useFinanceStore((s) => s.settings.userName);
-  const currency = useFinanceStore((s) => s.settings.currency);
 
   const monthTxns = useMemo(() => getCurrentMonthTransactions(transactions), [transactions]);
   const prevMonthTxns = useMemo(() => getPreviousMonthTransactions(transactions), [transactions]);
@@ -132,11 +131,11 @@ export default function Dashboard() {
               <span className="text-xs font-medium tracking-wide uppercase">Total Balance</span>
             </div>
             <p className="text-3xl font-bold tracking-tight">
-              {formatCurrency(totalBalance, currency)}
+              {formatCurrency(totalBalance)}
             </p>
             {creditOutstanding > 0 && (
               <p className="mt-1 text-xs text-white/80">
-                After Dues: {formatCurrency(afterDues, currency)}
+                After Dues: {formatCurrency(afterDues)}
               </p>
             )}
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -146,7 +145,7 @@ export default function Dashboard() {
                   <span className="text-[10px] tracking-wide uppercase">Income</span>
                 </div>
                 <p className="text-sm font-semibold">
-                  {formatCurrency(monthIncome, currency, true)}
+                  {formatCurrency(monthIncome, true)}
                 </p>
               </div>
               <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
@@ -155,7 +154,7 @@ export default function Dashboard() {
                   <span className="text-[10px] tracking-wide uppercase">Expenses</span>
                 </div>
                 <p className="text-sm font-semibold">
-                  {formatCurrency(monthExpenses, currency, true)}
+                  {formatCurrency(monthExpenses, true)}
                 </p>
               </div>
             </div>
@@ -173,10 +172,10 @@ export default function Dashboard() {
                 </span>
               </div>
               <p className="text-sm font-bold">
-                {formatCurrency(stats.dailyAverage, currency, true)}
+                {formatCurrency(stats.dailyAverage, true)}
               </p>
               <p className="text-muted-foreground mt-0.5 text-[10px]">
-                Projected: {formatCurrency(stats.projectedMonth, currency, true)}
+                Projected: {formatCurrency(stats.projectedMonth, true)}
               </p>
             </div>
             <div className="card-elevated bg-grad-success-soft rounded-2xl p-3">
@@ -216,7 +215,7 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <p className="text-sm font-bold">
-                  {formatCurrency(stats.topCategory.amount, currency, true)}
+                  {formatCurrency(stats.topCategory.amount, true)}
                 </p>
               </div>
             )}
@@ -282,8 +281,8 @@ export default function Dashboard() {
               <span
                 className={`text-xs font-medium ${overallBudget.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
               >
-                {formatCurrency(overallBudget.spent, currency, true)} /{' '}
-                {formatCurrency(overallBudget.budget.amount, currency, true)}
+                {formatCurrency(overallBudget.spent, true)} /{' '}
+                {formatCurrency(overallBudget.budget.amount, true)}
               </span>
             </div>
             <div className="bg-muted h-2 overflow-hidden rounded-full">
@@ -344,7 +343,7 @@ export default function Dashboard() {
                       className={`shrink-0 text-xs font-semibold ${rule.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}
                     >
                       {rule.type === 'income' ? '+' : '-'}
-                      {formatCurrency(rule.amount, currency, true)}
+                      {formatCurrency(rule.amount, true)}
                     </p>
                   </div>
                 );
@@ -413,7 +412,6 @@ export default function Dashboard() {
                   transaction={tx}
                   categories={categories}
                   accounts={accounts}
-                  currency={currency}
                   onClick={() => navigate(`/edit-transaction/${tx.id}`)}
                 />
               ))}

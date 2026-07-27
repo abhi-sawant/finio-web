@@ -24,7 +24,6 @@ export default function Budgets() {
   const budgets = useFinanceStore((s) => s.budgets);
   const categories = useFinanceStore((s) => s.categories);
   const transactions = useFinanceStore((s) => s.transactions);
-  const currency = useFinanceStore((s) => s.settings.currency);
   const addBudget = useFinanceStore((s) => s.addBudget);
   const deleteBudget = useFinanceStore((s) => s.deleteBudget);
 
@@ -201,8 +200,8 @@ export default function Budgets() {
                     <span
                       className={`${s.isOver ? 'font-medium text-rose-500' : 'text-muted-foreground'}`}
                     >
-                      {formatCurrency(s.spent, currency)} of{' '}
-                      {formatCurrency(s.budget.amount, currency)}
+                      {formatCurrency(s.spent)} of{' '}
+                      {formatCurrency(s.budget.amount)}
                     </span>
                     <span
                       className={`font-medium ${s.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
@@ -225,8 +224,8 @@ export default function Budgets() {
                   </div>
                   <p className="text-muted-foreground mt-1.5 text-[11px]">
                     {s.isOver
-                      ? `Over by ${formatCurrency(-s.remaining, currency)}`
-                      : `${formatCurrency(s.remaining, currency)} left this month`}
+                      ? `Over by ${formatCurrency(-s.remaining)}`
+                      : `${formatCurrency(s.remaining)} left this month`}
                   </p>
                 </div>
               );

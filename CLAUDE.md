@@ -65,7 +65,7 @@ src/
 ├── types/index.ts            # All domain interfaces (Account, Transaction, Budget, etc.)
 ├── utils/
 │   ├── calculations.ts       # Financial aggregations, budget status, CSV export
-│   └── formatters.ts         # Currency, date, number formatting
+│   └── formatters.ts         # Currency (INR), date, number formatting
 ├── lib/utils.ts              # shadcn cn() helper
 └── data/defaultData.ts       # Default categories, labels, and settings
 ```
@@ -128,15 +128,15 @@ Defined in [src/types/index.ts](src/types/index.ts):
 
 | Type | Key fields |
 |------|-----------|
-| `Account` | id, name, type, currency, color, icon, balance, creditLimit? |
+| `Account` | id, name, type, color, icon, balance, creditLimit? |
 | `Transaction` | id, type, amount, accountId, toAccountId?, categoryId, date, labels[], recurringId? |
 | `Category` | id, name, icon, color, type |
 | `Label` | id, name, color |
 | `Budget` | id, categoryId ('' = overall budget), amount |
 | `RecurringTransaction` | id, type, amount, accountId, categoryId, frequency, startDate, lastRunDate |
-| `Settings` | currency, theme, userName, autoLocalBackup |
+| `Settings` | theme, userName, autoLocalBackup |
 
-Enums: `AccountType`, `TransactionType` (expense/income/transfer), `Currency` (USD/EUR/GBP/INR/JPY/CAD/AUD), `RecurrenceFrequency` (daily/weekly/monthly/yearly), `Theme` (dark/light/system).
+Enums: `AccountType`, `TransactionType` (expense/income/transfer), `RecurrenceFrequency` (daily/weekly/monthly/yearly), `Theme` (dark/light/system).
 
 ---
 
@@ -187,7 +187,7 @@ All page components are lazy-loaded. This keeps the initial bundle small.
 ## Common Gotchas
 
 - **Transfers are special:** `TransactionType.transfer` uses both `accountId` (source) and `toAccountId` (destination). Balance calculations must handle this pair atomically.
-- **Currency is per-account:** Each `Account` has its own `currency`. `Settings.currency` is only the *display* currency for aggregated totals — conversion logic is in `formatters.ts`.
+- **INR only:** Multi-currency was removed in persisted-schema v4. `formatCurrency(amount, compact?)` hardcodes INR/`en-IN`; there is no per-account or per-setting currency field. Old persisted state and old backup JSON are stripped of the legacy `currency` key on load and on import.
 - **Overall budget:** A `Budget` with `categoryId === ''` means it applies to all spending (overall budget), not a category budget.
 - **Recurring processing:** Call `processRecurring()` (from `useFinanceStore`) when the app mounts or resumes from background to generate any overdue recurring transactions.
 - **Auth state:** Always call `useAuthStore.getState().loadAuth()` (or rely on Zustand hydration) before making authenticated API calls.

@@ -11,7 +11,6 @@ import Main from '@/components/ui/main';
 export default function Accounts() {
   const navigate = useNavigate();
   const accounts = useFinanceStore((s) => s.accounts);
-  const currency = useFinanceStore((s) => s.settings.currency);
   const deleteAccount = useFinanceStore((s) => s.deleteAccount);
 
   const totalBalance = useMemo(() => getTotalAccountBalance(accounts), [accounts]);
@@ -43,7 +42,7 @@ export default function Accounts() {
                 Net Balance
               </p>
             </div>
-            <p className="text-lg font-bold">{formatCurrency(totalBalance, currency, true)}</p>
+            <p className="text-lg font-bold">{formatCurrency(totalBalance, true)}</p>
           </div>
           {creditAccounts.length > 0 && (
             <div className="card-elevated bg-grad-danger-soft rounded-2xl p-4">
@@ -54,7 +53,7 @@ export default function Accounts() {
                 </p>
               </div>
               <p className="text-lg font-bold text-rose-500">
-                {formatCurrency(creditDue, currency, true)}
+                {formatCurrency(creditDue, true)}
               </p>
             </div>
           )}

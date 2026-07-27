@@ -5,50 +5,51 @@ A working reference of everything worth fixing or building, derived from a full 
 
 Legend: **[S]** small (hours) · **[M]** medium (a day or two) · **[L]** large (multi-day, schema change)
 
+Checked items have landed on `main`.
+
 ---
 
 ## 1. Bugs & correctness
 
 These are defects in a money app — they should land before any new feature work.
 
-- [ ] **[S] `formatCurrency` ignores its `_compact` flag.** [`src/utils/formatters.ts:17`](src/utils/formatters.ts)
+- [x] **[S] `formatCurrency` ignores its `_compact` flag.** [`src/utils/formatters.ts:17`](src/utils/formatters.ts)
   takes `_compact` and never reads it. 19 call sites pass `true` (Dashboard, Accounts, Analytics,
   Recurring, AccountCard, SpendingDonut, LabelSpendingBar) expecting `₹1.2L` / `$1.2K` and get the
   full number, which overflows the hero card and stat tiles on narrow screens.
 
-- [ ] **[S] `deleteAccount` corrupts other accounts' balances.**
+- [x] **[S] `deleteAccount` corrupts other accounts' balances.**
   [`src/store/useFinanceStore.ts:104`](src/store/useFinanceStore.ts) removes the account and its
   transactions but never reverses their balance deltas. Deleting account A that had transfers into
   B leaves B permanently inflated. Must `applyBalanceDelta(..., -1)` over every removed transaction
   before dropping it.
 
-- [ ] **[S] `deleteCategory` orphans transactions and recurring rules.**
+- [x] **[S] `deleteCategory` orphans transactions and recurring rules.**
   [`src/store/useFinanceStore.ts:170`](src/store/useFinanceStore.ts) filters `budgets` but leaves
   `transaction.categoryId` and `recurring.categoryId` dangling. Those rows render as "Unknown" and
   silently drop out of the spending donut. Needs a fallback reassignment (Miscellaneous) or a
   reassign-to prompt.
 
-- [ ] **[S] Transactions page prints a raw number.**
+- [x] **[S] Transactions page prints a raw number.**
   [`src/pages/Transactions.tsx:182`](src/pages/Transactions.tsx) renders
   `{currency} {totalIncome}` → `INR 12345.670000001`, bypassing `formatCurrency`. It also shows
   only whichever of income/expense is larger, hiding the other.
 
-- [ ] **[S] `savingsRate` is clamped to zero.**
+- [x] **[S] `savingsRate` is clamped to zero.**
   [`src/utils/calculations.ts:154`](src/utils/calculations.ts) uses `Math.max(0, ...)`, so a month
   where you overspend your income reads as "0% savings rate" instead of negative — exactly the
   months where the number matters most.
 
-- [ ] **[S] `formatInputAmount` hardcodes `en-IN` grouping.**
-  [`src/utils/formatters.ts:67`](src/utils/formatters.ts) groups every currency in the Indian
-  system, so a USD user typing 122999 into the number pad sees `1,22,999`.
+- [x] ~~**[S] `formatInputAmount` hardcodes `en-IN` grouping.**~~ Moot: the app is INR-only, so
+  Indian-system grouping is now correct by definition.
 
-- [ ] **[S] `processRecurring` shares one 365-generation cap across all rules.**
+- [x] **[S] `processRecurring` shares one 365-generation cap across all rules.**
   [`src/store/useFinanceStore.ts:249`](src/store/useFinanceStore.ts) declares `generated` outside
   the rule loop, so one long-overdue daily rule consumes the whole budget and every later rule
   generates exactly one occurrence per app open. Self-heals across launches, but the cap should be
   per-rule.
 
-- [ ] **[S] `ProtectedRoute` is dead code.** [`src/components/ProtectedRoute.tsx`](src/components/ProtectedRoute.tsx)
+- [x] **[S] `ProtectedRoute` is dead code.** [`src/components/ProtectedRoute.tsx`](src/components/ProtectedRoute.tsx)
   is imported by nothing. Correct for an offline-first app where auth is optional — just delete it.
 
 - [ ] **[M] Import replaces everything with almost no validation.**
@@ -56,19 +57,16 @@ These are defects in a money app — they should land before any new feature wor
   overwrites all state. No shape validation, no merge option, no dry-run preview, no balance
   recompute afterward.
 
-- [ ] **[L] Multi-currency is decorative.** `Account.currency` is stored per account, but
-  [`getTotalAccountBalance`](src/utils/calculations.ts) and `getNetWorth` sum raw numbers across
-  currencies and then label the result with `settings.currency`. A ₹50,000 savings account plus a
-  $500 wallet displays as "₹50,500". CLAUDE.md claims conversion lives in `formatters.ts` — no
-  conversion code exists anywhere.
-  **Needs a product decision first:** either (a) add an FX rate table in settings with optional
-  refresh and convert at every aggregation, or (b) drop per-account currency and go single-currency.
+- [x] ~~**[L] Multi-currency is decorative.**~~ **Resolved by removing the feature.** The app is
+  now INR-only: `Currency`, `Account.currency`, `Settings.currency`, and the Settings currency
+  selector are gone; `formatCurrency` hardcodes INR/`en-IN`. Persisted schema bumped to v4, which
+  strips the legacy `currency` key from stored settings and accounts (and from imported backups).
 
 - [ ] **[L] Balances cannot be recomputed.** `Account.balance` is a mutable stored field seeded at
   creation and mutated by deltas. There is no `openingBalance`, so current balance is *not*
   derivable from transactions, and any drift (from the delete bug above, a partial import, a manual
   edit) is permanent and invisible.
-  **Fix:** add `Account.openingBalance`, migrate to v4 by computing
+  **Fix:** add `Account.openingBalance`, migrate to v5 by computing
   `openingBalance = balance − Σ(deltas of existing transactions)`, then add a `recomputeBalances()`
   action and a "Reconcile balances" button in Settings. This is the safety net that makes every
   other money bug recoverable.
@@ -99,8 +97,8 @@ These are defects in a money app — they should land before any new feature wor
   inconsistent with the shadcn UI and unstylable. Replace with `AlertDialog`, and prefer
   undo-via-toast over confirm-first for transaction deletes.
 - [ ] **[S] Onboarding.** First run greets you as "Alex" (the default in
-  [`src/data/defaultData.ts`](src/data/defaultData.ts)). Add a wizard: name → currency → first
-  account → opening balance.
+  [`src/data/defaultData.ts`](src/data/defaultData.ts)). Add a wizard: name → first account →
+  opening balance.
 
 ### Backend features with no UI
 
