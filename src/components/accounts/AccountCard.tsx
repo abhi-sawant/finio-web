@@ -3,6 +3,8 @@ import { formatCurrency } from '@/utils/formatters';
 import type { Account } from '@/types';
 import {
   Trash2,
+  Archive,
+  ArchiveRestore,
   Landmark,
   PiggyBank,
   Banknote,
@@ -41,6 +43,8 @@ interface AccountCardProps {
   variant?: 'horizontal' | 'grid';
   onClick?: () => void;
   onDelete?: () => void;
+  /** Closes an open account, or reopens an archived one. */
+  onToggleArchive?: () => void;
 }
 
 export const AccountCard = memo(function AccountCard({
@@ -48,8 +52,10 @@ export const AccountCard = memo(function AccountCard({
   variant = 'horizontal',
   onClick,
   onDelete,
+  onToggleArchive,
 }: AccountCardProps) {
   const isCredit = account.type === 'credit';
+  const isArchived = !!account.archivedAt;
   const utilization =
     isCredit && account.creditLimit
       ? Math.abs(Math.min(account.balance, 0)) / account.creditLimit
@@ -58,23 +64,44 @@ export const AccountCard = memo(function AccountCard({
   if (variant === 'grid') {
     return (
       <div
-        className="group card-elevated relative cursor-pointer overflow-hidden rounded-2xl p-4 transition-all active:scale-[0.98]"
+        className={`group card-elevated relative cursor-pointer overflow-hidden rounded-2xl p-4 transition-all active:scale-[0.98] ${
+          isArchived ? 'opacity-60 saturate-50' : ''
+        }`}
         onClick={onClick}
         style={{
           backgroundImage: `linear-gradient(135deg, ${account.color}22, ${account.color}08)`,
         }}
       >
-        {onDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="bg-destructive/10 absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
-          >
-            <Trash2 size={12} className="text-destructive" />
-          </button>
-        )}
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          {onToggleArchive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleArchive();
+              }}
+              className="bg-muted flex h-6 w-6 items-center justify-center rounded-full"
+              aria-label={isArchived ? `Reopen ${account.name}` : `Archive ${account.name}`}
+            >
+              {isArchived ? (
+                <ArchiveRestore size={12} className="text-muted-foreground" />
+              ) : (
+                <Archive size={12} className="text-muted-foreground" />
+              )}
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="bg-destructive/10 flex h-6 w-6 items-center justify-center rounded-full"
+              aria-label={`Delete ${account.name}`}
+            >
+              <Trash2 size={12} className="text-destructive" />
+            </button>
+          )}
+        </div>
         <div className="mb-2 flex items-center gap-2">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-full shadow"
@@ -85,7 +112,7 @@ export const AccountCard = memo(function AccountCard({
             <AccountIcon icon={account.icon} size={16} color="#fff" />
           </div>
           <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
-            {account.type}
+            {isArchived ? 'Closed' : account.type}
           </span>
         </div>
         <p className="mb-1 truncate text-sm font-medium">{account.name}</p>

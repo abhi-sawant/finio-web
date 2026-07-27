@@ -9,6 +9,7 @@ import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NumberPad } from '@/components/ui/number-pad';
+import { useConfirm } from '@/components/ui/use-confirm';
 import {
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { activeAccounts } from '@/utils/calculations';
 import type { RecurrenceFrequency } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -29,9 +31,13 @@ const FREQ_LABEL: Record<RecurrenceFrequency, string> = {
 
 export default function Recurring() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const recurring = useFinanceStore((s) => s.recurring);
-  const accounts = useFinanceStore((s) => s.accounts);
+  const allAccounts = useFinanceStore((s) => s.accounts);
   const categories = useFinanceStore((s) => s.categories);
+  // A closed account cannot take new charges, so it must not back a new rule. Existing rules
+  // still resolve their account name from the full list below.
+  const accounts = useMemo(() => activeAccounts(allAccounts), [allAccounts]);
   const addRecurring = useFinanceStore((s) => s.addRecurring);
   const deleteRecurring = useFinanceStore((s) => s.deleteRecurring);
   const processRecurring = useFinanceStore((s) => s.processRecurring);
@@ -227,7 +233,7 @@ export default function Recurring() {
         <div className="space-y-2">
           {recurring.map((r) => {
             const cat = categories.find((c) => c.id === r.categoryId);
-            const acc = accounts.find((a) => a.id === r.accountId);
+            const acc = allAccounts.find((a) => a.id === r.accountId);
             const color = cat?.color ?? '#94a3b8';
             return (
               <div key={r.id} className="card-elevated flex items-center gap-3 rounded-2xl p-3">
@@ -255,10 +261,14 @@ export default function Recurring() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => {
-                    if (confirm('Delete this recurring rule? Past transactions will be kept.')) {
-                      deleteRecurring(r.id);
-                    }
+                  onClick={async () => {
+                    const confirmed = await confirm({
+                      title: 'Delete this recurring rule?',
+                      description:
+                        'Transactions it has already generated are kept — only future occurrences stop.',
+                      confirmLabel: 'Delete rule',
+                    });
+                    if (confirmed) deleteRecurring(r.id);
                   }}
                   className="h-7 w-7"
                   aria-label="Delete"

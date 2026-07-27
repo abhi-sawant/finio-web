@@ -3,6 +3,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Toaster } from 'sonner';
 import { Layout } from '@/components/layout/Layout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ConfirmProvider } from '@/components/ui/confirm';
+import { useFinanceStore } from '@/store/useFinanceStore';
+
+const Onboarding = lazy(() =>
+  import('@/components/onboarding/Onboarding').then((m) => ({ default: m.Onboarding })),
+);
 
 // Lazy-loaded pages (route-based code splitting)
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -30,36 +36,52 @@ function PageLoader() {
   );
 }
 
+function AppRoutes() {
+  const isHydrated = useFinanceStore((s) => s.isHydrated);
+  const onboardedAt = useFinanceStore((s) => s.settings.onboardedAt);
+
+  // Gate on hydration so a returning user never sees the wizard flash before their
+  // persisted settings land.
+  if (!isHydrated) return <PageLoader />;
+  if (!onboardedAt) return <Onboarding />;
+
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="accounts" element={<Accounts />} />
+        <Route path="transactions" element={<Transactions />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+      <Route path="add-transaction" element={<AddTransaction />} />
+      <Route path="edit-transaction/:id" element={<AddTransaction />} />
+      <Route path="add-account" element={<AddAccount />} />
+      <Route path="edit-account/:id" element={<AddAccount />} />
+      <Route path="manage-categories" element={<ManageCategories />} />
+      <Route path="manage-labels" element={<ManageLabels />} />
+      <Route path="budgets" element={<Budgets />} />
+      <Route path="recurring" element={<Recurring />} />
+      <Route path="login" element={<Login />} />
+      <Route path="register" element={<Register />} />
+      <Route path="verify-otp" element={<VerifyOtp />} />
+      <Route path="forgot-password" element={<ForgotPassword />} />
+      <Route path="reset-password" element={<ResetPassword />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="accounts" element={<Accounts />} />
-              <Route path="transactions" element={<Transactions />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-            <Route path="add-transaction" element={<AddTransaction />} />
-            <Route path="edit-transaction/:id" element={<AddTransaction />} />
-            <Route path="add-account" element={<AddAccount />} />
-            <Route path="edit-account/:id" element={<AddAccount />} />
-            <Route path="manage-categories" element={<ManageCategories />} />
-            <Route path="manage-labels" element={<ManageLabels />} />
-            <Route path="budgets" element={<Budgets />} />
-            <Route path="recurring" element={<Recurring />} />
-            <Route path="login" element={<Login />} />
-            <Route path="register" element={<Register />} />
-            <Route path="verify-otp" element={<VerifyOtp />} />
-            <Route path="forgot-password" element={<ForgotPassword />} />
-            <Route path="reset-password" element={<ResetPassword />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-        <Toaster position="top-center" richColors closeButton />
+        <ConfirmProvider>
+          <Suspense fallback={<PageLoader />}>
+            <AppRoutes />
+          </Suspense>
+          <Toaster position="top-center" richColors closeButton />
+        </ConfirmProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );

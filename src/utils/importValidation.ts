@@ -112,6 +112,7 @@ const parseAccount: RowParser<ImportedAccount> = (row) => {
 
   const openingBalance = asFiniteNumber(row.openingBalance);
   const creditLimit = asFiniteNumber(row.creditLimit);
+  const archivedAt = asIsoDate(row.archivedAt);
 
   return {
     id,
@@ -123,6 +124,8 @@ const parseAccount: RowParser<ImportedAccount> = (row) => {
     createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
     ...(openingBalance !== undefined ? { openingBalance } : {}),
     ...(creditLimit !== undefined ? { creditLimit } : {}),
+    // An unparseable value just means "not archived" — never a reason to drop the account.
+    ...(archivedAt ? { archivedAt } : {}),
   };
 };
 

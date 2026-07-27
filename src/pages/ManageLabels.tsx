@@ -5,6 +5,7 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useConfirm } from '@/components/ui/use-confirm';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
@@ -37,6 +38,7 @@ const labelColors = [
 
 export default function ManageLabels() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const labels = useFinanceStore((s) => s.labels);
   const addLabel = useFinanceStore((s) => s.addLabel);
   const updateLabel = useFinanceStore((s) => s.updateLabel);
@@ -166,8 +168,14 @@ export default function ManageLabels() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => {
-                    if (confirm(`Delete "${label.name}"?`)) deleteLabel(label.id);
+                  onClick={async () => {
+                    const confirmed = await confirm({
+                      title: `Delete "${label.name}"?`,
+                      description:
+                        'It will be removed from every transaction currently tagged with it.',
+                      confirmLabel: 'Delete label',
+                    });
+                    if (confirmed) deleteLabel(label.id);
                   }}
                   className="h-8 w-8"
                 >

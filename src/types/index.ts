@@ -19,6 +19,11 @@ export interface Account {
   openingBalance: number;
   createdAt: string;
   creditLimit?: number;
+  /**
+   * ISO timestamp of when the account was closed, or absent while it is open. Archiving keeps
+   * every transaction — it only removes the account from pickers and running totals.
+   */
+  archivedAt?: string;
 }
 
 /** An account from a backup file or pre-v5 storage, where `openingBalance` may be absent. */
@@ -83,6 +88,11 @@ export interface Settings {
   userName: string;
   /** Whether to automatically download a local backup JSON once per day. */
   autoLocalBackup: boolean;
+  /**
+   * ISO timestamp of when the first-run wizard was completed or skipped. Absent means this
+   * is a fresh install and the wizard should run before anything else.
+   */
+  onboardedAt?: string;
 }
 
 /** Sanitized backup contents accepted by `importData`. */
@@ -113,6 +123,11 @@ export interface FinanceStore {
 
   addAccount: (account: Omit<Account, 'id' | 'createdAt' | 'openingBalance'>) => void;
   updateAccount: (id: string, updates: Partial<Omit<Account, 'id'>>) => void;
+  /**
+   * Close or reopen an account. Unlike `deleteAccount` this is non-destructive: transactions,
+   * balances and recurring rules survive, so it is the right default for a closed bank account.
+   */
+  setAccountArchived: (id: string, archived: boolean) => void;
   deleteAccount: (id: string) => void;
   /**
    * Rebuild every account balance from its opening balance plus its transactions.
@@ -122,7 +137,13 @@ export interface FinanceStore {
 
   addTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => string;
   updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id'>>) => void;
-  deleteTransaction: (id: string) => void;
+  /** Removes the transaction and reverses its delta. Returns the removed row so callers can undo. */
+  deleteTransaction: (id: string) => Transaction | null;
+  /**
+   * Re-insert a previously deleted transaction verbatim — same id, same delta. Undoing a
+   * delete must not mint a new id, or the row would diverge from any backup that has it.
+   */
+  restoreTransaction: (transaction: Transaction) => void;
 
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Omit<Category, 'id'>>) => void;

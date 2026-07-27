@@ -8,6 +8,7 @@ import { formatCurrency } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { NumberPad } from '@/components/ui/number-pad';
+import { useConfirm } from '@/components/ui/use-confirm';
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ import Main from '@/components/ui/main';
 
 export default function Budgets() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const budgets = useFinanceStore((s) => s.budgets);
   const categories = useFinanceStore((s) => s.categories);
   const transactions = useFinanceStore((s) => s.transactions);
@@ -187,8 +189,14 @@ export default function Budgets() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        if (confirm(`Delete budget for "${label}"?`)) deleteBudget(s.budget.id);
+                      onClick={async () => {
+                        const confirmed = await confirm({
+                          title: `Delete budget for "${label}"?`,
+                          description:
+                            'Your transactions are unaffected — only the limit is removed.',
+                          confirmLabel: 'Delete budget',
+                        });
+                        if (confirmed) deleteBudget(s.budget.id);
                       }}
                       className="h-7 w-7"
                       aria-label="Delete"
@@ -200,8 +208,7 @@ export default function Budgets() {
                     <span
                       className={`${s.isOver ? 'font-medium text-rose-500' : 'text-muted-foreground'}`}
                     >
-                      {formatCurrency(s.spent)} of{' '}
-                      {formatCurrency(s.budget.amount)}
+                      {formatCurrency(s.spent)} of {formatCurrency(s.budget.amount)}
                     </span>
                     <span
                       className={`font-medium ${s.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}

@@ -119,6 +119,21 @@ export const useFinanceStore = create<FinanceStore>()(
         });
       },
 
+      setAccountArchived: (id, archived) => {
+        set((state) => ({
+          accounts: state.accounts.map((a) => {
+            if (a.id !== id) return a;
+            if (archived) return { ...a, archivedAt: new Date().toISOString() };
+            if (!a.archivedAt) return a;
+            // Drop the key rather than setting it undefined, so a reopened account
+            // serializes identically to one that was never archived.
+            const reopened = { ...a };
+            delete reopened.archivedAt;
+            return reopened;
+          }),
+        }));
+      },
+
       deleteAccount: (id) => {
         set((state) => {
           const removed = state.transactions.filter(
@@ -179,13 +194,24 @@ export const useFinanceStore = create<FinanceStore>()(
       },
 
       deleteTransaction: (id) => {
+        const tx = get().transactions.find((t) => t.id === id);
+        if (!tx) return null;
+
+        set((state) => ({
+          transactions: state.transactions.filter((t) => t.id !== id),
+          accounts: applyBalanceDelta(state.accounts, tx, -1),
+        }));
+        return tx;
+      },
+
+      restoreTransaction: (transaction) => {
         set((state) => {
-          const tx = state.transactions.find((t) => t.id === id);
-          if (!tx) return state;
+          // Guard against a double undo re-applying the delta twice.
+          if (state.transactions.some((t) => t.id === transaction.id)) return state;
 
           return {
-            transactions: state.transactions.filter((t) => t.id !== id),
-            accounts: applyBalanceDelta(state.accounts, tx, -1),
+            transactions: [transaction, ...state.transactions],
+            accounts: applyBalanceDelta(state.accounts, transaction, 1),
           };
         });
       },
@@ -344,6 +370,8 @@ export const useFinanceStore = create<FinanceStore>()(
       },
 
       resetToDefaults: () => {
+        // Finance data only. Settings are preferences, not data — and wiping `onboardedAt`
+        // would throw an existing user back into the first-run wizard with a blank name.
         set({
           accounts: [],
           transactions: [],
@@ -351,7 +379,6 @@ export const useFinanceStore = create<FinanceStore>()(
           labels: defaultLabels,
           budgets: [],
           recurring: [],
-          settings: defaultSettings,
         });
       },
 
@@ -398,7 +425,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 5,
+      version: 6,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -448,6 +475,20 @@ export const useFinanceStore = create<FinanceStore>()(
                   Array.isArray(s.transactions) ? s.transactions : [],
                 )
               : s.accounts,
+          };
+        }
+
+        if (version < 6) {
+          // Anyone with persisted state has already been using the app, so the first-run
+          // wizard must not appear for them — backdate it to their earliest known activity.
+          const settings = (s.settings ?? {}) as Partial<Settings>;
+          s = {
+            ...s,
+            settings: {
+              ...defaultSettings,
+              ...settings,
+              onboardedAt: settings.onboardedAt ?? new Date().toISOString(),
+            },
           };
         }
 

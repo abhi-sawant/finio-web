@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NumberPad } from '@/components/ui/number-pad';
+import { useConfirm } from '@/components/ui/use-confirm';
 import type { AccountType } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -67,6 +68,7 @@ const accountColors = [
 
 export default function AddAccount() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const { id } = useParams();
   const accounts = useFinanceStore((s) => s.accounts);
   const addAccount = useFinanceStore((s) => s.addAccount);
@@ -106,11 +108,15 @@ export default function AddAccount() {
     navigate(-1);
   };
 
-  const handleDelete = () => {
-    if (
-      existing &&
-      confirm(`Delete "${existing.name}"? All associated transactions will be deleted.`)
-    ) {
+  const handleDelete = async () => {
+    if (!existing) return;
+    const confirmed = await confirm({
+      title: `Delete "${existing.name}"?`,
+      description:
+        'Every transaction on this account will be deleted as well. This cannot be undone.',
+      confirmLabel: 'Delete',
+    });
+    if (confirmed) {
       deleteAccount(existing.id);
       navigate(-1);
     }

@@ -31,12 +31,15 @@ export default function AddTransaction() {
   const addTransaction = useFinanceStore((s) => s.addTransaction);
   const updateTransaction = useFinanceStore((s) => s.updateTransaction);
   const deleteTransaction = useFinanceStore((s) => s.deleteTransaction);
+  const restoreTransaction = useFinanceStore((s) => s.restoreTransaction);
 
   const existing = id ? transactions.find((t) => t.id === id) : null;
 
   const [type, setType] = useState<TransactionType>(existing?.type ?? 'expense');
   const [amount, setAmount] = useState(existing?.amount?.toString() ?? '');
-  const [accountId, setAccountId] = useState(existing?.accountId ?? accounts[0]?.id ?? '');
+  const [accountId, setAccountId] = useState(
+    existing?.accountId ?? accounts.find((a) => !a.archivedAt)?.id ?? '',
+  );
   const [toAccountId, setToAccountId] = useState(existing?.toAccountId ?? '');
   const [categoryId, setCategoryId] = useState(existing?.categoryId ?? '');
   const [date, setDate] = useState(
@@ -53,6 +56,13 @@ export default function AddTransaction() {
       .map((t) => t.note?.trim())
       .filter((n): n is string => !!n && !seen.has(n) && seen.add(n) !== undefined);
   }, [transactions]);
+
+  // Archived accounts are hidden from the picker, but an existing transaction may already sit
+  // on one — keep that account selectable so editing the row cannot silently reassign it.
+  const selectableAccounts = useMemo(() => {
+    const inUse = new Set([existing?.accountId, existing?.toAccountId].filter(Boolean));
+    return accounts.filter((a) => !a.archivedAt || inUse.has(a.id));
+  }, [accounts, existing?.accountId, existing?.toAccountId]);
 
   const filteredCategories = useMemo(() => {
     if (type === 'transfer') return categories.filter((c) => c.type === 'both');
@@ -106,11 +116,14 @@ export default function AddTransaction() {
   };
 
   const handleDelete = () => {
-    if (existing && confirm('Delete this transaction?')) {
-      deleteTransaction(existing.id);
-      toast.success('Transaction deleted');
-      navigate(-1);
-    }
+    if (!existing) return;
+    // Cheap and fully reversible, so undo beats a confirm prompt here.
+    const removed = deleteTransaction(existing.id);
+    if (!removed) return;
+    navigate(-1);
+    toast.success('Transaction deleted', {
+      action: { label: 'Undo', onClick: () => restoreTransaction(removed) },
+    });
   };
 
   const toggleLabel = (labelId: string) => {
@@ -203,7 +216,7 @@ export default function AddTransaction() {
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {accounts.map((a) => (
+              {selectableAccounts.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
                   <span className="flex items-center gap-1">
                     {a.name}{' '}
@@ -243,7 +256,7 @@ export default function AddTransaction() {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {accounts
+                {selectableAccounts
                   .filter((a) => a.id !== accountId)
                   .map((a) => (
                     <SelectItem key={a.id} value={a.id}>

@@ -1,6 +1,13 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { getHours, parseISO, addDays, addMonths, addYears, differenceInCalendarDays } from 'date-fns';
+import {
+  getHours,
+  parseISO,
+  addDays,
+  addMonths,
+  addYears,
+  differenceInCalendarDays,
+} from 'date-fns';
 import {
   Settings2,
   Plus,
@@ -17,6 +24,7 @@ import {
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency, formatPercentChange } from '@/utils/formatters';
 import {
+  activeAccounts,
   getTotalIncome,
   getTotalExpenses,
   getTotalAccountBalance,
@@ -52,6 +60,7 @@ export default function Dashboard() {
 
   const monthTxns = useMemo(() => getCurrentMonthTransactions(transactions), [transactions]);
   const prevMonthTxns = useMemo(() => getPreviousMonthTransactions(transactions), [transactions]);
+  const openAccounts = useMemo(() => activeAccounts(accounts), [accounts]);
   const totalBalance = useMemo(() => getTotalAccountBalance(accounts), [accounts]);
   const creditOutstanding = useMemo(() => getTotalCreditOutstanding(accounts), [accounts]);
   const afterDues = totalBalance - creditOutstanding;
@@ -130,13 +139,9 @@ export default function Dashboard() {
               <Wallet size={14} />
               <span className="text-xs font-medium tracking-wide uppercase">Total Balance</span>
             </div>
-            <p className="text-3xl font-bold tracking-tight">
-              {formatCurrency(totalBalance)}
-            </p>
+            <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalBalance)}</p>
             {creditOutstanding > 0 && (
-              <p className="mt-1 text-xs text-white/80">
-                After Dues: {formatCurrency(afterDues)}
-              </p>
+              <p className="mt-1 text-xs text-white/80">After Dues: {formatCurrency(afterDues)}</p>
             )}
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
@@ -144,18 +149,14 @@ export default function Dashboard() {
                   <TrendingUp size={12} />
                   <span className="text-[10px] tracking-wide uppercase">Income</span>
                 </div>
-                <p className="text-sm font-semibold">
-                  {formatCurrency(monthIncome, true)}
-                </p>
+                <p className="text-sm font-semibold">{formatCurrency(monthIncome, true)}</p>
               </div>
               <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
                 <div className="mb-0.5 flex items-center gap-1.5 opacity-90">
                   <TrendingDown size={12} />
                   <span className="text-[10px] tracking-wide uppercase">Expenses</span>
                 </div>
-                <p className="text-sm font-semibold">
-                  {formatCurrency(monthExpenses, true)}
-                </p>
+                <p className="text-sm font-semibold">{formatCurrency(monthExpenses, true)}</p>
               </div>
             </div>
           </div>
@@ -171,9 +172,7 @@ export default function Dashboard() {
                   Daily avg
                 </span>
               </div>
-              <p className="text-sm font-bold">
-                {formatCurrency(stats.dailyAverage, true)}
-              </p>
+              <p className="text-sm font-bold">{formatCurrency(stats.dailyAverage, true)}</p>
               <p className="text-muted-foreground mt-0.5 text-[10px]">
                 Projected: {formatCurrency(stats.projectedMonth, true)}
               </p>
@@ -240,7 +239,8 @@ export default function Dashboard() {
             <div className="space-y-2.5">
               {nearLimitBudgets.map((s) => {
                 const cat = categories.find((c) => c.id === s.budget.categoryId);
-                const label = s.budget.categoryId === '' ? 'Overall Expenses' : (cat?.name ?? 'Unknown');
+                const label =
+                  s.budget.categoryId === '' ? 'Overall Expenses' : (cat?.name ?? 'Unknown');
                 return (
                   <div key={s.budget.id}>
                     <div className="mb-1 flex items-center justify-between">
@@ -376,7 +376,7 @@ export default function Dashboard() {
             </button>
           ) : (
             <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-x-visible xl:grid-cols-4">
-              {accounts.map((account) => (
+              {openAccounts.map((account) => (
                 <AccountCard
                   key={account.id}
                   account={account}
