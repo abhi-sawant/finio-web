@@ -1,9 +1,10 @@
-import { parseISO } from 'date-fns';
+import { addDays, addMonths, differenceInCalendarDays, parseISO } from 'date-fns';
 import {
   DEFAULT_MONTH_START_DAY,
   daysElapsedInPeriod,
   daysInPeriod,
   isWithinPeriod,
+  normalizeMonthStartDay,
   periodRange,
   periodStart,
   shiftPeriod,
@@ -42,6 +43,58 @@ export function getTotalCreditOutstanding(accounts: Account[]): number {
   return activeAccounts(accounts)
     .filter((a) => a.type === 'credit')
     .reduce((sum, a) => sum + Math.abs(Math.min(a.balance, 0)), 0);
+}
+
+/** Fraction of `creditLimit` currently drawn, 0 for non-credit or limit-less accounts. */
+export function getCreditUtilization(account: Account): number {
+  if (account.type !== 'credit' || !account.creditLimit) return 0;
+  return Math.abs(Math.min(account.balance, 0)) / account.creditLimit;
+}
+
+const DEFAULT_MINIMUM_DUE_PERCENT = 5;
+
+export interface CreditCardDueInfo {
+  outstanding: number;
+  minimumDue: number;
+  dueDate: Date;
+  /** Negative once the due date has passed. */
+  daysUntilDue: number;
+  isOverdue: boolean;
+}
+
+/**
+ * The bill from a credit account's most recently closed statement: due date, minimum
+ * payment, and days remaining. There is no per-statement snapshot in this app, so
+ * "outstanding" is always today's balance rather than the balance frozen at close —
+ * an approximation that holds as long as the bill hasn't been paid down yet.
+ *
+ * Null when the account isn't credit, has no statement cycle configured
+ * (`statementCloseDay`/`paymentDueDays`), or has nothing outstanding to pay.
+ */
+export function getCreditCardDueInfo(account: Account, now = new Date()): CreditCardDueInfo | null {
+  if (account.type !== 'credit' || account.archivedAt) return null;
+  if (!account.statementCloseDay || account.paymentDueDays === undefined) return null;
+
+  const outstanding = Math.abs(Math.min(account.balance, 0));
+  if (outstanding <= 0) return null;
+
+  const closeDay = normalizeMonthStartDay(account.statementCloseDay);
+  const paymentDueDays = Math.max(0, Math.trunc(account.paymentDueDays));
+  const closeThisMonth = new Date(now.getFullYear(), now.getMonth(), closeDay);
+  // The cycle that produced the current outstanding balance is whichever close date most
+  // recently passed — this month's if we're past it, last month's otherwise.
+  const recentClose = now.getDate() >= closeDay ? closeThisMonth : addMonths(closeThisMonth, -1);
+  const dueDate = addDays(recentClose, paymentDueDays);
+  const daysUntilDue = differenceInCalendarDays(dueDate, now);
+  const minimumDuePercent = account.minimumDuePercent ?? DEFAULT_MINIMUM_DUE_PERCENT;
+
+  return {
+    outstanding,
+    minimumDue: (outstanding * minimumDuePercent) / 100,
+    dueDate,
+    daysUntilDue,
+    isOverdue: daysUntilDue < 0,
+  };
 }
 
 export function transactionsInPeriod(

@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { formatCurrency } from '@/utils/formatters';
+import { getCreditCardDueInfo, getCreditUtilization } from '@/utils/calculations';
 import type { Account } from '@/types';
 import {
   Trash2,
@@ -38,6 +39,15 @@ function AccountIcon({ icon, size = 16, color }: { icon: string; size?: number; 
   return <span style={{ fontSize: size, lineHeight: 1 }}>{icon}</span>;
 }
 
+function dueLabel(daysUntilDue: number): string {
+  if (daysUntilDue < 0) {
+    return `Overdue by ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) === 1 ? '' : 's'}`;
+  }
+  if (daysUntilDue === 0) return 'Due today';
+  if (daysUntilDue === 1) return 'Due tomorrow';
+  return `Due in ${daysUntilDue} days`;
+}
+
 interface AccountCardProps {
   account: Account;
   variant?: 'horizontal' | 'grid';
@@ -56,10 +66,8 @@ export const AccountCard = memo(function AccountCard({
 }: AccountCardProps) {
   const isCredit = account.type === 'credit';
   const isArchived = !!account.archivedAt;
-  const utilization =
-    isCredit && account.creditLimit
-      ? Math.abs(Math.min(account.balance, 0)) / account.creditLimit
-      : 0;
+  const utilization = getCreditUtilization(account);
+  const dueInfo = getCreditCardDueInfo(account);
 
   if (variant === 'grid') {
     return (
@@ -140,6 +148,13 @@ export const AccountCard = memo(function AccountCard({
             </p>
           </div>
         )}
+        {dueInfo && (
+          <p
+            className={`mt-1.5 text-[10px] font-medium ${dueInfo.isOverdue ? 'text-rose-500' : 'text-muted-foreground'}`}
+          >
+            {dueLabel(dueInfo.daysUntilDue)} · Min {formatCurrency(dueInfo.minimumDue, true)}
+          </p>
+        )}
       </div>
     );
   }
@@ -168,6 +183,31 @@ export const AccountCard = memo(function AccountCard({
       <p className={`mt-0.5 text-base font-bold ${account.balance < 0 ? 'text-rose-500' : ''}`}>
         {formatCurrency(account.balance, true)}
       </p>
+      {isCredit && account.creditLimit && (
+        <div className="mt-2">
+          <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${Math.min(utilization * 100, 100)}%`,
+                backgroundImage:
+                  utilization > 0.8
+                    ? 'linear-gradient(90deg,#ef4444,#ff5f7e)'
+                    : utilization > 0.5
+                      ? 'linear-gradient(90deg,#f59e0b,#fb923c)'
+                      : 'linear-gradient(90deg,#22c55e,#16c47f)',
+              }}
+            />
+          </div>
+        </div>
+      )}
+      {dueInfo && (
+        <p
+          className={`mt-1 text-[10px] font-medium ${dueInfo.isOverdue ? 'text-rose-500' : 'text-muted-foreground'}`}
+        >
+          {dueLabel(dueInfo.daysUntilDue)}
+        </p>
+      )}
     </div>
   );
 });

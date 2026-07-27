@@ -87,17 +87,37 @@ export default function AddAccount() {
   );
   const [color, setColor] = useState(existing?.color ?? accountColors[0]);
   const [creditLimit, setCreditLimit] = useState(existing?.creditLimit?.toString() ?? '0');
+  const [statementCloseDay, setStatementCloseDay] = useState(
+    existing?.statementCloseDay?.toString() ?? '',
+  );
+  const [paymentDueDays, setPaymentDueDays] = useState(
+    existing?.paymentDueDays?.toString() ?? '',
+  );
+  const [minimumDuePercent, setMinimumDuePercent] = useState(
+    existing?.minimumDuePercent?.toString() ?? '',
+  );
 
   const handleSubmit = () => {
     if (!name.trim()) return;
 
+    const isCredit = type === 'credit';
     const data = {
       name: name.trim(),
       type,
-      balance: type === 'credit' ? -(parseFloat(due) || 0) : parseFloat(balance) || 0,
+      balance: isCredit ? -(parseFloat(due) || 0) : parseFloat(balance) || 0,
       color,
       icon: existing?.icon ?? accountTypes.find((t) => t.value === type)?.icon ?? 'landmark',
-      creditLimit: type === 'credit' ? parseFloat(creditLimit) || undefined : undefined,
+      creditLimit: isCredit ? parseFloat(creditLimit) || undefined : undefined,
+      statementCloseDay:
+        isCredit && statementCloseDay.trim()
+          ? Math.min(28, Math.max(1, parseInt(statementCloseDay, 10)))
+          : undefined,
+      paymentDueDays:
+        isCredit && paymentDueDays.trim() ? Math.max(0, parseInt(paymentDueDays, 10)) : undefined,
+      minimumDuePercent:
+        isCredit && minimumDuePercent.trim()
+          ? Math.max(0, parseFloat(minimumDuePercent))
+          : undefined,
     };
 
     if (existing) {
@@ -218,6 +238,76 @@ export default function AddAccount() {
               Credit Limit
             </Label>
             <NumberPad value={creditLimit} onChange={setCreditLimit} />
+          </div>
+        )}
+
+        {/* Statement cycle — optional, unlocks the Dashboard payment-due card */}
+        {type === 'credit' && (
+          <div>
+            <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+              Statement Cycle (optional)
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label
+                  htmlFor="statementCloseDay"
+                  className="text-muted-foreground mb-1 block text-[10px]"
+                >
+                  Closes on
+                </Label>
+                <Input
+                  id="statementCloseDay"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={28}
+                  placeholder="e.g. 5"
+                  value={statementCloseDay}
+                  onChange={(e) => setStatementCloseDay(e.target.value)}
+                  className="bg-card h-auto rounded-xl px-3 py-2.5"
+                />
+              </div>
+              <div>
+                <Label
+                  htmlFor="paymentDueDays"
+                  className="text-muted-foreground mb-1 block text-[10px]"
+                >
+                  Due after (days)
+                </Label>
+                <Input
+                  id="paymentDueDays"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  placeholder="e.g. 20"
+                  value={paymentDueDays}
+                  onChange={(e) => setPaymentDueDays(e.target.value)}
+                  className="bg-card h-auto rounded-xl px-3 py-2.5"
+                />
+              </div>
+              <div>
+                <Label
+                  htmlFor="minimumDuePercent"
+                  className="text-muted-foreground mb-1 block text-[10px]"
+                >
+                  Min due %
+                </Label>
+                <Input
+                  id="minimumDuePercent"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={100}
+                  placeholder="5"
+                  value={minimumDuePercent}
+                  onChange={(e) => setMinimumDuePercent(e.target.value)}
+                  className="bg-card h-auto rounded-xl px-3 py-2.5"
+                />
+              </div>
+            </div>
+            <p className="text-muted-foreground mt-1.5 text-[10px]">
+              Set a close day and due offset to see a "payment due" reminder on the Dashboard.
+            </p>
           </div>
         )}
 

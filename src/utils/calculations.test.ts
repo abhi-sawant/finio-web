@@ -4,11 +4,28 @@ import {
   budgetScopeKey,
   computeBudgetHistory,
   computeBudgetStatuses,
+  getCreditCardDueInfo,
+  getCreditUtilization,
   getCurrentMonthTransactions,
   getDashboardStats,
   transactionMatchesQuery,
 } from './calculations';
 import type { Account, Budget, Category, Label, Transaction } from '@/types';
+
+function creditAccount(partial: Partial<Account> = {}): Account {
+  return {
+    id: 'acc-credit',
+    name: 'Visa',
+    type: 'credit',
+    color: '#000',
+    icon: 'credit-card',
+    balance: -1000,
+    openingBalance: 0,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    creditLimit: 10000,
+    ...partial,
+  };
+}
 
 function tx(partial: Partial<Transaction> & Pick<Transaction, 'type' | 'amount'>): Transaction {
   return {
@@ -394,5 +411,80 @@ describe('getCurrentMonthTransactions', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('getCreditUtilization', () => {
+  it('is zero for a non-credit account', () => {
+    expect(getCreditUtilization(creditAccount({ type: 'savings' }))).toBe(0);
+  });
+
+  it('is zero for a credit account with no limit set', () => {
+    expect(getCreditUtilization(creditAccount({ creditLimit: undefined }))).toBe(0);
+  });
+
+  it('is the outstanding balance over the limit', () => {
+    expect(getCreditUtilization(creditAccount({ balance: -2500, creditLimit: 10000 }))).toBe(0.25);
+  });
+
+  it('ignores a positive (in-credit) balance', () => {
+    expect(getCreditUtilization(creditAccount({ balance: 500 }))).toBe(0);
+  });
+});
+
+describe('getCreditCardDueInfo', () => {
+  it('is null for a non-credit account', () => {
+    expect(getCreditCardDueInfo(creditAccount({ type: 'checking' }))).toBeNull();
+  });
+
+  it('is null without a statement cycle configured', () => {
+    expect(getCreditCardDueInfo(creditAccount())).toBeNull();
+  });
+
+  it('is null for an archived account', () => {
+    const account = creditAccount({
+      statementCloseDay: 5,
+      paymentDueDays: 20,
+      archivedAt: '2026-06-01T00:00:00.000Z',
+    });
+    expect(getCreditCardDueInfo(account)).toBeNull();
+  });
+
+  it('is null when nothing is outstanding', () => {
+    const account = creditAccount({ balance: 0, statementCloseDay: 5, paymentDueDays: 20 });
+    expect(getCreditCardDueInfo(account)).toBeNull();
+  });
+
+  it('anchors to this month\'s close day once it has passed', () => {
+    const account = creditAccount({ balance: -1000, statementCloseDay: 5, paymentDueDays: 20 });
+    const info = getCreditCardDueInfo(account, at(2026, 7, 10));
+    expect(info?.dueDate).toEqual(at(2026, 7, 25, 0));
+    expect(info?.daysUntilDue).toBe(15);
+    expect(info?.isOverdue).toBe(false);
+  });
+
+  it("falls back to last month's close day before this month's has arrived", () => {
+    const account = creditAccount({ balance: -1000, statementCloseDay: 5, paymentDueDays: 20 });
+    const info = getCreditCardDueInfo(account, at(2026, 7, 3));
+    expect(info?.dueDate).toEqual(at(2026, 6, 25, 0));
+    expect(info?.isOverdue).toBe(true);
+    expect(info?.daysUntilDue).toBeLessThan(0);
+  });
+
+  it('defaults the minimum due to 5% of the outstanding balance', () => {
+    const account = creditAccount({ balance: -1000, statementCloseDay: 5, paymentDueDays: 20 });
+    const info = getCreditCardDueInfo(account, at(2026, 7, 10));
+    expect(info?.minimumDue).toBe(50);
+  });
+
+  it('honours a configured minimum due percent', () => {
+    const account = creditAccount({
+      balance: -1000,
+      statementCloseDay: 5,
+      paymentDueDays: 20,
+      minimumDuePercent: 10,
+    });
+    const info = getCreditCardDueInfo(account, at(2026, 7, 10));
+    expect(info?.minimumDue).toBe(100);
   });
 });

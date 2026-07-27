@@ -123,9 +123,18 @@ These are defects in a money app — they should land before any new feature wor
   sits on it, so editing history can't silently reassign it. The Accounts page shows archived
   accounts in a collapsed section with restore and permanent-delete, and the delete dialog now
   names the transaction count and points at archiving instead.
-- [ ] **[M] Credit card lifecycle.** `creditLimit` is stored and barely used. Add statement close
-  day, due date, minimum due, utilization %, and a "payment due in N days" Dashboard card. Credit
-  is one of six account types and gets the least support.
+- [x] **[M] Credit card lifecycle.** Fixed: `Account` gained `statementCloseDay`, `paymentDueDays`
+  and `minimumDuePercent` (all optional — existing credit accounts are unaffected until
+  configured). [`src/utils/calculations.ts`](src/utils/calculations.ts) gained
+  `getCreditUtilization` (shared by both `AccountCard` variants, replacing the old inline
+  calculation) and `getCreditCardDueInfo`, which anchors to the most recently passed statement
+  close day, projects the due date `paymentDueDays` later, and reports the minimum due as a
+  percent of the current outstanding balance (there's no per-statement snapshot, so "outstanding"
+  is always today's balance). The Dashboard gained a "Card Payments Due" card mirroring the
+  Upcoming Bills pattern — shown whenever a configured due date is within 7 days or overdue — and
+  both `AccountCard` variants show a due-date line (red once overdue). `AddAccount`/edit gained a
+  "Statement Cycle (optional)" section with close day, due-after-days and minimum-due-percent
+  inputs, shown only for credit accounts.
 - [x] **[S] Native `confirm()` everywhere.** Fixed: all 11 call sites now go through a
   promise-based `useConfirm()` backed by a single shadcn `AlertDialog`
   ([`src/components/ui/confirm.tsx`](src/components/ui/confirm.tsx)), so `await confirm({...})`

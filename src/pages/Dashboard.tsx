@@ -13,6 +13,7 @@ import {
   Target,
   AlertTriangle,
   Repeat,
+  CreditCard,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency, formatPercentChange } from '@/utils/formatters';
@@ -22,6 +23,7 @@ import {
   getTotalExpenses,
   getTotalAccountBalance,
   getTotalCreditOutstanding,
+  getCreditCardDueInfo,
   getCurrentMonthTransactions,
   getPreviousMonthTransactions,
   getDashboardStats,
@@ -103,6 +105,15 @@ export default function Dashboard() {
       .filter(({ daysUntil }) => daysUntil >= 0 && daysUntil <= 7)
       .sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime());
   }, [recurring]);
+  const creditDues = useMemo(() => {
+    return openAccounts
+      .filter((a) => a.type === 'credit')
+      .flatMap((account) => {
+        const dueInfo = getCreditCardDueInfo(account);
+        return dueInfo && dueInfo.daysUntilDue <= 7 ? [{ account, dueInfo }] : [];
+      })
+      .sort((a, b) => a.dueInfo.daysUntilDue - b.dueInfo.daysUntilDue);
+  }, [openAccounts]);
 
   return (
     <>
@@ -299,6 +310,58 @@ export default function Dashboard() {
                       : 'var(--grad-primary)',
                 }}
               />
+            </div>
+          </button>
+        )}
+
+        {/* Credit card payments — shown when a configured due date falls within 7 days, or is overdue */}
+        {creditDues.length > 0 && (
+          <button
+            onClick={() => navigate('/accounts')}
+            className="card-elevated w-full rounded-2xl p-4 text-left"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-500/15">
+                <CreditCard size={13} className="text-rose-500" />
+              </div>
+              <span className="text-sm font-semibold">Card Payments Due</span>
+              <span className="ml-auto rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-medium text-rose-500">
+                this week
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {creditDues.map(({ account, dueInfo }) => {
+                const label = dueInfo.isOverdue
+                  ? `Overdue by ${Math.abs(dueInfo.daysUntilDue)} day${Math.abs(dueInfo.daysUntilDue) === 1 ? '' : 's'}`
+                  : dueInfo.daysUntilDue === 0
+                    ? 'Due today'
+                    : dueInfo.daysUntilDue === 1
+                      ? 'Due tomorrow'
+                      : `Due in ${dueInfo.daysUntilDue} days`;
+                return (
+                  <div key={account.id} className="flex items-center gap-3">
+                    <div
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                      style={{
+                        backgroundImage: `linear-gradient(135deg, ${account.color}, ${account.color}cc)`,
+                      }}
+                    >
+                      <CreditCard size={14} color="white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium">{account.name}</p>
+                      <p
+                        className={`text-[10px] ${dueInfo.isOverdue ? 'text-rose-500' : 'text-muted-foreground'}`}
+                      >
+                        {label}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-xs font-semibold text-rose-500">
+                      Min {formatCurrency(dueInfo.minimumDue, true)}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </button>
         )}

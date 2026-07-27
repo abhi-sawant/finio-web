@@ -21,6 +21,15 @@ export interface Account {
   createdAt: string;
   creditLimit?: number;
   /**
+   * Day of the month (1–28) a credit account's statement closes. Absent means the lifecycle
+   * fields below are unset and no due-date tracking applies to this account.
+   */
+  statementCloseDay?: number;
+  /** Days after `statementCloseDay` that payment is due. Only meaningful alongside it. */
+  paymentDueDays?: number;
+  /** Minimum payment as a percent (0–100) of the outstanding balance at statement close. */
+  minimumDuePercent?: number;
+  /**
    * ISO timestamp of when the account was closed, or absent while it is open. Archiving keeps
    * every transaction — it only removes the account from pickers and running totals.
    */
