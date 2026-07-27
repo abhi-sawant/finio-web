@@ -134,6 +134,33 @@ export interface Settings {
   hideAmounts: boolean;
 }
 
+export interface Goal {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  targetAmount: number;
+  /** ISO date. Absent means there's no deadline. */
+  targetDate?: string;
+  /**
+   * Informational only — e.g. "this lives in my HDFC savings account". Progress is tracked
+   * by `GoalContribution` entries, not by the account's balance or transactions.
+   */
+  linkedAccountId?: string;
+  createdAt: string;
+}
+
+/** A manual log entry against a goal — the goal's own ledger, independent of transactions. */
+export interface GoalContribution {
+  id: string;
+  goalId: string;
+  /** Positive = contribution, negative = withdrawal. */
+  amount: number;
+  date: string;
+  note: string;
+  createdAt: string;
+}
+
 /** A saved shape for quickly re-adding a common transaction — everything but the date. */
 export interface TransactionTemplate {
   id: string;
@@ -157,6 +184,8 @@ export interface ImportPayload {
   budgets?: Budget[];
   recurring?: RecurringTransaction[];
   templates?: TransactionTemplate[];
+  goals?: Goal[];
+  goalContributions?: GoalContribution[];
   settings?: Settings;
 }
 
@@ -170,6 +199,8 @@ export interface FinanceStore {
   budgets: Budget[];
   recurring: RecurringTransaction[];
   templates: TransactionTemplate[];
+  goals: Goal[];
+  goalContributions: GoalContribution[];
   settings: Settings;
   isHydrated: boolean;
   /** ISO date (YYYY-MM-DD) of the last automatic local backup download, or null. */
@@ -211,6 +242,17 @@ export interface FinanceStore {
   /** Save a transaction's shape (everything but date) as a reusable template. */
   addTemplate: (template: Omit<TransactionTemplate, 'id' | 'createdAt'>) => string;
   deleteTemplate: (id: string) => void;
+
+  addGoal: (goal: Omit<Goal, 'id' | 'createdAt'>) => string;
+  updateGoal: (id: string, updates: Partial<Omit<Goal, 'id'>>) => void;
+  /** Removes the goal and every contribution logged against it. */
+  deleteGoal: (id: string) => void;
+
+  addContribution: (contribution: Omit<GoalContribution, 'id' | 'createdAt'>) => string;
+  /** Removes the contribution. Returns the removed row so callers can undo. */
+  deleteContribution: (id: string) => GoalContribution | null;
+  /** Re-insert a previously deleted contribution verbatim — same id, no double-undo. */
+  restoreContribution: (contribution: GoalContribution) => void;
 
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Omit<Category, 'id'>>) => void;

@@ -354,6 +354,142 @@ describe('addTemplate / deleteTemplate', () => {
   });
 });
 
+describe('addGoal / updateGoal / deleteGoal', () => {
+  it('creates a goal and returns its id', () => {
+    const id = useFinanceStore.getState().addGoal({
+      name: 'Emergency Fund',
+      icon: 'target',
+      color: '#6C63FF',
+      targetAmount: 10000,
+    });
+
+    const [created] = useFinanceStore.getState().goals;
+    expect(created.id).toBe(id);
+    expect(created.name).toBe('Emergency Fund');
+    expect(created.createdAt).toEqual(expect.any(String));
+  });
+
+  it('updates only the given fields', () => {
+    const id = useFinanceStore.getState().addGoal({
+      name: 'Emergency Fund',
+      icon: 'target',
+      color: '#6C63FF',
+      targetAmount: 10000,
+    });
+
+    useFinanceStore.getState().updateGoal(id, { targetAmount: 15000 });
+    const [updated] = useFinanceStore.getState().goals;
+    expect(updated.targetAmount).toBe(15000);
+    expect(updated.name).toBe('Emergency Fund');
+  });
+
+  it('deleting a goal removes every contribution logged against it, not other goals', () => {
+    const id = useFinanceStore.getState().addGoal({
+      name: 'Emergency Fund',
+      icon: 'target',
+      color: '#6C63FF',
+      targetAmount: 10000,
+    });
+    const otherId = useFinanceStore.getState().addGoal({
+      name: 'Vacation',
+      icon: 'plane',
+      color: '#f59e0b',
+      targetAmount: 5000,
+    });
+    useFinanceStore.getState().addContribution({ goalId: id, amount: 1000, date: '', note: '' });
+    useFinanceStore
+      .getState()
+      .addContribution({ goalId: otherId, amount: 500, date: '', note: '' });
+
+    useFinanceStore.getState().deleteGoal(id);
+
+    const state = useFinanceStore.getState();
+    expect(state.goals.map((g) => g.id)).toEqual([otherId]);
+    expect(state.goalContributions.map((c) => c.goalId)).toEqual([otherId]);
+  });
+
+  it('is cleared by resetToDefaults, same as every other finance collection', () => {
+    const id = useFinanceStore.getState().addGoal({
+      name: 'Emergency Fund',
+      icon: 'target',
+      color: '#6C63FF',
+      targetAmount: 10000,
+    });
+    useFinanceStore.getState().addContribution({ goalId: id, amount: 1000, date: '', note: '' });
+
+    useFinanceStore.getState().resetToDefaults();
+    expect(useFinanceStore.getState().goals).toEqual([]);
+    expect(useFinanceStore.getState().goalContributions).toEqual([]);
+  });
+});
+
+describe('addContribution / deleteContribution / restoreContribution', () => {
+  it('adds a contribution and returns its id', () => {
+    const id = useFinanceStore
+      .getState()
+      .addContribution({ goalId: 'goal-1', amount: 500, date: '2026-01-05', note: 'Bonus' });
+
+    const [created] = useFinanceStore.getState().goalContributions;
+    expect(created.id).toBe(id);
+    expect(created.amount).toBe(500);
+    expect(created.createdAt).toEqual(expect.any(String));
+  });
+
+  it('deletes a contribution and returns the removed row for undo', () => {
+    const id = useFinanceStore
+      .getState()
+      .addContribution({ goalId: 'goal-1', amount: 500, date: '2026-01-05', note: '' });
+
+    const removed = useFinanceStore.getState().deleteContribution(id);
+    expect(removed?.id).toBe(id);
+    expect(useFinanceStore.getState().goalContributions).toEqual([]);
+  });
+
+  it('returns null when deleting a contribution that no longer exists', () => {
+    expect(useFinanceStore.getState().deleteContribution('missing')).toBeNull();
+  });
+
+  it('restoreContribution re-inserts the exact row deleted, verbatim', () => {
+    const id = useFinanceStore
+      .getState()
+      .addContribution({ goalId: 'goal-1', amount: 500, date: '2026-01-05', note: 'Bonus' });
+    const removed = useFinanceStore.getState().deleteContribution(id)!;
+
+    useFinanceStore.getState().restoreContribution(removed);
+    expect(useFinanceStore.getState().goalContributions).toEqual([removed]);
+  });
+
+  it('guards against a double undo re-inserting the same contribution twice', () => {
+    const id = useFinanceStore
+      .getState()
+      .addContribution({ goalId: 'goal-1', amount: 500, date: '2026-01-05', note: '' });
+    const removed = useFinanceStore.getState().deleteContribution(id)!;
+
+    useFinanceStore.getState().restoreContribution(removed);
+    useFinanceStore.getState().restoreContribution(removed);
+    expect(useFinanceStore.getState().goalContributions).toHaveLength(1);
+  });
+});
+
+describe('deleteAccount clears dangling goal links', () => {
+  it('drops linkedAccountId from a goal pointing at the deleted account, without deleting the goal', () => {
+    seed([account('a', 1000)]);
+    const id = useFinanceStore.getState().addGoal({
+      name: 'Emergency Fund',
+      icon: 'target',
+      color: '#6C63FF',
+      targetAmount: 10000,
+      linkedAccountId: 'a',
+    });
+
+    useFinanceStore.getState().deleteAccount('a');
+
+    const [goal] = useFinanceStore.getState().goals;
+    expect(goal.id).toBe(id);
+    expect(goal.linkedAccountId).toBeUndefined();
+  });
+});
+
 describe('importData', () => {
   const payload: ImportPayload = {
     accounts: [account('imported', 0, 1000)],
@@ -410,6 +546,45 @@ describe('importData', () => {
     useFinanceStore.getState().importData({ transactions: [] }, { mode: 'replace' });
     expect(useFinanceStore.getState().categories).toBe(before);
     expect(useFinanceStore.getState().accounts.map((a) => a.id)).toEqual(['local']);
+  });
+
+  it('merges goals and contributions by id, same as every other collection', () => {
+    const localId = useFinanceStore.getState().addGoal({
+      name: 'Local Goal',
+      icon: 'target',
+      color: '#6C63FF',
+      targetAmount: 1000,
+    });
+
+    useFinanceStore.getState().importData(
+      {
+        goals: [
+          {
+            id: 'imported-goal',
+            name: 'Imported Goal',
+            icon: 'plane',
+            color: '#f59e0b',
+            targetAmount: 5000,
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        goalContributions: [
+          {
+            id: 'imported-contrib',
+            goalId: 'imported-goal',
+            amount: 1000,
+            date: '2026-01-02T00:00:00.000Z',
+            note: '',
+            createdAt: '2026-01-02T00:00:00.000Z',
+          },
+        ],
+      },
+      { mode: 'merge' },
+    );
+
+    const state = useFinanceStore.getState();
+    expect(state.goals.map((g) => g.id).sort()).toEqual([localId, 'imported-goal'].sort());
+    expect(state.goalContributions.map((c) => c.id)).toEqual(['imported-contrib']);
   });
 });
 
@@ -571,6 +746,34 @@ describe('v5 migration', () => {
     expect(accounts.map((a) => a.openingBalance)).toEqual([1200, 1000]);
     // Reconciling straight after a migration must be a no-op.
     expect(useFinanceStore.getState().recomputeBalances().changed).toBe(0);
+  });
+});
+
+describe('v9 migration', () => {
+  it('seeds empty goals and goalContributions arrays for pre-v9 state', async () => {
+    backing.set(
+      'finio-storage',
+      JSON.stringify({
+        version: 8,
+        state: {
+          accounts: [account('a', 100)],
+          transactions: [],
+          settings: {
+            theme: 'dark',
+            userName: 'Alex',
+            autoLocalBackup: false,
+            monthStartDay: 1,
+            hideAmounts: false,
+          },
+        },
+      }),
+    );
+
+    await useFinanceStore.persist.rehydrate();
+    const state = useFinanceStore.getState();
+
+    expect(state.goals).toEqual([]);
+    expect(state.goalContributions).toEqual([]);
   });
 });
 

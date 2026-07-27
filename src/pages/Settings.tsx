@@ -16,6 +16,7 @@ import {
   CloudUpload,
   Target,
   Repeat,
+  PiggyBank,
   HardDrive,
   Scale,
   AlertTriangle,
@@ -152,6 +153,9 @@ export default function Settings() {
         labels: state.labels,
         budgets: state.budgets,
         recurring: state.recurring,
+        templates: state.templates,
+        goals: state.goals,
+        goalContributions: state.goalContributions,
         settings: state.settings,
       };
       const filename = `finio-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -224,7 +228,7 @@ export default function Settings() {
     const confirmed = await confirm({
       title: 'Reset all data?',
       description:
-        'Accounts, transactions, budgets and recurring rules will be erased and categories restored to defaults. This cannot be undone.',
+        'Accounts, transactions, budgets, recurring rules and savings goals will be erased and categories restored to defaults. This cannot be undone.',
       confirmLabel: 'Reset everything',
     });
     if (confirmed) {
@@ -608,6 +612,16 @@ export default function Settings() {
             <div className="flex items-center gap-3">
               <Repeat size={18} className="text-muted-foreground" />
               <span className="text-sm font-medium">Recurring Transactions</span>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => navigate('/goals')}
+            className="flex w-full items-center justify-between p-4"
+          >
+            <div className="flex items-center gap-3">
+              <PiggyBank size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">Savings Goals</span>
             </div>
             <ChevronRight size={16} className="text-muted-foreground" />
           </button>

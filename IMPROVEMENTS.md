@@ -175,9 +175,18 @@ All of these endpoints are implemented in PHP and wired up in
 
 ### Flagship candidates
 
-- [ ] **[M] Savings goals.** The one big missing entity. `Goal { name, targetAmount, targetDate,
-  linkedAccountId, contributions }` sits naturally beside `Budget` and reuses the progress-bar UI
-  from the Budgets page. Gives the Dashboard something to track besides spending.
+- [x] **[M] Savings goals.** Fixed: `Goal { name, icon, color, targetAmount, targetDate?,
+  linkedAccountId? }` sits beside `Budget`, and `GoalContribution` is the goal's own manual
+  ledger (add/withdraw), independent of accounts and transactions — so it can't corrupt real
+  balances. [`src/utils/calculations.ts`](src/utils/calculations.ts) gained `computeGoalStatus`
+  (current/remaining/percent, plus a projected completion date paced by the average daily
+  contribution since creation). The [Goals page](src/pages/Goals.tsx) reuses the Budgets page's
+  progress-bar card pattern, with expandable contribution history (delete + undo). The Dashboard
+  gained a "Savings Goals" card for in-progress goals, mirroring the Upcoming Bills pattern.
+  Deleting an account clears `linkedAccountId` from any goal pointing at it rather than orphaning
+  the reference. Backup export/import (local, cloud, and validation) all carry goals and
+  contributions — this also fixed a pre-existing gap where `templates` wasn't included in either
+  backup payload.
 - [ ] **[M] Debt / lending tracker.** The default labels already ship `Lending`, `Obligation`, and
   `For Others` — that's a workaround for a missing feature. A "who owes me / who I owe" ledger with
   per-person balances and a settle-up action that generates the transfer.
