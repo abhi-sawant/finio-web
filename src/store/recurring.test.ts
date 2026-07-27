@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   MAX_OCCURRENCES_PER_RULE,
+  futureOccurrences,
   isRuleFinished,
   lastOccurrenceOnOrBefore,
   nextDueDate,
@@ -217,5 +218,51 @@ describe('previewBackfill', () => {
     );
     expect(preview.count).toBe(MAX_OCCURRENCES_PER_RULE);
     expect(preview.capped).toBe(true);
+  });
+});
+
+describe('futureOccurrences', () => {
+  const horizon = new Date('2026-09-15T12:00:00.000Z');
+
+  it('lists only the dates still ahead, never the overdue backlog', () => {
+    // Started in January and never run: five occurrences are overdue, and those belong to
+    // `planRecurring`, not to a forecast.
+    const dates = futureOccurrences(rule({ id: 'r1' }), NOW, horizon);
+    expect(dates.map((d) => d.toISOString())).toEqual([
+      '2026-07-10T00:00:00.000Z',
+      '2026-08-10T00:00:00.000Z',
+      '2026-09-10T00:00:00.000Z',
+    ]);
+  });
+
+  it('yields nothing for a paused rule', () => {
+    expect(
+      futureOccurrences(rule({ id: 'r1', pausedAt: '2026-05-01T00:00:00.000Z' }), NOW, horizon),
+    ).toEqual([]);
+  });
+
+  it('stops at the end date', () => {
+    const dates = futureOccurrences(
+      rule({ id: 'r1', endDate: '2026-08-01T00:00:00.000Z' }),
+      NOW,
+      horizon,
+    );
+    expect(dates.map((d) => d.toISOString())).toEqual(['2026-07-10T00:00:00.000Z']);
+  });
+
+  it('counts the overdue backlog against the remaining occurrence limit', () => {
+    // Ten allowed, six already due by now — only four are left, all of them in the future.
+    const dates = futureOccurrences(
+      rule({ id: 'r1', maxOccurrences: 10 }),
+      NOW,
+      new Date('2027-12-31T00:00:00.000Z'),
+    );
+    expect(dates).toHaveLength(4);
+  });
+
+  it('yields nothing once the rule is finished', () => {
+    expect(
+      futureOccurrences(rule({ id: 'r1', maxOccurrences: 2, occurrenceCount: 2 }), NOW, horizon),
+    ).toEqual([]);
   });
 });

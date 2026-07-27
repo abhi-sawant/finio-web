@@ -17,6 +17,7 @@ import {
 import { planRecurring } from './recurring';
 import { planRuleApplication } from '@/utils/autoCategorize';
 import { budgetScopeKey } from '@/utils/calculations';
+import { planNetWorthSnapshots } from '@/utils/netWorth';
 import { normalizeMonthStartDay } from '@/utils/period';
 import type {
   Account,
@@ -29,6 +30,7 @@ import type {
   GoalContribution,
   ImportedAccount,
   Label,
+  NetWorthSnapshot,
   Person,
   RecurringTransaction,
   Settings,
@@ -99,6 +101,22 @@ function mergeById<T extends { id: string }>(existing: T[], incoming: T[] | unde
   return Array.from(byId.values());
 }
 
+/**
+ * One snapshot per financial month. Merging two devices' backups can bring in a second
+ * snapshot for a month that already has one; the later capture wins, since it was taken with
+ * more of that month's transactions actually recorded.
+ */
+function dedupeSnapshotsByPeriod(snapshots: NetWorthSnapshot[]): NetWorthSnapshot[] {
+  const byPeriod = new Map<string, NetWorthSnapshot>();
+  for (const snapshot of snapshots) {
+    const existing = byPeriod.get(snapshot.periodKey);
+    if (!existing || snapshot.createdAt > existing.createdAt) {
+      byPeriod.set(snapshot.periodKey, snapshot);
+    }
+  }
+  return Array.from(byPeriod.values()).sort((a, b) => a.periodKey.localeCompare(b.periodKey));
+}
+
 const defaultState = {
   accounts: [] as Account[],
   transactions: [] as Transaction[],
@@ -112,6 +130,7 @@ const defaultState = {
   goalContributions: [] as GoalContribution[],
   people: [] as Person[],
   debtEntries: [] as DebtEntry[],
+  netWorthSnapshots: [] as NetWorthSnapshot[],
   settings: defaultSettings,
   isHydrated: false,
   lastLocalBackupAt: null as string | null,
@@ -671,6 +690,28 @@ export const useFinanceStore = create<FinanceStore>()(
         }));
       },
 
+      captureNetWorthSnapshots: () => {
+        const state = get();
+        const planned = planNetWorthSnapshots({
+          accounts: state.accounts,
+          transactions: state.transactions,
+          snapshots: state.netWorthSnapshots,
+          monthStartDay: normalizeMonthStartDay(state.settings.monthStartDay),
+        });
+        if (planned.length === 0) return 0;
+
+        const createdAt = new Date().toISOString();
+        const snapshots: NetWorthSnapshot[] = planned.map((snapshot) => ({
+          ...snapshot,
+          id: generateUUID(),
+          createdAt,
+        }));
+        set((s) => ({
+          netWorthSnapshots: dedupeSnapshotsByPeriod([...s.netWorthSnapshots, ...snapshots]),
+        }));
+        return snapshots.length;
+      },
+
       addDebtEntry: (entryData) => {
         const entry: DebtEntry = {
           ...entryData,
@@ -720,6 +761,7 @@ export const useFinanceStore = create<FinanceStore>()(
           goalContributions: [],
           people: [],
           debtEntries: [],
+          netWorthSnapshots: [],
         });
       },
 
@@ -744,6 +786,7 @@ export const useFinanceStore = create<FinanceStore>()(
                   goalContributions: mergeById(state.goalContributions, data.goalContributions),
                   people: mergeById(state.people, data.people),
                   debtEntries: mergeById(state.debtEntries, data.debtEntries),
+                  netWorthSnapshots: mergeById(state.netWorthSnapshots, data.netWorthSnapshots),
                 }
               : {
                   accounts: (incomingAccounts ?? state.accounts) as ImportedAccount[],
@@ -758,10 +801,14 @@ export const useFinanceStore = create<FinanceStore>()(
                   goalContributions: data.goalContributions ?? state.goalContributions,
                   people: data.people ?? state.people,
                   debtEntries: data.debtEntries ?? state.debtEntries,
+                  netWorthSnapshots: data.netWorthSnapshots ?? state.netWorthSnapshots,
                 };
 
           return {
             ...next,
+            // Ids are unique but period keys are the real identity — a merge of two devices'
+            // backups can otherwise leave two competing snapshots for the same month.
+            netWorthSnapshots: dedupeSnapshotsByPeriod(next.netWorthSnapshots),
             // Imported accounts may predate `openingBalance`, or carry a `balance` that no
             // longer matches the transaction set they arrived with. Derive what is missing,
             // then rebuild every balance from it.
@@ -778,7 +825,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 11,
+      version: 12,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -912,6 +959,16 @@ export const useFinanceStore = create<FinanceStore>()(
           };
         }
 
+        if (version < 12) {
+          // Net-worth snapshots are new. Nothing is backfilled here: the first app start after
+          // the upgrade calls `captureNetWorthSnapshots`, which reconstructs the recent months
+          // from the transactions that are already stored.
+          s = {
+            ...s,
+            netWorthSnapshots: Array.isArray(s.netWorthSnapshots) ? s.netWorthSnapshots : [],
+          };
+        }
+
         return s as FinanceStore;
       },
       onRehydrateStorage: () => (state) => {
@@ -936,4 +993,5 @@ export const useGoals = () => useFinanceStore((s) => s.goals);
 export const useGoalContributions = () => useFinanceStore((s) => s.goalContributions);
 export const usePeople = () => useFinanceStore((s) => s.people);
 export const useDebtEntries = () => useFinanceStore((s) => s.debtEntries);
+export const useNetWorthSnapshots = () => useFinanceStore((s) => s.netWorthSnapshots);
 export const useSettings = () => useFinanceStore((s) => s.settings);

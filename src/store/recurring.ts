@@ -80,6 +80,43 @@ export function lastOccurrenceOnOrBefore(
   return last;
 }
 
+/**
+ * Every date this rule will fire strictly after `from` and no later than `to` — the
+ * forward-looking counterpart to `planRecurring`, which looks backwards and actually generates.
+ *
+ * Nothing here is created or persisted; it is a projection. A paused rule yields nothing (it
+ * won't fire while paused, so a forecast must not assume it will), and `endDate` /
+ * `maxOccurrences` bound the walk exactly as they bound generation. Occurrences already due but
+ * not yet generated are consumed against the rule's remaining allowance without being returned,
+ * since `processRecurring` will have turned them into real transactions before any forecast is
+ * drawn.
+ */
+export function futureOccurrences(
+  rule: RecurringTransaction,
+  from: Date,
+  to: Date,
+  cap = MAX_OCCURRENCES_PER_RULE,
+): Date[] {
+  if (isRulePaused(rule)) return [];
+
+  const end = parseDate(rule.endDate);
+  const dates: Date[] = [];
+  let remaining = remainingOccurrences(rule);
+  let cursor = nextDueDate(rule);
+
+  for (let step = 0; step < MAX_SCAN_STEPS; step += 1) {
+    if (!cursor || remaining <= 0 || dates.length >= cap) break;
+    if (isAfter(cursor, to)) break;
+    if (end && isAfter(cursor, end)) break;
+
+    remaining -= 1;
+    if (isAfter(cursor, from)) dates.push(cursor);
+    cursor = nextOccurrence(cursor, rule.frequency);
+  }
+
+  return dates;
+}
+
 export interface PlannedOccurrence {
   rule: RecurringTransaction;
   date: Date;

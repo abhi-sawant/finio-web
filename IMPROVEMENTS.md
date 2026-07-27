@@ -272,15 +272,51 @@ All of these endpoints are implemented in PHP and wired up in
 
 ### Analytics depth
 
-- [ ] **[M] Cash-flow forecast.** Project balances forward from recurring rules plus category
-  averages. All the inputs exist; nothing currently looks further ahead than the 7-day bill list.
-- [ ] **[M] Net worth over time.** Monthly snapshots so the trend survives history edits.
-- [ ] **[S] Spending calendar heatmap.** A month grid with intensity by daily spend. Cheap and very
-  readable.
-- [ ] **[M] Insights feed.** "Food is 40% above your 3-month average." "Three ₹499 charges from
-  'Spotify' — create a recurring rule?" Subscription detection that offers to create the rule is a
-  delightful loop given the recurring engine already exists.
-- [ ] **[S] Compare periods.** This month vs last vs same month last year, side by side.
+- [x] **[M] Cash-flow forecast.** Fixed: [`src/utils/forecast.ts`](src/utils/forecast.ts) projects
+  *liquid* cash (open, non-credit accounts) forward day by day from two inputs — future recurring
+  occurrences via a new `futureOccurrences()` in [`src/store/recurring.ts`](src/store/recurring.ts)
+  (the forward-looking counterpart to `planRecurring`, which honours pause / `endDate` /
+  `maxOccurrences` and never returns the overdue backlog), plus `categoryDailyAverages()` for
+  everyday spend. The two halves can't double-count: the average excludes rows carrying a
+  `recurringId`, and `liquidDelta()` decides what actually moves cash — card spending is worth zero
+  until the payment transfer happens, and an internal transfer nets out. The average divides by the
+  history that exists rather than the whole 90-day window, so a two-week-old install isn't read as
+  spending a tenth of what it does. The Analytics card charts 30/60/90 days with today's balance,
+  the projected end balance, the low point, the scheduled bills next up, and a warning naming the
+  date the balance would run out.
+- [x] **[M] Net worth over time.** Fixed: `NetWorthSnapshot { periodKey, date, assets, liabilities }`
+  is a new store collection (persisted-schema v12, seeded empty). Balances here are derived, so any
+  past value can be reconstructed by rewinding today's accounts through today's transactions — and
+  that reconstruction silently rewrites itself the moment old history is edited. So
+  [`src/utils/netWorth.ts`](src/utils/netWorth.ts) freezes each financial month as it closes:
+  `planNetWorthSnapshots()` captures only *completed* months, never reaches back past the first
+  transaction, and runs from a `Layout` mount effect after recurring processing.
+  `buildNetWorthSeries()` prefers a snapshot per month and falls back to `netWorthAt()`
+  reconstruction, marking which is which; the current month is always live. Snapshots round-trip
+  through backup export/import and validation (a malformed `periodKey` is rejected outright — a
+  point on the wrong month is worse than a missing one), and `importData` dedupes by period key
+  since ids are unique but the month is the real identity.
+- [x] **[S] Spending calendar heatmap.** Fixed: `buildSpendingCalendar()` in
+  [`src/utils/analytics.ts`](src/utils/analytics.ts) buckets daily expense totals into Monday-first
+  week rows, padding the leading/trailing days so every row is full. Intensity is square-rooted
+  against the heaviest day, so one month-end rent payment doesn't flatten every ordinary day to
+  invisible. The card navigates month by month through history, dims future days, rings today, and
+  reports total / average-per-spending-day / busiest day underneath.
+- [x] **[M] Insights feed.** Fixed: [`src/utils/insights.ts`](src/utils/insights.ts) derives
+  everything on the fly — categories running above (or below) their own 3-month average, budgets
+  over or on pace to go over, an unhealthy or healthy savings rate, and one category dominating the
+  month. Current-month figures are pace-adjusted, or a month that is three days old reads as a
+  collapse in spending. `detectSubscriptions()` groups expenses by a normalized note ("UPI/Spotify/9921"
+  and "Spotify 449" land together), requires three-plus charges at a near-identical amount on a
+  weekly/monthly/yearly cadence, and skips anything an existing recurring rule already covers; the
+  candidate's `nextDate` is always in the future, so accepting the offered rule can't backfill
+  charges already in the ledger. Insight copy carries no money of its own — the caller passes a
+  `formatAmount`, which is how the feed honours the hide-amounts toggle.
+- [x] **[S] Compare periods.** Fixed: `buildPeriodComparison()` lines up this period, the previous
+  one and the same one a year ago (weekly / monthly / yearly, all following `monthStartDay`), with
+  `categoryMovements()` ranking the biggest swings against last period. The in-progress period is
+  labelled as such and shows what it's on pace for, so a half-finished month is never silently
+  compared against whole ones.
 
 ### Platform / PWA
 
@@ -323,12 +359,17 @@ All of these endpoints are implemented in PHP and wired up in
    section 1 is fully checked off, including `openingBalance` + reconcile and the Vitest suite.
 2. ~~**One flagship**: savings goals if the app should feel more complete, or CSV import +
    auto-categorization if new-user onboarding matters more.~~ **Done** — every flagship candidate
-   has landed. Section 3's remaining work is analytics depth, platform/PWA and the strategic
-   encrypted-backup item.
+   has landed.
 3. ~~**Backup history UI** — nearly free, the backend already supports it.~~ **Done.**
 4. ~~**Section 2 quick wins** — search breadth, `AlertDialog` instead of `confirm()`, archive
    accounts.~~ **Done**, plus onboarding.
 5. ~~**Period work** — custom month start day, budget periods/rollover/history, recurring rule
    lifecycle.~~ **Done.** The month start day landed first because budget periods are built on the
-   same `period.ts` engine. What remains in section 2 is the credit card lifecycle and the three
-   backend-backed UIs.
+   same `period.ts` engine. Sections 1 and 2 are now fully checked off.
+6. ~~**Analytics depth** — forecast, net worth over time, heatmap, insights, compare periods.~~
+   **Done.** Nothing in it was blocked: it built on `period.ts`, the recurring engine and the
+   derived-balance model, all of which had already landed. What remains is section 3's platform/PWA
+   group, the strategic encrypted-backup item, and the three accessibility items in section 4 —
+   note that the two new charts (forecast, net worth) ship with `aria-label` summaries and the
+   heatmap labels every cell with its date, so they don't add to the charts-need-text-alternatives
+   debt, but they don't close it either.

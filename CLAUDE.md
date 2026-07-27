@@ -31,7 +31,8 @@ npm run test:watch   # Vitest watch mode
 Tests live next to their subject as `*.test.ts` and cover the pure money logic
 (`src/store/balance.ts`, `src/store/recurring.ts`, `src/utils/calculations.ts`,
 `src/utils/period.ts`, `src/utils/importValidation.ts`, `src/utils/csvImport.ts`,
-`src/utils/autoCategorize.ts`) plus the store itself. Config is in `vitest.config.ts` — separate
+`src/utils/autoCategorize.ts`, `src/utils/analytics.ts`, `src/utils/forecast.ts`,
+`src/utils/netWorth.ts`, `src/utils/insights.ts`) plus the store itself. Config is in `vitest.config.ts` — separate
 from `vite.config.ts` and running in the `node` environment, so no browser plugins are loaded.
 
 ---
@@ -63,6 +64,7 @@ src/
 ├── components/
 │   ├── ui/                   # shadcn/ui primitives (button, input, dialog, calendar, etc.)
 │   ├── charts/               # Recharts wrappers (BalanceTrend, SpendingDonut, etc.)
+│   ├── analytics/            # Analytics-page cards (forecast, net worth, heatmap, insights)
 │   ├── layout/Layout.tsx     # Shell for authenticated pages
 │   ├── ProtectedRoute.tsx    # Auth guard (redirects to /login if no token)
 │   └── ThemeProvider.tsx     # dark/light/system theme context
@@ -81,6 +83,10 @@ src/
 │   ├── importValidation.ts   # Backup shape validation + dry-run report
 │   ├── csvImport.ts          # Bank-statement CSV parsing + column mapping
 │   ├── autoCategorize.ts     # Pure rule engine: note pattern → category + labels
+│   ├── analytics.ts          # Period-over-period comparison + spending calendar grid
+│   ├── forecast.ts           # Liquid cash-flow projection (recurring + category averages)
+│   ├── netWorth.ts           # Net worth series, reconstruction, and monthly snapshots
+│   ├── insights.ts           # Insights feed + subscription detection
 │   └── formatters.ts         # Currency (INR), date, number formatting
 ├── lib/utils.ts              # shadcn cn() helper
 └── data/defaultData.ts       # Default categories, labels, and settings
@@ -90,7 +96,7 @@ src/
 
 Two Zustand stores, both persisted to localStorage:
 
-- **`useFinanceStore`** — accounts, transactions, categories, labels, budgets, recurring rules, settings. Exposes granular selector hooks (`useAccounts()`, `useTransactions()`, etc.) to avoid re-renders. Includes `processRecurring()` for generating due recurring transactions, `importData(payload, { mode })` for merge/replace restore, and `recomputeBalances()` to reconcile drift. Has migration support (currently v11).
+- **`useFinanceStore`** — accounts, transactions, categories, labels, budgets, recurring rules, settings. Exposes granular selector hooks (`useAccounts()`, `useTransactions()`, etc.) to avoid re-renders. Includes `processRecurring()` for generating due recurring transactions, `importData(payload, { mode })` for merge/replace restore, `captureNetWorthSnapshots()` for the monthly net-worth ledger, and `recomputeBalances()` to reconcile drift. Has migration support (currently v12).
 - **`useAuthStore`** — JWT token, user object, `lastBackupAt`. Use `loadAuth()` on app start to hydrate from storage.
 
 ### Routing
@@ -152,6 +158,7 @@ Defined in [src/types/index.ts](src/types/index.ts):
 | `Budget` | id, categoryId ('' = overall budget), labelId?, amount, period, rollover |
 | `RecurringTransaction` | id, type, amount, accountId, toAccountId?, categoryId, frequency, startDate, endDate?, maxOccurrences?, occurrenceCount, pausedAt?, lastRunDate |
 | `CategoryRule` | id, pattern, matchType, scope, categoryId, labelIds[], enabled |
+| `NetWorthSnapshot` | id, periodKey (`yyyy-MM`), date, assets, liabilities |
 | `Settings` | theme, userName, autoLocalBackup, monthStartDay |
 
 Enums: `AccountType`, `TransactionType` (expense/income/transfer), `RecurrenceFrequency` (daily/weekly/monthly/yearly), `BudgetPeriod` (weekly/monthly/yearly), `RuleMatchType` (contains/startsWith/endsWith/equals/regex), `RuleScope` (expense/income/any), `Theme` (dark/light/system).
@@ -219,6 +226,23 @@ All page components are lazy-loaded. This keeps the initial bundle small.
   invalid one matches nothing rather than throwing. On CSV import, a category the file itself
   supplied always outranks a rule.
 - **Recurring processing:** Call `processRecurring()` (from `useFinanceStore`) when the app mounts or resumes from background to generate any overdue recurring transactions. `planRecurring` skips paused rules, stops at `endDate` and `maxOccurrences`, and requires both accounts to exist for a transfer rule. Before saving a rule dated in the past, preview it with `previewBackfill()` — "start from today" is expressed as `lastRunDate = lastOccurrenceOnOrBefore(rule, now)`, which keeps the cadence anchored to `startDate` while skipping the history.
+- **Net worth history is snapshotted, not recomputed:** balances are derived, so every past
+  net-worth value is only as stable as the transaction list behind it — deleting an old row rewrites
+  the whole reconstructed trend. `captureNetWorthSnapshots()` (called from `Layout` on hydration,
+  after `processRecurring`) freezes each financial month as it closes, and
+  [`src/utils/netWorth.ts`](src/utils/netWorth.ts) prefers a snapshot over reconstruction for any
+  closed month. Only *completed* months are ever captured, the month in progress is always live, and
+  `periodKey` — not `id` — is a snapshot's real identity, which is why `importData` dedupes on it.
+- **The forecast models liquid cash only:** [`src/utils/forecast.ts`](src/utils/forecast.ts) projects
+  open, non-credit accounts. Card spending contributes nothing until the payment transfer leaves an
+  account, and an internal transfer nets to zero — `liquidDelta()` is the single place that rule
+  lives. Anything counted in the recurring projection must stay out of the category-average estimate
+  (that is what the `recurringId` filter is for), or every subscription is billed twice.
+- **Insight copy never formats money itself:** `buildInsights()` takes a `formatAmount` callback so
+  the feed honours `Settings.hideAmounts`. Comparisons against the current month are always
+  pace-adjusted via `paceToFullPeriod`, or a month three days old reads as a spending collapse.
+  A subscription candidate's `nextDate` is guaranteed to be in the future, so accepting the offered
+  recurring rule can never backfill charges that are already in the ledger.
 - **Auth state:** Always call `useAuthStore.getState().loadAuth()` (or rely on Zustand hydration) before making authenticated API calls.
 - **Tailwind v4:** There is no `tailwind.config.js`. All customizations go in CSS files using `@theme`, `@layer`, etc.
 

@@ -493,4 +493,37 @@ describe('validateBackup', () => {
     });
     expect(report.warnings.some((w) => /person that is not in this file/.test(w))).toBe(true);
   });
+  it('keeps well-formed net worth snapshots and drops ones with an unusable period key', () => {
+    const { data, report } = validateBackup({
+      netWorthSnapshots: [
+        {
+          id: 'snap-1',
+          periodKey: '2026-04',
+          date: '2026-04-30T23:59:59.999Z',
+          assets: 12000,
+          liabilities: 2000,
+          createdAt: '2026-05-01T00:00:00.000Z',
+        },
+        // A snapshot on the wrong month is worse than a missing one — the trend line would lie.
+        {
+          id: 'snap-2',
+          periodKey: 'April 2026',
+          date: '2026-04-30T23:59:59.999Z',
+          assets: 1,
+          liabilities: 0,
+          createdAt: '2026-05-01T00:00:00.000Z',
+        },
+        { id: 'snap-3', periodKey: '2026-05', date: 'not a date', assets: 1, liabilities: 0 },
+      ],
+    });
+
+    expect(data.netWorthSnapshots).toHaveLength(1);
+    expect(data.netWorthSnapshots?.[0].periodKey).toBe('2026-04');
+    expect(report.counts.netWorthSnapshots).toEqual({
+      present: true,
+      total: 3,
+      accepted: 1,
+      rejected: 2,
+    });
+  });
 });

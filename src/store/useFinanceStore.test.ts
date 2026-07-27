@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getNetWorth, getTotalAccountBalance } from '@/utils/calculations';
 import { defaultSettings } from '@/data/defaultData';
 import type {
@@ -1277,5 +1277,158 @@ describe('v6 migration', () => {
     expect(state.transactions).toEqual([]);
     expect(state.settings.onboardedAt).toBe('2026-01-01T00:00:00.000Z');
     expect(state.settings.userName).toBe('Riya');
+  });
+});
+
+describe('captureNetWorthSnapshots', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-15T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('freezes each completed month once, and is a no-op on the next run', () => {
+    seed(
+      [account('a', 10000, 3000)],
+      [
+        tx({
+          id: 't1',
+          type: 'income',
+          amount: 4000,
+          accountId: 'a',
+          date: '2026-04-10T00:00:00.000Z',
+        }),
+        tx({
+          id: 't2',
+          type: 'income',
+          amount: 3000,
+          accountId: 'a',
+          date: '2026-05-10T00:00:00.000Z',
+        }),
+      ],
+    );
+
+    expect(useFinanceStore.getState().captureNetWorthSnapshots()).toBe(2);
+    const snapshots = useFinanceStore.getState().netWorthSnapshots;
+    expect(snapshots.map((s) => s.periodKey)).toEqual(['2026-04', '2026-05']);
+    // April closed on 10000 minus May's 3000.
+    expect(snapshots[0].assets).toBe(7000);
+
+    expect(useFinanceStore.getState().captureNetWorthSnapshots()).toBe(0);
+  });
+
+  it('keeps a captured month steady when history is edited afterwards', () => {
+    seed(
+      [account('a', 10000, 6000)],
+      [
+        tx({
+          id: 't1',
+          type: 'income',
+          amount: 4000,
+          accountId: 'a',
+          date: '2026-05-10T00:00:00.000Z',
+        }),
+      ],
+    );
+    useFinanceStore.getState().captureNetWorthSnapshots();
+    const before = useFinanceStore.getState().netWorthSnapshots[0];
+
+    useFinanceStore.getState().deleteTransaction('t1');
+
+    expect(useFinanceStore.getState().netWorthSnapshots[0]).toEqual(before);
+  });
+
+  it('is cleared by resetToDefaults, same as every other finance collection', () => {
+    seed(
+      [account('a', 10000, 6000)],
+      [
+        tx({
+          id: 't1',
+          type: 'income',
+          amount: 4000,
+          accountId: 'a',
+          date: '2026-05-10T00:00:00.000Z',
+        }),
+      ],
+    );
+    useFinanceStore.getState().captureNetWorthSnapshots();
+    expect(useFinanceStore.getState().netWorthSnapshots).toHaveLength(1);
+
+    useFinanceStore.getState().resetToDefaults();
+    expect(useFinanceStore.getState().netWorthSnapshots).toEqual([]);
+  });
+});
+
+describe('importData with net worth snapshots', () => {
+  const snapshot = (periodKey: string, assets: number, createdAt: string) => ({
+    id: `snap-${periodKey}-${createdAt}`,
+    periodKey,
+    date: `${periodKey}-28T23:59:59.999Z`,
+    assets,
+    liabilities: 0,
+    createdAt,
+  });
+
+  it('keeps one snapshot per month, preferring the later capture', () => {
+    useFinanceStore.setState({
+      netWorthSnapshots: [snapshot('2026-04', 1000, '2026-05-01T00:00:00.000Z')],
+    });
+
+    useFinanceStore
+      .getState()
+      .importData(
+        { netWorthSnapshots: [snapshot('2026-04', 2000, '2026-05-02T00:00:00.000Z')] },
+        { mode: 'merge' },
+      );
+
+    const merged = useFinanceStore.getState().netWorthSnapshots;
+    expect(merged).toHaveLength(1);
+    expect(merged[0].assets).toBe(2000);
+  });
+
+  it('replaces the collection outright in replace mode', () => {
+    useFinanceStore.setState({
+      netWorthSnapshots: [snapshot('2026-03', 500, '2026-04-01T00:00:00.000Z')],
+    });
+
+    useFinanceStore
+      .getState()
+      .importData(
+        { netWorthSnapshots: [snapshot('2026-04', 900, '2026-05-01T00:00:00.000Z')] },
+        { mode: 'replace' },
+      );
+
+    expect(useFinanceStore.getState().netWorthSnapshots.map((s) => s.periodKey)).toEqual([
+      '2026-04',
+    ]);
+  });
+});
+
+describe('v12 migration', () => {
+  it('seeds an empty snapshot list for pre-v12 state', async () => {
+    backing.set(
+      'finio-storage',
+      JSON.stringify({
+        version: 11,
+        state: {
+          accounts: [account('a', 100)],
+          transactions: [],
+          settings: {
+            theme: 'dark',
+            userName: 'Alex',
+            autoLocalBackup: false,
+            monthStartDay: 1,
+            hideAmounts: false,
+          },
+        },
+      }),
+    );
+
+    await useFinanceStore.persist.rehydrate();
+
+    expect(useFinanceStore.getState().netWorthSnapshots).toEqual([]);
   });
 });
