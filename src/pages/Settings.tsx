@@ -26,6 +26,7 @@ import {
   KeyRound,
   Trash2,
   UserX,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -745,6 +746,18 @@ export default function Settings() {
           <button onClick={handleImport} className="flex w-full items-center gap-3 p-4">
             <Upload size={18} className="text-muted-foreground" />
             <span className="text-sm font-medium">Import Data</span>
+          </button>
+          <button
+            onClick={() => navigate('/import-csv')}
+            className="flex w-full items-center gap-3 p-4"
+          >
+            <FileSpreadsheet size={18} className="text-muted-foreground" />
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium">Import Bank CSV</p>
+              <p className="text-muted-foreground text-xs">
+                Map columns from a bank or card statement export
+              </p>
+            </div>
           </button>
           <button onClick={handleReconcile} className="flex w-full items-center gap-3 p-4">
             <Scale size={18} className="text-muted-foreground shrink-0" />

@@ -214,9 +214,22 @@ All of these endpoints are implemented in PHP and wired up in
   split transactions with a split icon and joined category names ("Food + Housing") instead of a
   single category. Import validation drops malformed/mismatched splits (falls back to unsplit) rather
   than rejecting the whole row. No persisted-schema bump needed (optional field on new data).
-- [ ] **[M] CSV / bank statement import with column mapping.** Today the only way in is manual entry
-  or a Finio JSON restore. Import plus a dedupe pass (date + amount + note) is the biggest adoption
-  unlock for anyone with a year of history in their bank's CSV export.
+- [x] **[M] CSV / bank statement import with column mapping.** Fixed:
+  [`src/utils/csvImport.ts`](src/utils/csvImport.ts) is a pure, testable module — `parseCsvText`
+  (papaparse under the hood, handles quoted/embedded commas and a configurable "skip N rows"
+  offset for statements with a title block before the real header), `detectDateFormat` /
+  `parseDateWithFormat` (six common layouts), `parseAmount` (currency symbols, thousand
+  separators, accounting-style parentheses as negative), `buildTransactionsFromCsv` (maps either
+  a single signed amount column or separate debit/credit columns, plus an optional category
+  column matched by name with a Miscellaneous fallback) and `findDuplicateRows` (same day + type
+  + amount + note, against both existing transactions and other rows in the same file). The new
+  [Import CSV page](src/pages/ImportCsv.tsx), reached from Settings' Data section, is a three-step
+  wizard — upload → map columns (with live auto-detection of the date/amount/note columns and
+  date format) → review, where a dry-run preview lists every accepted row, flags duplicates with
+  a toggle to skip them, and surfaces rejected rows the same way the JSON import's preview dialog
+  does. Confirming calls a new `bulkAddTransactions` store action (single balance-delta pass over
+  every row, mirroring how `processRecurring` inserts a batch). No persisted-schema bump — it's a
+  new store method, not a state shape change.
 - [ ] **[M] Auto-categorization rules.** `if note contains "Uber" → Transport + Essential`. Runs on
   manual add and, crucially, on CSV import. The existing note-suggestions datalist proves the data
   is there; this makes the import feature genuinely usable.

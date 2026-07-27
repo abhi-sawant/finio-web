@@ -316,6 +316,25 @@ export const useFinanceStore = create<FinanceStore>()(
         }));
       },
 
+      bulkAddTransactions: (rows) => {
+        if (rows.length === 0) return 0;
+        const createdAt = new Date().toISOString();
+        const newTxns: Transaction[] = rows.map((row) => ({
+          ...row,
+          id: generateUUID(),
+          createdAt,
+        }));
+        set((state) => {
+          let accounts = state.accounts;
+          for (const tx of newTxns) accounts = applyBalanceDelta(accounts, tx, 1);
+          return {
+            transactions: [...newTxns, ...state.transactions],
+            accounts,
+          };
+        });
+        return newTxns.length;
+      },
+
       addCategory: (categoryData) => {
         const category: Category = {
           ...categoryData,

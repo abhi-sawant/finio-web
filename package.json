@@ -22,6 +22,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.3.0",
     "lucide-react": "^1.16.0",
+    "papaparse": "^5.5.4",
     "react": "^19.2.6",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.2.6",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.12.4",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vite-pwa/assets-generator": "^1.0.2",
