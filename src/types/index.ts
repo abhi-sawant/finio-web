@@ -222,6 +222,26 @@ export interface CategoryRule {
   createdAt: string;
 }
 
+/**
+ * What net worth actually was at the end of a financial month, frozen at the moment it was
+ * first observed. Balances are derived from today's accounts and today's transaction list, so
+ * editing or deleting old history silently rewrites every reconstructed past value — a snapshot
+ * is the only way the trend line survives that. One per financial month, keyed by `periodKey`.
+ */
+export interface NetWorthSnapshot {
+  id: string;
+  /** `yyyy-MM` of the financial month's *start* — the identity of the period covered. */
+  periodKey: string;
+  /** ISO timestamp of the period's last instant, i.e. what the figures below are "as of". */
+  date: string;
+  /** Sum of every positive balance across open accounts. */
+  assets: number;
+  /** Sum of every negative balance, as a positive number (credit outstanding). */
+  liabilities: number;
+  /** When the snapshot was taken — later than `date` for a backfilled period. */
+  createdAt: string;
+}
+
 /** A saved shape for quickly re-adding a common transaction — everything but the date. */
 export interface TransactionTemplate {
   id: string;
@@ -258,6 +278,7 @@ export interface ImportPayload {
   goalContributions?: GoalContribution[];
   people?: Person[];
   debtEntries?: DebtEntry[];
+  netWorthSnapshots?: NetWorthSnapshot[];
   settings?: Settings;
 }
 
@@ -276,6 +297,7 @@ export interface FinanceStore {
   goalContributions: GoalContribution[];
   people: Person[];
   debtEntries: DebtEntry[];
+  netWorthSnapshots: NetWorthSnapshot[];
   settings: Settings;
   isHydrated: boolean;
   /** ISO date (YYYY-MM-DD) of the last automatic local backup download, or null. */
@@ -355,6 +377,14 @@ export interface FinanceStore {
   updatePerson: (id: string, updates: Partial<Omit<Person, 'id'>>) => void;
   /** Removes the person and every debt entry logged against them. */
   deletePerson: (id: string) => void;
+
+  /**
+   * Record a net-worth snapshot for every completed financial month that doesn't have one yet.
+   * Called on app start: the sooner a month is captured, the closer the snapshot is to what
+   * net worth genuinely was, before any later edit to history can move it. Returns how many
+   * were added.
+   */
+  captureNetWorthSnapshots: () => number;
 
   addDebtEntry: (entry: Omit<DebtEntry, 'id' | 'createdAt'>) => string;
   /** Removes the entry. Returns the removed row so callers can undo. */

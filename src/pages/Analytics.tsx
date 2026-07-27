@@ -8,6 +8,11 @@ import { SpendingDonut } from '@/components/charts/SpendingDonut';
 import { IncomeExpenseBar } from '@/components/charts/IncomeExpenseBar';
 import { BalanceTrend } from '@/components/charts/BalanceTrend';
 import { LabelSpendingBar } from '@/components/charts/LabelSpendingBar';
+import { InsightsFeed } from '@/components/analytics/InsightsFeed';
+import { PeriodComparison } from '@/components/analytics/PeriodComparison';
+import { SpendingHeatmap } from '@/components/analytics/SpendingHeatmap';
+import { CashFlowForecast } from '@/components/analytics/CashFlowForecast';
+import { NetWorthTrend } from '@/components/analytics/NetWorthTrend';
 import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -190,6 +195,9 @@ export default function Analytics() {
               </div>
             </div>
 
+            {/* Insights — always about the current month, so it sits outside the filter. */}
+            <InsightsFeed />
+
             <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
               {/* Spending by Category */}
               <SpendingDonut transactions={filteredTransactions} />
@@ -203,6 +211,16 @@ export default function Analytics() {
               {/* Label Spending */}
               <LabelSpendingBar transactions={filteredTransactions} />
             </div>
+
+            {/*
+              The cards below each carry their own window — a forecast, a trend and a
+              period-over-period view are all anchored to "now" rather than to whatever
+              range the filter chips above are showing.
+            */}
+            <CashFlowForecast />
+            <NetWorthTrend />
+            <PeriodComparison />
+            <SpendingHeatmap />
           </>
         )}
 

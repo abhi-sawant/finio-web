@@ -11,6 +11,7 @@ import type {
   ImportPayload,
   ImportedAccount,
   Label,
+  NetWorthSnapshot,
   Person,
   RecurringTransaction,
   Settings,
@@ -38,7 +39,8 @@ export type ImportEntity =
   | 'goals'
   | 'goalContributions'
   | 'people'
-  | 'debtEntries';
+  | 'debtEntries'
+  | 'netWorthSnapshots';
 
 export const IMPORT_ENTITIES: ImportEntity[] = [
   'accounts',
@@ -53,6 +55,7 @@ export const IMPORT_ENTITIES: ImportEntity[] = [
   'goalContributions',
   'people',
   'debtEntries',
+  'netWorthSnapshots',
 ];
 
 export const ENTITY_LABELS: Record<ImportEntity, string> = {
@@ -68,6 +71,7 @@ export const ENTITY_LABELS: Record<ImportEntity, string> = {
   goalContributions: 'Goal contributions',
   people: 'People',
   debtEntries: 'Debt entries',
+  netWorthSnapshots: 'Net worth snapshots',
 };
 
 export interface EntityReport {
@@ -462,6 +466,34 @@ const parseDebtEntry: RowParser<DebtEntry> = (row) => {
   };
 };
 
+const PERIOD_KEY = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+const parseNetWorthSnapshot: RowParser<NetWorthSnapshot> = (row) => {
+  const id = asId(row.id);
+  if (!id) return 'missing id';
+  // The period key is the snapshot's real identity — a malformed one would land the point on
+  // the wrong month of the trend, which is worse than not having it at all.
+  const periodKey = asId(row.periodKey);
+  if (!periodKey || !PERIOD_KEY.test(periodKey)) {
+    return `unparseable period key "${String(row.periodKey)}"`;
+  }
+  const date = asIsoDate(row.date);
+  if (!date) return `unparseable date "${String(row.date)}"`;
+  const assets = asFiniteNumber(row.assets);
+  if (assets === undefined) return 'assets is not a number';
+  const liabilities = asFiniteNumber(row.liabilities);
+  if (liabilities === undefined) return 'liabilities is not a number';
+
+  return {
+    id,
+    periodKey,
+    date,
+    assets,
+    liabilities,
+    createdAt: asIsoDate(row.createdAt) ?? date,
+  };
+};
+
 function parseSettings(value: unknown): Settings | undefined {
   if (!isRecord(value)) return undefined;
   // Pick only known keys — this is also what strips the legacy `currency` field.
@@ -557,6 +589,11 @@ export function validateBackup(raw: unknown): ValidatedBackup {
   );
   const people = collect(raw.people, 'people', parsePerson);
   const debtEntries = collect(raw.debtEntries, 'debtEntries', parseDebtEntry);
+  const netWorthSnapshots = collect(
+    raw.netWorthSnapshots,
+    'netWorthSnapshots',
+    parseNetWorthSnapshot,
+  );
   const settings = parseSettings(raw.settings);
 
   const counts: Record<ImportEntity, EntityReport> = {
@@ -572,6 +609,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     goalContributions: goalContributions.report,
     people: people.report,
     debtEntries: debtEntries.report,
+    netWorthSnapshots: netWorthSnapshots.report,
   };
 
   const anyPresent = IMPORT_ENTITIES.some((e) => counts[e].present) || settings !== undefined;
@@ -590,6 +628,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     ...goalContributions.issues,
     ...people.issues,
     ...debtEntries.issues,
+    ...netWorthSnapshots.issues,
   ];
   const issues = allIssues.slice(0, MAX_REPORTED_ISSUES);
   if (allIssues.length > issues.length) {
@@ -697,6 +736,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
       ...(goalContributions.rows ? { goalContributions: goalContributions.rows } : {}),
       ...(people.rows ? { people: people.rows } : {}),
       ...(debtEntries.rows ? { debtEntries: debtEntries.rows } : {}),
+      ...(netWorthSnapshots.rows ? { netWorthSnapshots: netWorthSnapshots.rows } : {}),
       ...(settings ? { settings } : {}),
     },
     report: { counts, hasSettings: settings !== undefined, issues, warnings },

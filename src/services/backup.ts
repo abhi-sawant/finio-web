@@ -24,6 +24,7 @@ type BackupPayload = Pick<
   | 'goalContributions'
   | 'people'
   | 'debtEntries'
+  | 'netWorthSnapshots'
   | 'settings'
 >;
 
@@ -74,6 +75,7 @@ export async function uploadBackup(): Promise<string> {
     goalContributions,
     people,
     debtEntries,
+    netWorthSnapshots,
     settings,
   } = useFinanceStore.getState();
   const payload: BackupPayload = {
@@ -89,6 +91,7 @@ export async function uploadBackup(): Promise<string> {
     goalContributions,
     people,
     debtEntries,
+    netWorthSnapshots,
     settings,
   };
   await api.uploadBackup(token, payload);
@@ -141,6 +144,7 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
     goalContributions,
     people,
     debtEntries,
+    netWorthSnapshots,
     settings,
     lastLocalBackupAt,
     setLastLocalBackupAt,
@@ -176,6 +180,7 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
       goalContributions,
       people,
       debtEntries,
+      netWorthSnapshots,
       settings,
     };
     // No user gesture here (runs from a mount effect), so never prompt for folder permission.

@@ -17,6 +17,7 @@ export function Layout() {
   const navigate = useNavigate();
   const isHydrated = useFinanceStore((s) => s.isHydrated);
   const processRecurring = useFinanceStore((s) => s.processRecurring);
+  const captureNetWorthSnapshots = useFinanceStore((s) => s.captureNetWorthSnapshots);
   const isAuthLoaded = useAuthStore((s) => s.isLoaded);
   const templates = useFinanceStore((s) => s.templates);
   const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
@@ -65,6 +66,14 @@ export function Layout() {
       toast.success(`Added ${generated} recurring transaction${generated === 1 ? '' : 's'}`);
     }
   }, [isHydrated, processRecurring]);
+
+  // Freeze the net worth of any financial month that has closed since the last visit. Silent
+  // by design — it records history rather than changing anything the user did. It runs after
+  // recurring processing so a month's own generated transactions are counted in its snapshot.
+  useEffect(() => {
+    if (!isHydrated) return;
+    captureNetWorthSnapshots();
+  }, [isHydrated, captureNetWorthSnapshots]);
 
   // Trigger an auto cloud backup (24h cadence) once both stores are ready.
   useEffect(() => {
