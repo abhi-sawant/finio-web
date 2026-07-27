@@ -36,6 +36,7 @@ import { isRulePaused, nextDueDate } from '@/store/recurring';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { AccountCard } from '@/components/accounts/AccountCard';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
+import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
@@ -55,6 +56,7 @@ export default function Dashboard() {
   const labels = useFinanceStore((s) => s.labels);
   const recurring = useFinanceStore((s) => s.recurring);
   const userName = useFinanceStore((s) => s.settings.userName);
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
 
   const monthStartDay = normalizeMonthStartDay(useFinanceStore((s) => s.settings.monthStartDay));
 
@@ -123,13 +125,16 @@ export default function Dashboard() {
           <p className="text-muted-foreground text-sm">{getGreeting()},</p>
           <h1 className="text-xl font-bold">{userName} 👋</h1>
         </div>
-        <button
-          onClick={() => navigate('/settings')}
-          className="bg-card border-border hover:bg-muted flex h-10 w-10 items-center justify-center rounded-full border transition-colors"
-          aria-label="Settings"
-        >
-          <Settings2 size={18} className="text-muted-foreground" />
-        </button>
+        <div className="flex gap-2">
+          <HideAmountsToggle />
+          <button
+            onClick={() => navigate('/settings')}
+            className="bg-card border-border hover:bg-muted flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
+            aria-label="Settings"
+          >
+            <Settings2 size={16} />
+          </button>
+        </div>
       </Header>
 
       <Main>
@@ -148,9 +153,13 @@ export default function Dashboard() {
               <Wallet size={14} />
               <span className="text-xs font-medium tracking-wide uppercase">Total Balance</span>
             </div>
-            <p className="text-3xl font-bold tracking-tight">{formatCurrency(totalBalance)}</p>
+            <p className="text-3xl font-bold tracking-tight">
+              {formatCurrency(totalBalance, false, hideAmounts)}
+            </p>
             {creditOutstanding > 0 && (
-              <p className="mt-1 text-xs text-white/80">After Dues: {formatCurrency(afterDues)}</p>
+              <p className="mt-1 text-xs text-white/80">
+                After Dues: {formatCurrency(afterDues, false, hideAmounts)}
+              </p>
             )}
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
@@ -158,14 +167,18 @@ export default function Dashboard() {
                   <TrendingUp size={12} />
                   <span className="text-[10px] tracking-wide uppercase">Income</span>
                 </div>
-                <p className="text-sm font-semibold">{formatCurrency(monthIncome, true)}</p>
+                <p className="text-sm font-semibold">
+                  {formatCurrency(monthIncome, true, hideAmounts)}
+                </p>
               </div>
               <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
                 <div className="mb-0.5 flex items-center gap-1.5 opacity-90">
                   <TrendingDown size={12} />
                   <span className="text-[10px] tracking-wide uppercase">Expenses</span>
                 </div>
-                <p className="text-sm font-semibold">{formatCurrency(monthExpenses, true)}</p>
+                <p className="text-sm font-semibold">
+                  {formatCurrency(monthExpenses, true, hideAmounts)}
+                </p>
               </div>
             </div>
           </div>
@@ -181,9 +194,11 @@ export default function Dashboard() {
                   Daily avg
                 </span>
               </div>
-              <p className="text-sm font-bold">{formatCurrency(stats.dailyAverage, true)}</p>
+              <p className="text-sm font-bold">
+                {formatCurrency(stats.dailyAverage, true, hideAmounts)}
+              </p>
               <p className="text-muted-foreground mt-0.5 text-[10px]">
-                Projected: {formatCurrency(stats.projectedMonth, true)}
+                Projected: {formatCurrency(stats.projectedMonth, true, hideAmounts)}
               </p>
             </div>
             <div className="card-elevated bg-grad-success-soft rounded-2xl p-3">
@@ -223,7 +238,7 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <p className="text-sm font-bold">
-                  {formatCurrency(stats.topCategory.amount, true)}
+                  {formatCurrency(stats.topCategory.amount, true, hideAmounts)}
                 </p>
               </div>
             )}
@@ -294,8 +309,8 @@ export default function Dashboard() {
               <span
                 className={`text-xs font-medium ${overallBudget.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
               >
-                {formatCurrency(overallBudget.spent, true)} /{' '}
-                {formatCurrency(overallBudget.limit, true)}
+                {formatCurrency(overallBudget.spent, true, hideAmounts)} /{' '}
+                {formatCurrency(overallBudget.limit, true, hideAmounts)}
               </span>
             </div>
             <div className="bg-muted h-2 overflow-hidden rounded-full">
@@ -357,7 +372,7 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <p className="shrink-0 text-xs font-semibold text-rose-500">
-                      Min {formatCurrency(dueInfo.minimumDue, true)}
+                      Min {formatCurrency(dueInfo.minimumDue, true, hideAmounts)}
                     </p>
                   </div>
                 );
@@ -408,7 +423,7 @@ export default function Dashboard() {
                       className={`shrink-0 text-xs font-semibold ${rule.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}
                     >
                       {rule.type === 'income' ? '+' : '-'}
-                      {formatCurrency(rule.amount, true)}
+                      {formatCurrency(rule.amount, true, hideAmounts)}
                     </p>
                   </div>
                 );

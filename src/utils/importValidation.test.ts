@@ -155,6 +155,7 @@ describe('validateBackup', () => {
       userName: 'Abhishek',
       autoLocalBackup: true,
       monthStartDay: 1,
+      hideAmounts: false,
     });
   });
 
@@ -244,5 +245,24 @@ describe('validateBackup', () => {
     expect(report.counts.transactions.rejected).toBe(20);
     expect(report.issues).toHaveLength(9);
     expect(report.issues.at(-1)).toMatch(/and 12 more/);
+  });
+
+  it('accepts a well-formed template and rejects a transfer template with no destination', () => {
+    const validTemplate = {
+      id: 'tpl-1',
+      name: 'Coffee',
+      type: 'expense',
+      amount: 150,
+      accountId: 'acc-1',
+      categoryId: 'cat-1',
+      note: '',
+      labels: [],
+      createdAt: '2026-06-01T00:00:00.000Z',
+    };
+    const { data, report } = validateBackup({
+      templates: [validTemplate, { ...validTemplate, id: 'tpl-2', type: 'transfer' }],
+    });
+    expect(data.templates?.map((t) => t.id)).toEqual(['tpl-1']);
+    expect(report.counts.templates).toEqual({ present: true, total: 2, accepted: 1, rejected: 1 });
   });
 });

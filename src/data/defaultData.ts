@@ -55,4 +55,5 @@ export const defaultSettings: Settings = {
   userName: '',
   autoLocalBackup: false,
   monthStartDay: DEFAULT_MONTH_START_DAY,
+  hideAmounts: false,
 };

@@ -224,6 +224,136 @@ describe('deleteTransaction / restoreTransaction', () => {
   });
 });
 
+describe('bulkDeleteTransactions / restoreTransactions', () => {
+  it('removes every listed transaction and reverses their deltas', () => {
+    seed(
+      [account('a', 500, 1000)],
+      [
+        tx({ id: 't1', type: 'expense', amount: 200, accountId: 'a' }),
+        tx({ id: 't2', type: 'expense', amount: 300, accountId: 'a' }),
+        tx({ id: 't3', type: 'expense', amount: 50, accountId: 'a' }),
+      ],
+    );
+
+    const removed = useFinanceStore.getState().bulkDeleteTransactions(['t1', 't2']);
+
+    expect(removed.map((t) => t.id).sort()).toEqual(['t1', 't2']);
+    const state = useFinanceStore.getState();
+    expect(state.transactions.map((t) => t.id)).toEqual(['t3']);
+    // Reversing both removed expenses (200 + 300) off the current balance of 500.
+    expect(state.accounts[0].balance).toBe(1000);
+  });
+
+  it('returns an empty array and changes nothing for unknown ids', () => {
+    seed([account('a', 100)]);
+    expect(useFinanceStore.getState().bulkDeleteTransactions(['nope'])).toEqual([]);
+    expect(useFinanceStore.getState().accounts[0].balance).toBe(100);
+  });
+
+  it('restores every row under its original id and re-applies deltas, guarding a repeat', () => {
+    seed(
+      [account('a', 500, 1000)],
+      [
+        tx({ id: 't1', type: 'expense', amount: 200, accountId: 'a' }),
+        tx({ id: 't2', type: 'expense', amount: 300, accountId: 'a' }),
+      ],
+    );
+
+    const removed = useFinanceStore.getState().bulkDeleteTransactions(['t1', 't2']);
+    useFinanceStore.getState().restoreTransactions(removed);
+    useFinanceStore.getState().restoreTransactions(removed);
+
+    const state = useFinanceStore.getState();
+    expect(state.transactions.map((t) => t.id).sort()).toEqual(['t1', 't2']);
+    expect(state.accounts[0].balance).toBe(500);
+  });
+});
+
+describe('bulkRecategorize / bulkAddLabel', () => {
+  it('reassigns the category of every listed transaction, leaving others untouched', () => {
+    seed(
+      [account('a', 100)],
+      [
+        tx({ id: 't1', type: 'expense', amount: 10, accountId: 'a', categoryId: 'cat-1' }),
+        tx({ id: 't2', type: 'expense', amount: 10, accountId: 'a', categoryId: 'cat-1' }),
+        tx({ id: 't3', type: 'expense', amount: 10, accountId: 'a', categoryId: 'cat-1' }),
+      ],
+    );
+
+    useFinanceStore.getState().bulkRecategorize(['t1', 't2'], 'cat-2');
+
+    const byId = new Map(useFinanceStore.getState().transactions.map((t) => [t.id, t]));
+    expect(byId.get('t1')?.categoryId).toBe('cat-2');
+    expect(byId.get('t2')?.categoryId).toBe('cat-2');
+    expect(byId.get('t3')?.categoryId).toBe('cat-1');
+  });
+
+  it('adds a label without duplicating it on a transaction that already carries it', () => {
+    seed(
+      [account('a', 100)],
+      [
+        tx({ id: 't1', type: 'expense', amount: 10, accountId: 'a', labels: [] }),
+        tx({ id: 't2', type: 'expense', amount: 10, accountId: 'a', labels: ['lbl-1'] }),
+      ],
+    );
+
+    useFinanceStore.getState().bulkAddLabel(['t1', 't2'], 'lbl-1');
+
+    const byId = new Map(useFinanceStore.getState().transactions.map((t) => [t.id, t]));
+    expect(byId.get('t1')?.labels).toEqual(['lbl-1']);
+    expect(byId.get('t2')?.labels).toEqual(['lbl-1']);
+  });
+});
+
+describe('addTemplate / deleteTemplate', () => {
+  it('saves a template and returns its id', () => {
+    const id = useFinanceStore.getState().addTemplate({
+      name: 'Coffee',
+      type: 'expense',
+      amount: 150,
+      accountId: 'a',
+      categoryId: 'cat-1',
+      note: 'Morning coffee',
+      labels: [],
+    });
+
+    const [created] = useFinanceStore.getState().templates;
+    expect(created.id).toBe(id);
+    expect(created.name).toBe('Coffee');
+    expect(created.createdAt).toEqual(expect.any(String));
+  });
+
+  it('removes a template by id', () => {
+    const id = useFinanceStore.getState().addTemplate({
+      name: 'Coffee',
+      type: 'expense',
+      amount: 150,
+      accountId: 'a',
+      categoryId: 'cat-1',
+      note: '',
+      labels: [],
+    });
+
+    useFinanceStore.getState().deleteTemplate(id);
+    expect(useFinanceStore.getState().templates).toEqual([]);
+  });
+
+  it('is cleared by resetToDefaults, same as every other finance collection', () => {
+    useFinanceStore.getState().addTemplate({
+      name: 'Coffee',
+      type: 'expense',
+      amount: 150,
+      accountId: 'a',
+      categoryId: 'cat-1',
+      note: '',
+      labels: [],
+    });
+
+    useFinanceStore.getState().resetToDefaults();
+    expect(useFinanceStore.getState().templates).toEqual([]);
+  });
+});
+
 describe('importData', () => {
   const payload: ImportPayload = {
     accounts: [account('imported', 0, 1000)],
@@ -441,6 +571,29 @@ describe('v5 migration', () => {
     expect(accounts.map((a) => a.openingBalance)).toEqual([1200, 1000]);
     // Reconciling straight after a migration must be a no-op.
     expect(useFinanceStore.getState().recomputeBalances().changed).toBe(0);
+  });
+});
+
+describe('v8 migration', () => {
+  it('seeds hideAmounts and an empty templates array for pre-v8 state', async () => {
+    backing.set(
+      'finio-storage',
+      JSON.stringify({
+        version: 7,
+        state: {
+          accounts: [account('a', 100)],
+          transactions: [],
+          settings: { theme: 'dark', userName: 'Alex', autoLocalBackup: false, monthStartDay: 1 },
+        },
+      }),
+    );
+
+    await useFinanceStore.persist.rehydrate();
+    const state = useFinanceStore.getState();
+
+    expect(state.settings.hideAmounts).toBe(false);
+    expect(state.settings.userName).toBe('Alex');
+    expect(state.templates).toEqual([]);
   });
 });
 

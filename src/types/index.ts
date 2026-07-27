@@ -130,6 +130,22 @@ export interface Settings {
    * is a fresh install and the wizard should run before anything else.
    */
   onboardedAt?: string;
+  /** Mask every rendered amount behind dots, e.g. in public or over someone's shoulder. */
+  hideAmounts: boolean;
+}
+
+/** A saved shape for quickly re-adding a common transaction — everything but the date. */
+export interface TransactionTemplate {
+  id: string;
+  name: string;
+  type: TransactionType;
+  amount: number;
+  accountId: string;
+  toAccountId?: string;
+  categoryId: string;
+  note: string;
+  labels: string[];
+  createdAt: string;
 }
 
 /** Sanitized backup contents accepted by `importData`. */
@@ -140,6 +156,7 @@ export interface ImportPayload {
   labels?: Label[];
   budgets?: Budget[];
   recurring?: RecurringTransaction[];
+  templates?: TransactionTemplate[];
   settings?: Settings;
 }
 
@@ -152,6 +169,7 @@ export interface FinanceStore {
   labels: Label[];
   budgets: Budget[];
   recurring: RecurringTransaction[];
+  templates: TransactionTemplate[];
   settings: Settings;
   isHydrated: boolean;
   /** ISO date (YYYY-MM-DD) of the last automatic local backup download, or null. */
@@ -181,6 +199,18 @@ export interface FinanceStore {
    * delete must not mint a new id, or the row would diverge from any backup that has it.
    */
   restoreTransaction: (transaction: Transaction) => void;
+  /** Removes every listed transaction and reverses their deltas. Returns the removed rows for undo. */
+  bulkDeleteTransactions: (ids: string[]) => Transaction[];
+  /** Re-insert previously deleted transactions verbatim. Same double-undo guard as `restoreTransaction`. */
+  restoreTransactions: (transactions: Transaction[]) => void;
+  /** Reassign every listed transaction to a single category. */
+  bulkRecategorize: (ids: string[], categoryId: string) => void;
+  /** Add a label to every listed transaction that doesn't already carry it. */
+  bulkAddLabel: (ids: string[], labelId: string) => void;
+
+  /** Save a transaction's shape (everything but date) as a reusable template. */
+  addTemplate: (template: Omit<TransactionTemplate, 'id' | 'createdAt'>) => string;
+  deleteTemplate: (id: string) => void;
 
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Omit<Category, 'id'>>) => void;

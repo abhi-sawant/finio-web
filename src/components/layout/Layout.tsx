@@ -1,11 +1,14 @@
 import { Outlet, useLocation, useNavigate } from 'react-router';
-import { useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Plus, Repeat } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useLongPress } from '@/hooks/useLongPress';
+import { formatCurrency } from '@/utils/formatters';
 import { autoBackupIfNeeded, autoLocalBackupIfNeeded } from '@/services/backup';
+import { Popover, PopoverContent } from '@/components/ui/popover';
 import { Sidebar } from './Sidebar';
 import { navTabs } from './navItems';
 
@@ -15,6 +18,43 @@ export function Layout() {
   const isHydrated = useFinanceStore((s) => s.isHydrated);
   const processRecurring = useFinanceStore((s) => s.processRecurring);
   const isAuthLoaded = useAuthStore((s) => s.isLoaded);
+  const templates = useFinanceStore((s) => s.templates);
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
+  const addTransaction = useFinanceStore((s) => s.addTransaction);
+  const deleteTransaction = useFinanceStore((s) => s.deleteTransaction);
+
+  const fabRef = useRef<HTMLButtonElement>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const { firedRef: fabLongPressFiredRef, handlers: fabLongPressHandlers } = useLongPress(() =>
+    setTemplatesOpen(true),
+  );
+
+  const handleFabClick = () => {
+    if (fabLongPressFiredRef.current) {
+      fabLongPressFiredRef.current = false;
+      return;
+    }
+    navigate('/add-transaction');
+  };
+
+  const handleUseTemplate = (templateId: string) => {
+    const template = templates.find((t) => t.id === templateId);
+    if (!template) return;
+    const newId = addTransaction({
+      type: template.type,
+      amount: template.amount,
+      accountId: template.accountId,
+      ...(template.toAccountId ? { toAccountId: template.toAccountId } : {}),
+      categoryId: template.categoryId,
+      date: new Date().toISOString(),
+      note: template.note,
+      labels: template.labels,
+    });
+    setTemplatesOpen(false);
+    toast.success(`Added "${template.name}"`, {
+      action: { label: 'Undo', onClick: () => deleteTransaction(newId) },
+    });
+  };
 
   // Process recurring rules once on hydration.
   useEffect(() => {
@@ -49,15 +89,45 @@ export function Layout() {
         <Outlet />
       </div>
 
-      {/* FAB — mobile only */}
-      <button
-        onClick={() => navigate('/add-transaction')}
-        className="bg-grad-primary shadow-glow-primary fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform active:scale-95 lg:hidden"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}
-        aria-label="Add transaction"
-      >
-        <Plus size={26} strokeWidth={2.4} />
-      </button>
+      {/* FAB — mobile only. Long-press for one-tap add from a saved template. */}
+      <Popover open={templatesOpen} onOpenChange={setTemplatesOpen}>
+        <button
+          ref={fabRef}
+          onClick={handleFabClick}
+          {...fabLongPressHandlers}
+          className="bg-grad-primary shadow-glow-primary fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform active:scale-95 lg:hidden"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}
+          aria-label="Add transaction. Long-press for templates."
+        >
+          <Plus size={26} strokeWidth={2.4} />
+        </button>
+        <PopoverContent anchor={fabRef} side="top" align="end" className="w-64">
+          <p className="text-muted-foreground px-1 pb-1 text-xs font-medium tracking-wide uppercase">
+            Templates
+          </p>
+          {templates.length === 0 ? (
+            <p className="text-muted-foreground px-1 py-2 text-xs">
+              No saved templates yet. Long-press a transaction and choose "Save as template".
+            </p>
+          ) : (
+            <div className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => handleUseTemplate(t.id)}
+                  className="hover:bg-accent flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm"
+                >
+                  <Repeat size={13} className="text-muted-foreground shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">{t.name}</span>
+                  <span className="text-muted-foreground shrink-0 text-xs">
+                    {formatCurrency(t.amount, true, hideAmounts)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
 
       {/* Bottom Nav — mobile only */}
       <nav
