@@ -265,4 +265,67 @@ describe('validateBackup', () => {
     expect(data.templates?.map((t) => t.id)).toEqual(['tpl-1']);
     expect(report.counts.templates).toEqual({ present: true, total: 2, accepted: 1, rejected: 1 });
   });
+
+  it('accepts a well-formed goal and rejects one with a non-positive target amount', () => {
+    const validGoal = {
+      id: 'goal-1',
+      name: 'Emergency Fund',
+      icon: 'target',
+      color: '#6C63FF',
+      targetAmount: 10000,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    const { data, report } = validateBackup({
+      goals: [validGoal, { ...validGoal, id: 'goal-2', targetAmount: 0 }],
+    });
+    expect(data.goals?.map((g) => g.id)).toEqual(['goal-1']);
+    expect(report.counts.goals).toEqual({ present: true, total: 2, accepted: 1, rejected: 1 });
+  });
+
+  it('accepts a well-formed goal contribution and rejects one with a zero amount', () => {
+    const validContribution = {
+      id: 'contrib-1',
+      goalId: 'goal-1',
+      amount: 500,
+      date: '2026-01-05T00:00:00.000Z',
+      note: 'Bonus',
+      createdAt: '2026-01-05T00:00:00.000Z',
+    };
+    const { data, report } = validateBackup({
+      goalContributions: [validContribution, { ...validContribution, id: 'contrib-2', amount: 0 }],
+    });
+    expect(data.goalContributions?.map((c) => c.id)).toEqual(['contrib-1']);
+    expect(report.counts.goalContributions).toEqual({
+      present: true,
+      total: 2,
+      accepted: 1,
+      rejected: 1,
+    });
+  });
+
+  it('warns about goal contributions pointing at a goal the file does not contain', () => {
+    const { report } = validateBackup({
+      goals: [
+        {
+          id: 'goal-1',
+          name: 'Emergency Fund',
+          icon: 'target',
+          color: '#6C63FF',
+          targetAmount: 10000,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      goalContributions: [
+        {
+          id: 'contrib-1',
+          goalId: 'ghost-goal',
+          amount: 500,
+          date: '2026-01-05T00:00:00.000Z',
+          note: '',
+          createdAt: '2026-01-05T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(report.warnings.some((w) => /goal that is not in this file/.test(w))).toBe(true);
+  });
 });

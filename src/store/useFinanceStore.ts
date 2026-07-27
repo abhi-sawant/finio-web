@@ -22,6 +22,8 @@ import type {
   Budget,
   Category,
   FinanceStore,
+  Goal,
+  GoalContribution,
   ImportedAccount,
   Label,
   RecurringTransaction,
@@ -74,6 +76,8 @@ const defaultState = {
   budgets: [] as Budget[],
   recurring: [] as RecurringTransaction[],
   templates: [] as TransactionTemplate[],
+  goals: [] as Goal[],
+  goalContributions: [] as GoalContribution[],
   settings: defaultSettings,
   isHydrated: false,
   lastLocalBackupAt: null as string | null,
@@ -156,6 +160,14 @@ export const useFinanceStore = create<FinanceStore>()(
             ),
             // A transfer rule pointing at the deleted account can never fire again either.
             recurring: state.recurring.filter((r) => r.accountId !== id && r.toAccountId !== id),
+            // The link is informational only — drop it rather than leave a goal pointing at
+            // an account that no longer exists.
+            goals: state.goals.map((g) => {
+              if (g.linkedAccountId !== id) return g;
+              const next = { ...g };
+              delete next.linkedAccountId;
+              return next;
+            }),
           };
         });
       },
@@ -455,6 +467,56 @@ export const useFinanceStore = create<FinanceStore>()(
         set((state) => ({ templates: state.templates.filter((t) => t.id !== id) }));
       },
 
+      addGoal: (goalData) => {
+        const goal: Goal = {
+          ...goalData,
+          id: generateUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ goals: [...state.goals, goal] }));
+        return goal.id;
+      },
+
+      updateGoal: (id, updates) => {
+        set((state) => ({
+          goals: state.goals.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+        }));
+      },
+
+      deleteGoal: (id) => {
+        set((state) => ({
+          goals: state.goals.filter((g) => g.id !== id),
+          goalContributions: state.goalContributions.filter((c) => c.goalId !== id),
+        }));
+      },
+
+      addContribution: (contributionData) => {
+        const contribution: GoalContribution = {
+          ...contributionData,
+          id: generateUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ goalContributions: [contribution, ...state.goalContributions] }));
+        return contribution.id;
+      },
+
+      deleteContribution: (id) => {
+        const contribution = get().goalContributions.find((c) => c.id === id);
+        if (!contribution) return null;
+        set((state) => ({
+          goalContributions: state.goalContributions.filter((c) => c.id !== id),
+        }));
+        return contribution;
+      },
+
+      restoreContribution: (contribution) => {
+        set((state) => {
+          // Guard against a double undo re-inserting the same row twice.
+          if (state.goalContributions.some((c) => c.id === contribution.id)) return state;
+          return { goalContributions: [contribution, ...state.goalContributions] };
+        });
+      },
+
       updateSettings: (updates) => {
         set((state) => ({
           settings: { ...state.settings, ...updates },
@@ -472,6 +534,8 @@ export const useFinanceStore = create<FinanceStore>()(
           budgets: [],
           recurring: [],
           templates: [],
+          goals: [],
+          goalContributions: [],
         });
       },
 
@@ -491,6 +555,8 @@ export const useFinanceStore = create<FinanceStore>()(
                   budgets: mergeById(state.budgets, data.budgets),
                   recurring: mergeById(state.recurring, data.recurring),
                   templates: mergeById(state.templates, data.templates),
+                  goals: mergeById(state.goals, data.goals),
+                  goalContributions: mergeById(state.goalContributions, data.goalContributions),
                 }
               : {
                   accounts: (incomingAccounts ?? state.accounts) as ImportedAccount[],
@@ -500,6 +566,8 @@ export const useFinanceStore = create<FinanceStore>()(
                   budgets: data.budgets ?? state.budgets,
                   recurring: data.recurring ?? state.recurring,
                   templates: data.templates ?? state.templates,
+                  goals: data.goals ?? state.goals,
+                  goalContributions: data.goalContributions ?? state.goalContributions,
                 };
 
           return {
@@ -520,7 +588,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 8,
+      version: 9,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -627,6 +695,15 @@ export const useFinanceStore = create<FinanceStore>()(
           };
         }
 
+        if (version < 9) {
+          // Savings goals are new.
+          s = {
+            ...s,
+            goals: Array.isArray(s.goals) ? s.goals : [],
+            goalContributions: Array.isArray(s.goalContributions) ? s.goalContributions : [],
+          };
+        }
+
         return s as FinanceStore;
       },
       onRehydrateStorage: () => (state) => {
@@ -646,4 +723,6 @@ export const useLabels = () => useFinanceStore((s) => s.labels);
 export const useBudgets = () => useFinanceStore((s) => s.budgets);
 export const useRecurring = () => useFinanceStore((s) => s.recurring);
 export const useTemplates = () => useFinanceStore((s) => s.templates);
+export const useGoals = () => useFinanceStore((s) => s.goals);
+export const useGoalContributions = () => useFinanceStore((s) => s.goalContributions);
 export const useSettings = () => useFinanceStore((s) => s.settings);

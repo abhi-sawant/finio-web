@@ -3,6 +3,8 @@ import { normalizeMonthStartDay } from './period';
 import type {
   Budget,
   Category,
+  Goal,
+  GoalContribution,
   ImportPayload,
   ImportedAccount,
   Label,
@@ -26,7 +28,9 @@ export type ImportEntity =
   | 'labels'
   | 'budgets'
   | 'recurring'
-  | 'templates';
+  | 'templates'
+  | 'goals'
+  | 'goalContributions';
 
 export const IMPORT_ENTITIES: ImportEntity[] = [
   'accounts',
@@ -36,6 +40,8 @@ export const IMPORT_ENTITIES: ImportEntity[] = [
   'budgets',
   'recurring',
   'templates',
+  'goals',
+  'goalContributions',
 ];
 
 export const ENTITY_LABELS: Record<ImportEntity, string> = {
@@ -46,6 +52,8 @@ export const ENTITY_LABELS: Record<ImportEntity, string> = {
   budgets: 'Budgets',
   recurring: 'Recurring rules',
   templates: 'Templates',
+  goals: 'Savings goals',
+  goalContributions: 'Goal contributions',
 };
 
 export interface EntityReport {
@@ -297,6 +305,51 @@ const parseTemplate: RowParser<TransactionTemplate> = (row) => {
   };
 };
 
+const parseGoal: RowParser<Goal> = (row) => {
+  const id = asId(row.id);
+  if (!id) return 'missing id';
+  const name = asId(row.name);
+  if (!name) return 'missing name';
+  const targetAmount = asFiniteNumber(row.targetAmount);
+  if (targetAmount === undefined) return 'targetAmount is not a number';
+  if (targetAmount <= 0) return 'targetAmount must be greater than zero';
+
+  const targetDate = asIsoDate(row.targetDate);
+  const linkedAccountId = asId(row.linkedAccountId);
+
+  return {
+    id,
+    name,
+    icon: asString(row.icon, 'target'),
+    color: asString(row.color, '#6C63FF'),
+    targetAmount,
+    createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
+    ...(targetDate ? { targetDate } : {}),
+    ...(linkedAccountId ? { linkedAccountId } : {}),
+  };
+};
+
+const parseGoalContribution: RowParser<GoalContribution> = (row) => {
+  const id = asId(row.id);
+  if (!id) return 'missing id';
+  const goalId = asId(row.goalId);
+  if (!goalId) return 'missing goalId';
+  const amount = asFiniteNumber(row.amount);
+  if (amount === undefined) return 'amount is not a number';
+  if (amount === 0) return 'amount cannot be zero';
+  const date = asIsoDate(row.date);
+  if (!date) return `unparseable date "${String(row.date)}"`;
+
+  return {
+    id,
+    goalId,
+    amount,
+    date,
+    note: asString(row.note, ''),
+    createdAt: asIsoDate(row.createdAt) ?? date,
+  };
+};
+
 function parseSettings(value: unknown): Settings | undefined {
   if (!isRecord(value)) return undefined;
   // Pick only known keys — this is also what strips the legacy `currency` field.
@@ -383,6 +436,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
   const budgets = collect(raw.budgets, 'budgets', parseBudget);
   const recurring = collect(raw.recurring, 'recurring', parseRecurring);
   const templates = collect(raw.templates, 'templates', parseTemplate);
+  const goals = collect(raw.goals, 'goals', parseGoal);
+  const goalContributions = collect(raw.goalContributions, 'goalContributions', parseGoalContribution);
   const settings = parseSettings(raw.settings);
 
   const counts: Record<ImportEntity, EntityReport> = {
@@ -393,6 +448,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     budgets: budgets.report,
     recurring: recurring.report,
     templates: templates.report,
+    goals: goals.report,
+    goalContributions: goalContributions.report,
   };
 
   const anyPresent = IMPORT_ENTITIES.some((e) => counts[e].present) || settings !== undefined;
@@ -406,6 +463,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     ...budgets.issues,
     ...recurring.issues,
     ...templates.issues,
+    ...goals.issues,
+    ...goalContributions.issues,
   ];
   const issues = allIssues.slice(0, MAX_REPORTED_ISSUES);
   if (allIssues.length > issues.length) {
@@ -469,6 +528,16 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     );
   }
 
+  if (goals.rows && goalContributions.rows) {
+    const ids = new Set(goals.rows.map((g) => g.id));
+    const orphans = goalContributions.rows.filter((c) => !ids.has(c.goalId)).length;
+    if (orphans > 0) {
+      warnings.push(
+        `${orphans} goal contribution${orphans === 1 ? '' : 's'} reference a goal that is not in this file`,
+      );
+    }
+  }
+
   return {
     data: {
       ...(accounts.rows ? { accounts: accounts.rows } : {}),
@@ -478,6 +547,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
       ...(budgets.rows ? { budgets: budgets.rows } : {}),
       ...(recurring.rows ? { recurring: recurring.rows } : {}),
       ...(templates.rows ? { templates: templates.rows } : {}),
+      ...(goals.rows ? { goals: goals.rows } : {}),
+      ...(goalContributions.rows ? { goalContributions: goalContributions.rows } : {}),
       ...(settings ? { settings } : {}),
     },
     report: { counts, hasSettings: settings !== undefined, issues, warnings },

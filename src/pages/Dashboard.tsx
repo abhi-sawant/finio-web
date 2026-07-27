@@ -29,7 +29,9 @@ import {
   getDashboardStats,
   sortTransactionsDateDesc,
   computeBudgetStatuses,
+  computeGoalStatus,
 } from '@/utils/calculations';
+import { GoalIcon } from '@/components/goals/GoalIcon';
 import { PERIOD_LABELS, normalizeMonthStartDay } from '@/utils/period';
 import { isRulePaused, nextDueDate } from '@/store/recurring';
 
@@ -55,6 +57,8 @@ export default function Dashboard() {
   const budgets = useFinanceStore((s) => s.budgets);
   const labels = useFinanceStore((s) => s.labels);
   const recurring = useFinanceStore((s) => s.recurring);
+  const goals = useFinanceStore((s) => s.goals);
+  const goalContributions = useFinanceStore((s) => s.goalContributions);
   const userName = useFinanceStore((s) => s.settings.userName);
   const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
 
@@ -107,6 +111,16 @@ export default function Dashboard() {
       .filter(({ daysUntil }) => daysUntil >= 0 && daysUntil <= 7)
       .sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime());
   }, [recurring]);
+  // In-progress goals, closest to done first — completed ones have nothing left to track.
+  const topGoals = useMemo(
+    () =>
+      goals
+        .map((g) => computeGoalStatus(g, goalContributions))
+        .filter((s) => !s.isComplete)
+        .sort((a, b) => b.percent - a.percent)
+        .slice(0, 2),
+    [goals, goalContributions],
+  );
   const creditDues = useMemo(() => {
     return openAccounts
       .filter((a) => a.type === 'credit')
@@ -325,6 +339,46 @@ export default function Dashboard() {
                       : 'var(--grad-primary)',
                 }}
               />
+            </div>
+          </button>
+        )}
+
+        {/* Savings goals — shown for the goals furthest along that aren't done yet */}
+        {topGoals.length > 0 && (
+          <button
+            onClick={() => navigate('/goals')}
+            className="card-elevated w-full rounded-2xl p-4 text-left"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <div className="bg-grad-success-soft flex h-6 w-6 items-center justify-center rounded-full">
+                <PiggyBank size={13} className="text-emerald-500" />
+              </div>
+              <span className="text-sm font-semibold">Savings Goals</span>
+            </div>
+            <div className="space-y-3">
+              {topGoals.map((s) => (
+                <div key={s.goal.id}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs font-medium">
+                      <GoalIcon icon={s.goal.icon} size={12} color={s.goal.color} />
+                      {s.goal.name}
+                    </span>
+                    <span className="text-muted-foreground text-xs font-semibold">
+                      {formatCurrency(s.current, true, hideAmounts)} /{' '}
+                      {formatCurrency(s.goal.targetAmount, true, hideAmounts)}
+                    </span>
+                  </div>
+                  <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(Math.max(s.percent, 0), 100)}%`,
+                        backgroundImage: `linear-gradient(90deg, ${s.goal.color}, ${s.goal.color}cc)`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </button>
         )}

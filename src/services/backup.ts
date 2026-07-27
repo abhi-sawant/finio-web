@@ -12,7 +12,16 @@ import type { FinanceStore } from '@/types';
 
 type BackupPayload = Pick<
   FinanceStore,
-  'accounts' | 'transactions' | 'categories' | 'labels' | 'budgets' | 'recurring' | 'settings'
+  | 'accounts'
+  | 'transactions'
+  | 'categories'
+  | 'labels'
+  | 'budgets'
+  | 'recurring'
+  | 'templates'
+  | 'goals'
+  | 'goalContributions'
+  | 'settings'
 >;
 
 let backupInProgress = false;
@@ -49,8 +58,18 @@ export async function uploadBackup(): Promise<string> {
   const { token } = useAuthStore.getState();
   if (!token) throw new Error('Not signed in');
 
-  const { accounts, transactions, categories, labels, budgets, recurring, settings } =
-    useFinanceStore.getState();
+  const {
+    accounts,
+    transactions,
+    categories,
+    labels,
+    budgets,
+    recurring,
+    templates,
+    goals,
+    goalContributions,
+    settings,
+  } = useFinanceStore.getState();
   const payload: BackupPayload = {
     accounts,
     transactions,
@@ -58,6 +77,9 @@ export async function uploadBackup(): Promise<string> {
     labels,
     budgets,
     recurring,
+    templates,
+    goals,
+    goalContributions,
     settings,
   };
   await api.uploadBackup(token, payload);
@@ -99,8 +121,18 @@ export async function deleteCloudBackup(date: string): Promise<void> {
 }
 
 export async function autoLocalBackupIfNeeded(): Promise<void> {
-  const { accounts, transactions, budgets, recurring, settings, lastLocalBackupAt, setLastLocalBackupAt } =
-    useFinanceStore.getState();
+  const {
+    accounts,
+    transactions,
+    budgets,
+    recurring,
+    templates,
+    goals,
+    goalContributions,
+    settings,
+    lastLocalBackupAt,
+    setLastLocalBackupAt,
+  } = useFinanceStore.getState();
 
   if (!settings.autoLocalBackup) return;
 
@@ -108,7 +140,8 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
     accounts.length === 0 &&
     transactions.length === 0 &&
     budgets.length === 0 &&
-    recurring.length === 0
+    recurring.length === 0 &&
+    goals.length === 0
   )
     return;
 
@@ -117,7 +150,18 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
 
   try {
     const { categories, labels } = useFinanceStore.getState();
-    const data = { accounts, transactions, categories, labels, budgets, recurring, settings };
+    const data = {
+      accounts,
+      transactions,
+      categories,
+      labels,
+      budgets,
+      recurring,
+      templates,
+      goals,
+      goalContributions,
+      settings,
+    };
     // No user gesture here (runs from a mount effect), so never prompt for folder permission.
     await saveLocalBackup(`finio-backup-${today}.json`, JSON.stringify(data, null, 2), {
       allowPrompt: false,
@@ -134,12 +178,13 @@ export async function autoBackupIfNeeded(): Promise<void> {
   const { token, lastBackupAt } = useAuthStore.getState();
   if (!token) return;
 
-  const { accounts, transactions, budgets, recurring } = useFinanceStore.getState();
+  const { accounts, transactions, budgets, recurring, goals } = useFinanceStore.getState();
   if (
     accounts.length === 0 &&
     transactions.length === 0 &&
     budgets.length === 0 &&
-    recurring.length === 0
+    recurring.length === 0 &&
+    goals.length === 0
   )
     return;
 

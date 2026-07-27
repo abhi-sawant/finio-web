@@ -4,13 +4,14 @@ import {
   budgetScopeKey,
   computeBudgetHistory,
   computeBudgetStatuses,
+  computeGoalStatus,
   getCreditCardDueInfo,
   getCreditUtilization,
   getCurrentMonthTransactions,
   getDashboardStats,
   transactionMatchesQuery,
 } from './calculations';
-import type { Account, Budget, Category, Label, Transaction } from '@/types';
+import type { Account, Budget, Category, Goal, GoalContribution, Label, Transaction } from '@/types';
 
 function creditAccount(partial: Partial<Account> = {}): Account {
   return {
@@ -36,6 +37,31 @@ function tx(partial: Partial<Transaction> & Pick<Transaction, 'type' | 'amount'>
     note: '',
     labels: [],
     createdAt: '2026-06-05T00:00:00.000Z',
+    ...partial,
+  };
+}
+
+function goal(extra: Partial<Goal> = {}): Goal {
+  return {
+    id: 'goal-1',
+    name: 'Emergency Fund',
+    icon: 'target',
+    color: '#6C63FF',
+    targetAmount: 10000,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...extra,
+  };
+}
+
+function contribution(
+  partial: Partial<GoalContribution> & Pick<GoalContribution, 'amount'>,
+): GoalContribution {
+  return {
+    id: partial.id ?? `contrib-${partial.amount}`,
+    goalId: 'goal-1',
+    date: '2026-01-05T00:00:00.000Z',
+    note: '',
+    createdAt: '2026-01-05T00:00:00.000Z',
     ...partial,
   };
 }
@@ -486,5 +512,77 @@ describe('getCreditCardDueInfo', () => {
     });
     const info = getCreditCardDueInfo(account, at(2026, 7, 10));
     expect(info?.minimumDue).toBe(100);
+  });
+});
+
+describe('computeGoalStatus', () => {
+  it('sums only the contributions logged against this goal', () => {
+    const g = goal({ targetAmount: 10000 });
+    const contributions = [
+      contribution({ id: 'c1', amount: 2000 }),
+      contribution({ id: 'c2', amount: 1000 }),
+      contribution({ id: 'c3', amount: 500, goalId: 'other-goal' }),
+    ];
+    const status = computeGoalStatus(g, contributions, at(2026, 1, 10));
+    expect(status.current).toBe(3000);
+    expect(status.remaining).toBe(7000);
+    expect(status.percent).toBe(30);
+    expect(status.isComplete).toBe(false);
+  });
+
+  it('nets withdrawals (negative amounts) against contributions', () => {
+    const g = goal({ targetAmount: 10000 });
+    const contributions = [
+      contribution({ id: 'c1', amount: 3000 }),
+      contribution({ id: 'c2', amount: -1000 }),
+    ];
+    const status = computeGoalStatus(g, contributions, at(2026, 1, 10));
+    expect(status.current).toBe(2000);
+  });
+
+  it('is complete once contributions reach the target, and percent can exceed 100', () => {
+    const g = goal({ targetAmount: 1000 });
+    const contributions = [contribution({ amount: 1200 })];
+    const status = computeGoalStatus(g, contributions, at(2026, 1, 10));
+    expect(status.isComplete).toBe(true);
+    expect(status.remaining).toBe(-200);
+    expect(status.percent).toBe(120);
+  });
+
+  it('has no projected date with zero contributions', () => {
+    const g = goal({ targetAmount: 10000 });
+    const status = computeGoalStatus(g, [], at(2026, 1, 10));
+    expect(status.projectedDate).toBeNull();
+  });
+
+  it('has no projected date once the goal is already complete', () => {
+    const g = goal({ targetAmount: 1000 });
+    const contributions = [contribution({ amount: 1000 })];
+    const status = computeGoalStatus(g, contributions, at(2026, 1, 10));
+    expect(status.projectedDate).toBeNull();
+  });
+
+  it('has no projected date when net progress is zero or negative', () => {
+    const g = goal({ targetAmount: 10000, createdAt: '2026-01-01T00:00:00.000Z' });
+    const contributions = [
+      contribution({ id: 'c1', amount: 1000 }),
+      contribution({ id: 'c2', amount: -1000 }),
+    ];
+    const status = computeGoalStatus(g, contributions, at(2026, 1, 31));
+    expect(status.projectedDate).toBeNull();
+  });
+
+  it('projects completion by pacing the average daily contribution since creation', () => {
+    // Created 30 days before `now`, ₹1,000 saved so far toward a ₹10,000 target — a daily
+    // pace of ~33.33, needing ~270 more days to close the ₹9,000 gap.
+    const g = goal({ targetAmount: 10000, createdAt: '2026-01-01T00:00:00.000Z' });
+    const contributions = [contribution({ amount: 1000, date: '2026-01-01T00:00:00.000Z' })];
+    const now = at(2026, 1, 31);
+    const status = computeGoalStatus(g, contributions, now);
+    expect(status.projectedDate).not.toBeNull();
+    const daysAhead = Math.round(
+      (status.projectedDate!.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    expect(daysAhead).toBe(270);
   });
 });

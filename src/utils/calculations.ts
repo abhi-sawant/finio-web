@@ -10,7 +10,7 @@ import {
   shiftPeriod,
   type PeriodRange,
 } from './period';
-import type { Transaction, Account, Budget, Category, Label } from '@/types';
+import type { Transaction, Account, Budget, Category, Label, Goal, GoalContribution } from '@/types';
 
 export function getTotalIncome(transactions: Transaction[]): number {
   return transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -411,6 +411,49 @@ export function getPreviousMonthTransactions(
 ): Transaction[] {
   const previous = shiftPeriod(periodRange('monthly', new Date(), monthStartDay), -1);
   return transactionsInPeriod(transactions, previous);
+}
+
+export interface GoalStatus {
+  goal: Goal;
+  /** Sum of every contribution logged against this goal (withdrawals subtract). */
+  current: number;
+  /** `targetAmount - current`. Negative once the goal has been overshot. */
+  remaining: number;
+  /** Unclamped — can exceed 100 once the goal is overshot. */
+  percent: number;
+  isComplete: boolean;
+  /**
+   * Projected completion date, paced by the average daily contribution since the goal was
+   * created. Null when already complete, or when there's no positive pace to extrapolate
+   * from (no contributions yet, or net withdrawals so far).
+   */
+  projectedDate: Date | null;
+}
+
+/** Progress toward a savings goal, from its own contribution ledger. */
+export function computeGoalStatus(
+  goal: Goal,
+  contributions: GoalContribution[],
+  now = new Date(),
+): GoalStatus {
+  const current = contributions
+    .filter((c) => c.goalId === goal.id)
+    .reduce((sum, c) => sum + c.amount, 0);
+  const remaining = goal.targetAmount - current;
+  const percent = goal.targetAmount > 0 ? (current / goal.targetAmount) * 100 : 0;
+  const isComplete = current >= goal.targetAmount;
+
+  let projectedDate: Date | null = null;
+  if (!isComplete && current > 0) {
+    const created = parseISO(goal.createdAt);
+    const daysElapsed = Math.max(1, differenceInCalendarDays(now, created));
+    const dailyRate = current / daysElapsed;
+    if (dailyRate > 0) {
+      projectedDate = addDays(now, Math.ceil(remaining / dailyRate));
+    }
+  }
+
+  return { goal, current, remaining, percent, isComplete, projectedDate };
 }
 
 /** Convert transactions to CSV string. */
