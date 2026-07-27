@@ -3,11 +3,13 @@ import { normalizeMonthStartDay } from './period';
 import type {
   Budget,
   Category,
+  DebtEntry,
   Goal,
   GoalContribution,
   ImportPayload,
   ImportedAccount,
   Label,
+  Person,
   RecurringTransaction,
   Settings,
   Transaction,
@@ -30,7 +32,9 @@ export type ImportEntity =
   | 'recurring'
   | 'templates'
   | 'goals'
-  | 'goalContributions';
+  | 'goalContributions'
+  | 'people'
+  | 'debtEntries';
 
 export const IMPORT_ENTITIES: ImportEntity[] = [
   'accounts',
@@ -42,6 +46,8 @@ export const IMPORT_ENTITIES: ImportEntity[] = [
   'templates',
   'goals',
   'goalContributions',
+  'people',
+  'debtEntries',
 ];
 
 export const ENTITY_LABELS: Record<ImportEntity, string> = {
@@ -54,6 +60,8 @@ export const ENTITY_LABELS: Record<ImportEntity, string> = {
   templates: 'Templates',
   goals: 'Savings goals',
   goalContributions: 'Goal contributions',
+  people: 'People',
+  debtEntries: 'Debt entries',
 };
 
 export interface EntityReport {
@@ -350,6 +358,45 @@ const parseGoalContribution: RowParser<GoalContribution> = (row) => {
   };
 };
 
+const parsePerson: RowParser<Person> = (row) => {
+  const id = asId(row.id);
+  if (!id) return 'missing id';
+  const name = asId(row.name);
+  if (!name) return 'missing name';
+
+  return {
+    id,
+    name,
+    icon: asString(row.icon, 'user'),
+    color: asString(row.color, '#6C63FF'),
+    createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
+  };
+};
+
+const parseDebtEntry: RowParser<DebtEntry> = (row) => {
+  const id = asId(row.id);
+  if (!id) return 'missing id';
+  const personId = asId(row.personId);
+  if (!personId) return 'missing personId';
+  const amount = asFiniteNumber(row.amount);
+  if (amount === undefined) return 'amount is not a number';
+  if (amount === 0) return 'amount cannot be zero';
+  const date = asIsoDate(row.date);
+  if (!date) return `unparseable date "${String(row.date)}"`;
+
+  const settledTransactionId = asId(row.settledTransactionId);
+
+  return {
+    id,
+    personId,
+    amount,
+    date,
+    note: asString(row.note, ''),
+    createdAt: asIsoDate(row.createdAt) ?? date,
+    ...(settledTransactionId ? { settledTransactionId } : {}),
+  };
+};
+
 function parseSettings(value: unknown): Settings | undefined {
   if (!isRecord(value)) return undefined;
   // Pick only known keys — this is also what strips the legacy `currency` field.
@@ -438,6 +485,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
   const templates = collect(raw.templates, 'templates', parseTemplate);
   const goals = collect(raw.goals, 'goals', parseGoal);
   const goalContributions = collect(raw.goalContributions, 'goalContributions', parseGoalContribution);
+  const people = collect(raw.people, 'people', parsePerson);
+  const debtEntries = collect(raw.debtEntries, 'debtEntries', parseDebtEntry);
   const settings = parseSettings(raw.settings);
 
   const counts: Record<ImportEntity, EntityReport> = {
@@ -450,6 +499,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     templates: templates.report,
     goals: goals.report,
     goalContributions: goalContributions.report,
+    people: people.report,
+    debtEntries: debtEntries.report,
   };
 
   const anyPresent = IMPORT_ENTITIES.some((e) => counts[e].present) || settings !== undefined;
@@ -465,6 +516,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     ...templates.issues,
     ...goals.issues,
     ...goalContributions.issues,
+    ...people.issues,
+    ...debtEntries.issues,
   ];
   const issues = allIssues.slice(0, MAX_REPORTED_ISSUES);
   if (allIssues.length > issues.length) {
@@ -538,6 +591,16 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     }
   }
 
+  if (people.rows && debtEntries.rows) {
+    const ids = new Set(people.rows.map((p) => p.id));
+    const orphans = debtEntries.rows.filter((e) => !ids.has(e.personId)).length;
+    if (orphans > 0) {
+      warnings.push(
+        `${orphans} debt entr${orphans === 1 ? 'y' : 'ies'} reference a person that is not in this file`,
+      );
+    }
+  }
+
   return {
     data: {
       ...(accounts.rows ? { accounts: accounts.rows } : {}),
@@ -549,6 +612,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
       ...(templates.rows ? { templates: templates.rows } : {}),
       ...(goals.rows ? { goals: goals.rows } : {}),
       ...(goalContributions.rows ? { goalContributions: goalContributions.rows } : {}),
+      ...(people.rows ? { people: people.rows } : {}),
+      ...(debtEntries.rows ? { debtEntries: debtEntries.rows } : {}),
       ...(settings ? { settings } : {}),
     },
     report: { counts, hasSettings: settings !== undefined, issues, warnings },

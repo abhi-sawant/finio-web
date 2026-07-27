@@ -21,11 +21,13 @@ import type {
   Account,
   Budget,
   Category,
+  DebtEntry,
   FinanceStore,
   Goal,
   GoalContribution,
   ImportedAccount,
   Label,
+  Person,
   RecurringTransaction,
   Settings,
   Transaction,
@@ -78,6 +80,8 @@ const defaultState = {
   templates: [] as TransactionTemplate[],
   goals: [] as Goal[],
   goalContributions: [] as GoalContribution[],
+  people: [] as Person[],
+  debtEntries: [] as DebtEntry[],
   settings: defaultSettings,
   isHydrated: false,
   lastLocalBackupAt: null as string | null,
@@ -517,6 +521,56 @@ export const useFinanceStore = create<FinanceStore>()(
         });
       },
 
+      addPerson: (personData) => {
+        const person: Person = {
+          ...personData,
+          id: generateUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ people: [...state.people, person] }));
+        return person.id;
+      },
+
+      updatePerson: (id, updates) => {
+        set((state) => ({
+          people: state.people.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+        }));
+      },
+
+      deletePerson: (id) => {
+        set((state) => ({
+          people: state.people.filter((p) => p.id !== id),
+          debtEntries: state.debtEntries.filter((e) => e.personId !== id),
+        }));
+      },
+
+      addDebtEntry: (entryData) => {
+        const entry: DebtEntry = {
+          ...entryData,
+          id: generateUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ debtEntries: [entry, ...state.debtEntries] }));
+        return entry.id;
+      },
+
+      deleteDebtEntry: (id) => {
+        const entry = get().debtEntries.find((e) => e.id === id);
+        if (!entry) return null;
+        set((state) => ({
+          debtEntries: state.debtEntries.filter((e) => e.id !== id),
+        }));
+        return entry;
+      },
+
+      restoreDebtEntry: (entry) => {
+        set((state) => {
+          // Guard against a double undo re-inserting the same row twice.
+          if (state.debtEntries.some((e) => e.id === entry.id)) return state;
+          return { debtEntries: [entry, ...state.debtEntries] };
+        });
+      },
+
       updateSettings: (updates) => {
         set((state) => ({
           settings: { ...state.settings, ...updates },
@@ -536,6 +590,8 @@ export const useFinanceStore = create<FinanceStore>()(
           templates: [],
           goals: [],
           goalContributions: [],
+          people: [],
+          debtEntries: [],
         });
       },
 
@@ -557,6 +613,8 @@ export const useFinanceStore = create<FinanceStore>()(
                   templates: mergeById(state.templates, data.templates),
                   goals: mergeById(state.goals, data.goals),
                   goalContributions: mergeById(state.goalContributions, data.goalContributions),
+                  people: mergeById(state.people, data.people),
+                  debtEntries: mergeById(state.debtEntries, data.debtEntries),
                 }
               : {
                   accounts: (incomingAccounts ?? state.accounts) as ImportedAccount[],
@@ -568,6 +626,8 @@ export const useFinanceStore = create<FinanceStore>()(
                   templates: data.templates ?? state.templates,
                   goals: data.goals ?? state.goals,
                   goalContributions: data.goalContributions ?? state.goalContributions,
+                  people: data.people ?? state.people,
+                  debtEntries: data.debtEntries ?? state.debtEntries,
                 };
 
           return {
@@ -588,7 +648,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 9,
+      version: 10,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -704,6 +764,15 @@ export const useFinanceStore = create<FinanceStore>()(
           };
         }
 
+        if (version < 10) {
+          // Debt/lending tracker is new.
+          s = {
+            ...s,
+            people: Array.isArray(s.people) ? s.people : [],
+            debtEntries: Array.isArray(s.debtEntries) ? s.debtEntries : [],
+          };
+        }
+
         return s as FinanceStore;
       },
       onRehydrateStorage: () => (state) => {
@@ -725,4 +794,6 @@ export const useRecurring = () => useFinanceStore((s) => s.recurring);
 export const useTemplates = () => useFinanceStore((s) => s.templates);
 export const useGoals = () => useFinanceStore((s) => s.goals);
 export const useGoalContributions = () => useFinanceStore((s) => s.goalContributions);
+export const usePeople = () => useFinanceStore((s) => s.people);
+export const useDebtEntries = () => useFinanceStore((s) => s.debtEntries);
 export const useSettings = () => useFinanceStore((s) => s.settings);

@@ -21,6 +21,8 @@ type BackupPayload = Pick<
   | 'templates'
   | 'goals'
   | 'goalContributions'
+  | 'people'
+  | 'debtEntries'
   | 'settings'
 >;
 
@@ -68,6 +70,8 @@ export async function uploadBackup(): Promise<string> {
     templates,
     goals,
     goalContributions,
+    people,
+    debtEntries,
     settings,
   } = useFinanceStore.getState();
   const payload: BackupPayload = {
@@ -80,6 +84,8 @@ export async function uploadBackup(): Promise<string> {
     templates,
     goals,
     goalContributions,
+    people,
+    debtEntries,
     settings,
   };
   await api.uploadBackup(token, payload);
@@ -129,6 +135,8 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
     templates,
     goals,
     goalContributions,
+    people,
+    debtEntries,
     settings,
     lastLocalBackupAt,
     setLastLocalBackupAt,
@@ -141,7 +149,8 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
     transactions.length === 0 &&
     budgets.length === 0 &&
     recurring.length === 0 &&
-    goals.length === 0
+    goals.length === 0 &&
+    people.length === 0
   )
     return;
 
@@ -160,6 +169,8 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
       templates,
       goals,
       goalContributions,
+      people,
+      debtEntries,
       settings,
     };
     // No user gesture here (runs from a mount effect), so never prompt for folder permission.
@@ -178,13 +189,14 @@ export async function autoBackupIfNeeded(): Promise<void> {
   const { token, lastBackupAt } = useAuthStore.getState();
   if (!token) return;
 
-  const { accounts, transactions, budgets, recurring, goals } = useFinanceStore.getState();
+  const { accounts, transactions, budgets, recurring, goals, people } = useFinanceStore.getState();
   if (
     accounts.length === 0 &&
     transactions.length === 0 &&
     budgets.length === 0 &&
     recurring.length === 0 &&
-    goals.length === 0
+    goals.length === 0 &&
+    people.length === 0
   )
     return;
 

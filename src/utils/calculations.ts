@@ -10,7 +10,17 @@ import {
   shiftPeriod,
   type PeriodRange,
 } from './period';
-import type { Transaction, Account, Budget, Category, Label, Goal, GoalContribution } from '@/types';
+import type {
+  Transaction,
+  Account,
+  Budget,
+  Category,
+  Label,
+  Goal,
+  GoalContribution,
+  Person,
+  DebtEntry,
+} from '@/types';
 
 export function getTotalIncome(transactions: Transaction[]): number {
   return transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -454,6 +464,41 @@ export function computeGoalStatus(
   }
 
   return { goal, current, remaining, percent, isComplete, projectedDate };
+}
+
+export interface PersonBalance {
+  person: Person;
+  /** Positive = they owe you; negative = you owe them; zero = settled up. */
+  balance: number;
+  /** ISO date of the most recent entry against this person, or null if there are none. */
+  lastActivity: string | null;
+}
+
+/** Net balance owed to/by a person, from their own debt-entry ledger. */
+export function computePersonBalance(person: Person, entries: DebtEntry[]): PersonBalance {
+  const own = entries.filter((e) => e.personId === person.id);
+  const balance = own.reduce((sum, e) => sum + e.amount, 0);
+  const lastActivity = own.reduce<string | null>(
+    (latest, e) => (!latest || e.date > latest ? e.date : latest),
+    null,
+  );
+  return { person, balance, lastActivity };
+}
+
+/** Sum of every positive per-person balance — the total other people owe you. */
+export function getTotalOwedToYou(people: Person[], entries: DebtEntry[]): number {
+  return people.reduce((sum, p) => {
+    const { balance } = computePersonBalance(p, entries);
+    return balance > 0 ? sum + balance : sum;
+  }, 0);
+}
+
+/** Sum of every negative per-person balance, as a positive number — the total you owe others. */
+export function getTotalYouOwe(people: Person[], entries: DebtEntry[]): number {
+  return people.reduce((sum, p) => {
+    const { balance } = computePersonBalance(p, entries);
+    return balance < 0 ? sum - balance : sum;
+  }, 0);
 }
 
 /** Convert transactions to CSV string. */
