@@ -186,7 +186,9 @@ export default function Dashboard() {
                   Savings rate
                 </span>
               </div>
-              <p className="text-sm font-bold">{Math.round(stats.savingsRate * 100)}%</p>
+              <p className={`text-sm font-bold ${stats.savingsRate < 0 ? 'text-rose-500' : ''}`}>
+                {Math.round(stats.savingsRate * 100)}%
+              </p>
               {prevMonthTxns.length > 0 && (
                 <p
                   className={`mt-0.5 text-[10px] ${stats.monthOverMonthChange > 0 ? 'text-rose-500' : 'text-emerald-500'}`}

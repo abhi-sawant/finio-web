@@ -1,7 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { addDays, addMonths, addWeeks, addYears, isAfter, parseISO } from 'date-fns';
-import { defaultCategories, defaultLabels, defaultSettings } from '@/data/defaultData';
+import {
+  MISC_CATEGORY_ID,
+  defaultCategories,
+  defaultLabels,
+  defaultSettings,
+} from '@/data/defaultData';
 import type {
   Account,
   Budget,
@@ -51,6 +56,9 @@ function applyBalanceDelta(
     return account;
   });
 }
+
+/** Safety cap on how many occurrences a single rule may generate in one pass. */
+const MAX_OCCURRENCES_PER_RULE = 365;
 
 function nextOccurrence(date: Date, freq: RecurringTransaction['frequency']): Date {
   switch (freq) {
@@ -102,13 +110,24 @@ export const useFinanceStore = create<FinanceStore>()(
       },
 
       deleteAccount: (id) => {
-        set((state) => ({
-          accounts: state.accounts.filter((a) => a.id !== id),
-          transactions: state.transactions.filter(
-            (t) => t.accountId !== id && t.toAccountId !== id,
-          ),
-          recurring: state.recurring.filter((r) => r.accountId !== id),
-        }));
+        set((state) => {
+          const removed = state.transactions.filter(
+            (t) => t.accountId === id || t.toAccountId === id,
+          );
+
+          // Reverse each removed transaction before dropping it, otherwise the *other*
+          // side of a transfer keeps a balance it no longer has any transaction for.
+          let accounts = state.accounts;
+          for (const tx of removed) accounts = applyBalanceDelta(accounts, tx, -1);
+
+          return {
+            accounts: accounts.filter((a) => a.id !== id),
+            transactions: state.transactions.filter(
+              (t) => t.accountId !== id && t.toAccountId !== id,
+            ),
+            recurring: state.recurring.filter((r) => r.accountId !== id),
+          };
+        });
       },
 
       addTransaction: (txData) => {
@@ -168,10 +187,28 @@ export const useFinanceStore = create<FinanceStore>()(
       },
 
       deleteCategory: (id) => {
-        set((state) => ({
-          categories: state.categories.filter((c) => c.id !== id),
-          budgets: state.budgets.filter((b) => b.categoryId !== id),
-        }));
+        set((state) => {
+          const remaining = state.categories.filter((c) => c.id !== id);
+
+          // Rows pointing at a deleted category would otherwise render as "Unknown" and
+          // silently vanish from the spending charts. Reassign them to a surviving
+          // catch-all instead.
+          const fallbackId =
+            remaining.find((c) => c.id === MISC_CATEGORY_ID)?.id ??
+            remaining.find((c) => c.type === 'both')?.id ??
+            '';
+
+          return {
+            categories: remaining,
+            budgets: state.budgets.filter((b) => b.categoryId !== id),
+            transactions: state.transactions.map((t) =>
+              t.categoryId === id ? { ...t, categoryId: fallbackId } : t,
+            ),
+            recurring: state.recurring.map((r) =>
+              r.categoryId === id ? { ...r, categoryId: fallbackId } : r,
+            ),
+          };
+        });
       },
 
       addLabel: (labelData) => {
@@ -260,8 +297,9 @@ export const useFinanceStore = create<FinanceStore>()(
             : parseISO(rule.startDate);
 
           let lastRun = rule.lastRunDate ? parseISO(rule.lastRunDate) : null;
+          let ruleGenerated = 0;
 
-          while (!isAfter(next, now)) {
+          while (!isAfter(next, now) && ruleGenerated < MAX_OCCURRENCES_PER_RULE) {
             newTxns.push({
               id: generateUUID(),
               type: rule.type,
@@ -275,10 +313,9 @@ export const useFinanceStore = create<FinanceStore>()(
               recurringId: rule.id,
             });
             generated += 1;
+            ruleGenerated += 1;
             lastRun = next;
             next = nextOccurrence(next, rule.frequency);
-            // Safety: cap at 365 generations per rule per call.
-            if (generated > 365) break;
           }
 
           return lastRun ? { ...rule, lastRunDate: lastRun.toISOString() } : rule;
