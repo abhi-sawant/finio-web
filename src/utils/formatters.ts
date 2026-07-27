@@ -68,6 +68,22 @@ export function formatInputAmount(raw: string): string {
   return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
 }
 
+/** 1 → "1st", 22 → "22nd". Used for month start days. */
+export function formatOrdinal(value: number): string {
+  const teens = value % 100;
+  if (teens >= 11 && teens <= 13) return `${value}th`;
+  switch (value % 10) {
+    case 1:
+      return `${value}st`;
+    case 2:
+      return `${value}nd`;
+    case 3:
+      return `${value}rd`;
+    default:
+      return `${value}th`;
+  }
+}
+
 /** Format a 0..1 ratio as a +/- signed percentage. */
 export function formatPercentChange(ratio: number): string {
   const pct = Math.round(ratio * 100);

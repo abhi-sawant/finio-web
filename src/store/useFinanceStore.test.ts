@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { getNetWorth, getTotalAccountBalance } from '@/utils/calculations';
 import { defaultSettings } from '@/data/defaultData';
-import type { Account, ImportPayload, Transaction } from '@/types';
+import type { Account, ImportPayload, RecurringTransaction, Transaction } from '@/types';
 
 // The store creates its persist middleware at import time, so localStorage has to exist
 // before the module is pulled in. A Map-backed stub keeps the suite in the node
@@ -280,6 +280,138 @@ describe('importData', () => {
     useFinanceStore.getState().importData({ transactions: [] }, { mode: 'replace' });
     expect(useFinanceStore.getState().categories).toBe(before);
     expect(useFinanceStore.getState().accounts.map((a) => a.id)).toEqual(['local']);
+  });
+});
+
+describe('addBudget', () => {
+  const base = { amount: 1000, period: 'monthly' as const, rollover: false };
+
+  it('replaces an existing budget for the same scope', () => {
+    useFinanceStore.getState().addBudget({ ...base, categoryId: 'cat-1' });
+    useFinanceStore.getState().addBudget({ ...base, categoryId: 'cat-1', amount: 2000 });
+
+    const { budgets } = useFinanceStore.getState();
+    expect(budgets).toHaveLength(1);
+    expect(budgets[0].amount).toBe(2000);
+  });
+
+  it('keeps overall, category and label budgets side by side', () => {
+    useFinanceStore.getState().addBudget({ ...base, categoryId: '' });
+    useFinanceStore.getState().addBudget({ ...base, categoryId: 'cat-1' });
+    useFinanceStore.getState().addBudget({ ...base, categoryId: '', labelId: 'lbl-1' });
+
+    expect(useFinanceStore.getState().budgets).toHaveLength(3);
+  });
+});
+
+describe('recurring rules', () => {
+  function recurringRule(partial: Partial<RecurringTransaction> = {}): RecurringTransaction {
+    return {
+      id: 'r1',
+      type: 'expense',
+      amount: 300,
+      accountId: 'a',
+      categoryId: 'cat-1',
+      note: '',
+      labels: [],
+      frequency: 'monthly',
+      // Long past, but capped at a single occurrence so the test is date-independent.
+      startDate: '2020-01-01T00:00:00.000Z',
+      maxOccurrences: 1,
+      occurrenceCount: 0,
+      lastRunDate: null,
+      createdAt: '2020-01-01T00:00:00.000Z',
+      ...partial,
+    };
+  }
+
+  it('generates a transfer occurrence and moves both balances', () => {
+    seed([account('a', 1000), account('b', 500)]);
+    useFinanceStore.setState({
+      recurring: [recurringRule({ type: 'transfer', toAccountId: 'b' })],
+    });
+
+    expect(useFinanceStore.getState().processRecurring()).toBe(1);
+
+    const state = useFinanceStore.getState();
+    expect(state.transactions[0].toAccountId).toBe('b');
+    expect(state.accounts.find((a) => a.id === 'a')?.balance).toBe(700);
+    expect(state.accounts.find((a) => a.id === 'b')?.balance).toBe(800);
+    expect(state.recurring[0].occurrenceCount).toBe(1);
+    // And the rule is spent — a second pass adds nothing.
+    expect(useFinanceStore.getState().processRecurring()).toBe(0);
+  });
+
+  it('skips a transfer rule whose destination account is gone', () => {
+    seed([account('a', 1000)]);
+    useFinanceStore.setState({
+      recurring: [recurringRule({ type: 'transfer', toAccountId: 'missing' })],
+    });
+
+    expect(useFinanceStore.getState().processRecurring()).toBe(0);
+    expect(useFinanceStore.getState().accounts[0].balance).toBe(1000);
+  });
+
+  it('generates nothing while paused and resumes cleanly', () => {
+    seed([account('a', 1000)]);
+    useFinanceStore.setState({ recurring: [recurringRule()] });
+
+    useFinanceStore.getState().setRecurringPaused('r1', true);
+    expect(useFinanceStore.getState().processRecurring()).toBe(0);
+
+    useFinanceStore.getState().setRecurringPaused('r1', false);
+    expect('pausedAt' in useFinanceStore.getState().recurring[0]).toBe(false);
+    expect(useFinanceStore.getState().processRecurring()).toBe(1);
+  });
+
+  it('drops transfer rules that pointed at a deleted account', () => {
+    seed([account('a', 1000), account('b', 500)]);
+    useFinanceStore.setState({
+      recurring: [recurringRule({ type: 'transfer', toAccountId: 'b' })],
+    });
+
+    useFinanceStore.getState().deleteAccount('b');
+    expect(useFinanceStore.getState().recurring).toEqual([]);
+  });
+});
+
+describe('v7 migration', () => {
+  it('gives existing budgets and rules their pre-v7 behaviour explicitly', async () => {
+    backing.set(
+      'finio-storage',
+      JSON.stringify({
+        version: 6,
+        state: {
+          accounts: [account('a', 100)],
+          transactions: [],
+          budgets: [{ id: 'b1', categoryId: 'cat-1', amount: 500, createdAt: '2026-01-01' }],
+          recurring: [
+            {
+              id: 'r1',
+              type: 'expense',
+              amount: 10,
+              accountId: 'a',
+              categoryId: 'cat-1',
+              note: '',
+              labels: [],
+              frequency: 'monthly',
+              startDate: '2026-01-01T00:00:00.000Z',
+              lastRunDate: null,
+              createdAt: '2026-01-01T00:00:00.000Z',
+            },
+          ],
+          settings: { theme: 'dark', userName: 'Alex', autoLocalBackup: false },
+        },
+      }),
+    );
+
+    await useFinanceStore.persist.rehydrate();
+    const state = useFinanceStore.getState();
+
+    expect(state.budgets[0]).toMatchObject({ period: 'monthly', rollover: false });
+    expect(state.recurring[0].occurrenceCount).toBe(0);
+    expect(state.settings.monthStartDay).toBe(1);
+    expect(state.settings.userName).toBe('Alex');
   });
 });
 

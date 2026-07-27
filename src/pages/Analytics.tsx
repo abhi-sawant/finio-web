@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import type { DateRange } from 'react-day-picker';
-import { format, parseISO, startOfMonth, startOfDay, endOfDay, subMonths } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay, subMonths } from 'date-fns';
+import { monthPeriodStart, normalizeMonthStartDay, yearPeriodStart } from '@/utils/period';
 
 type FilterType = 'all' | 'month' | '3months' | '6months' | 'year' | 'custom';
 
@@ -23,23 +24,30 @@ export default function Analytics() {
   const transactions = useFinanceStore((s) => s.transactions);
   const budgets = useFinanceStore((s) => s.budgets);
   const recurring = useFinanceStore((s) => s.recurring);
+  const monthStartDay = normalizeMonthStartDay(useFinanceStore((s) => s.settings.monthStartDay));
 
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('month');
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
 
   const dateRange = useMemo(() => {
     const now = new Date();
-    if (selectedFilter === 'month') return { from: startOfMonth(now), to: now };
-    if (selectedFilter === '3months') return { from: startOfMonth(subMonths(now, 2)), to: now };
-    if (selectedFilter === '6months') return { from: startOfMonth(subMonths(now, 5)), to: now };
-    if (selectedFilter === 'year') return { from: new Date(now.getFullYear(), 0, 1), to: now };
+    // Month windows follow the user's financial month, so Analytics agrees with the
+    // Dashboard and with monthly budgets rather than snapping to the 1st.
+    const monthStart = (d: Date) => monthPeriodStart(d, monthStartDay);
+    if (selectedFilter === 'month') return { from: monthStart(now), to: now };
+    if (selectedFilter === '3months') return { from: monthStart(subMonths(now, 2)), to: now };
+    if (selectedFilter === '6months') return { from: monthStart(subMonths(now, 5)), to: now };
+    if (selectedFilter === 'year') return { from: yearPeriodStart(now, monthStartDay), to: now };
     if (selectedFilter === 'custom' && date?.from) {
       return { from: startOfDay(date.from), to: date.to ? endOfDay(date.to) : endOfDay(date.from) };
     }
     // 'all': use earliest transaction date
     const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
-    return { from: sorted.length > 0 ? startOfDay(parseISO(sorted[0].date)) : startOfMonth(now), to: now };
-  }, [selectedFilter, date, transactions]);
+    return {
+      from: sorted.length > 0 ? startOfDay(parseISO(sorted[0].date)) : monthStart(now),
+      to: now,
+    };
+  }, [selectedFilter, date, transactions, monthStartDay]);
 
   const filteredTransactions = useMemo(() => {
     if (selectedFilter === 'all') return transactions;
@@ -52,7 +60,10 @@ export default function Analytics() {
   }, [selectedFilter, transactions, dateRange, date]);
 
   const totalIncome = useMemo(() => getTotalIncome(filteredTransactions), [filteredTransactions]);
-  const totalExpenses = useMemo(() => getTotalExpenses(filteredTransactions), [filteredTransactions]);
+  const totalExpenses = useMemo(
+    () => getTotalExpenses(filteredTransactions),
+    [filteredTransactions],
+  );
   const net = totalIncome - totalExpenses;
 
   const handleFilterChange = (filter: FilterType) => {

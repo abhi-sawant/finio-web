@@ -1,13 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  getHours,
-  parseISO,
-  addDays,
-  addMonths,
-  addYears,
-  differenceInCalendarDays,
-} from 'date-fns';
+import { getHours, differenceInCalendarDays } from 'date-fns';
 import {
   Settings2,
   Plus,
@@ -35,6 +28,8 @@ import {
   sortTransactionsDateDesc,
   computeBudgetStatuses,
 } from '@/utils/calculations';
+import { PERIOD_LABELS, normalizeMonthStartDay } from '@/utils/period';
+import { isRulePaused, nextDueDate } from '@/store/recurring';
 
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { AccountCard } from '@/components/accounts/AccountCard';
@@ -55,11 +50,20 @@ export default function Dashboard() {
   const transactions = useFinanceStore((s) => s.transactions);
   const categories = useFinanceStore((s) => s.categories);
   const budgets = useFinanceStore((s) => s.budgets);
+  const labels = useFinanceStore((s) => s.labels);
   const recurring = useFinanceStore((s) => s.recurring);
   const userName = useFinanceStore((s) => s.settings.userName);
 
-  const monthTxns = useMemo(() => getCurrentMonthTransactions(transactions), [transactions]);
-  const prevMonthTxns = useMemo(() => getPreviousMonthTransactions(transactions), [transactions]);
+  const monthStartDay = normalizeMonthStartDay(useFinanceStore((s) => s.settings.monthStartDay));
+
+  const monthTxns = useMemo(
+    () => getCurrentMonthTransactions(transactions, monthStartDay),
+    [transactions, monthStartDay],
+  );
+  const prevMonthTxns = useMemo(
+    () => getPreviousMonthTransactions(transactions, monthStartDay),
+    [transactions, monthStartDay],
+  );
   const openAccounts = useMemo(() => activeAccounts(accounts), [accounts]);
   const totalBalance = useMemo(() => getTotalAccountBalance(accounts), [accounts]);
   const creditOutstanding = useMemo(() => getTotalCreditOutstanding(accounts), [accounts]);
@@ -71,15 +75,15 @@ export default function Dashboard() {
     [transactions],
   );
   const stats = useMemo(
-    () => getDashboardStats(monthTxns, prevMonthTxns, categories),
-    [monthTxns, prevMonthTxns, categories],
+    () => getDashboardStats(monthTxns, prevMonthTxns, categories, { monthStartDay }),
+    [monthTxns, prevMonthTxns, categories, monthStartDay],
   );
   const allBudgetStatuses = useMemo(
-    () => computeBudgetStatuses(budgets, monthTxns),
-    [budgets, monthTxns],
+    () => computeBudgetStatuses(budgets, transactions, { monthStartDay }),
+    [budgets, transactions, monthStartDay],
   );
   const overallBudget = useMemo(
-    () => allBudgetStatuses.find((s) => s.budget.categoryId === '') ?? null,
+    () => allBudgetStatuses.find((s) => !s.budget.labelId && s.budget.categoryId === '') ?? null,
     [allBudgetStatuses],
   );
   const nearLimitBudgets = useMemo(
@@ -88,19 +92,13 @@ export default function Dashboard() {
   );
   const upcomingRecurring = useMemo(() => {
     const now = new Date();
+    // Paused and finished rules have no next bill to warn about.
     return recurring
-      .map((r) => {
-        let nextDue: Date;
-        if (r.lastRunDate === null) {
-          nextDue = parseISO(r.startDate);
-        } else {
-          const base = parseISO(r.lastRunDate);
-          if (r.frequency === 'daily') nextDue = addDays(base, 1);
-          else if (r.frequency === 'weekly') nextDue = addDays(base, 7);
-          else if (r.frequency === 'monthly') nextDue = addMonths(base, 1);
-          else nextDue = addYears(base, 1);
-        }
-        return { rule: r, nextDue, daysUntil: differenceInCalendarDays(nextDue, now) };
+      .filter((rule) => !isRulePaused(rule))
+      .flatMap((rule) => {
+        const nextDue = nextDueDate(rule);
+        if (!nextDue) return [];
+        return [{ rule, nextDue, daysUntil: differenceInCalendarDays(nextDue, now) }];
       })
       .filter(({ daysUntil }) => daysUntil >= 0 && daysUntil <= 7)
       .sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime());
@@ -238,9 +236,11 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2.5">
               {nearLimitBudgets.map((s) => {
-                const cat = categories.find((c) => c.id === s.budget.categoryId);
-                const label =
-                  s.budget.categoryId === '' ? 'Overall Expenses' : (cat?.name ?? 'Unknown');
+                const label = s.budget.labelId
+                  ? (labels.find((l) => l.id === s.budget.labelId)?.name ?? 'Unknown label')
+                  : s.budget.categoryId === ''
+                    ? 'Overall Expenses'
+                    : (categories.find((c) => c.id === s.budget.categoryId)?.name ?? 'Unknown');
                 return (
                   <div key={s.budget.id}>
                     <div className="mb-1 flex items-center justify-between">
@@ -276,13 +276,15 @@ export default function Dashboard() {
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Target size={14} className="text-primary" />
-                <span className="text-sm font-semibold">Monthly Budget</span>
+                <span className="text-sm font-semibold">
+                  {PERIOD_LABELS[overallBudget.budget.period]} Budget
+                </span>
               </div>
               <span
                 className={`text-xs font-medium ${overallBudget.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
               >
                 {formatCurrency(overallBudget.spent, true)} /{' '}
-                {formatCurrency(overallBudget.budget.amount, true)}
+                {formatCurrency(overallBudget.limit, true)}
               </span>
             </div>
             <div className="bg-muted h-2 overflow-hidden rounded-full">

@@ -1,3 +1,4 @@
+import { DEFAULT_MONTH_START_DAY } from '@/utils/period';
 import type { Category, Label, Settings } from '@/types';
 
 /** Catch-all category that orphaned rows fall back to when their category is deleted. */
@@ -53,4 +54,5 @@ export const defaultSettings: Settings = {
   // by a placeholder one.
   userName: '',
   autoLocalBackup: false,
+  monthStartDay: DEFAULT_MONTH_START_DAY,
 };

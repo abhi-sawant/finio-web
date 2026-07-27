@@ -89,11 +89,82 @@ describe('validateBackup', () => {
     expect(report.issues[0]).toMatch(/expected a list/i);
   });
 
+  it('defaults a pre-v7 budget to a monthly, non-rolling limit', () => {
+    const { data } = validateBackup({
+      budgets: [{ id: 'b-1', categoryId: 'cat-1', amount: 500, createdAt: '2026-01-01' }],
+    });
+    expect(data.budgets?.[0]).toMatchObject({ period: 'monthly', rollover: false });
+  });
+
+  it('keeps a label budget and rejects an unknown period', () => {
+    const { data } = validateBackup({
+      budgets: [
+        {
+          id: 'b-1',
+          categoryId: '',
+          labelId: 'lbl-1',
+          amount: 500,
+          period: 'fortnightly',
+          rollover: true,
+          createdAt: '2026-01-01',
+        },
+      ],
+    });
+    expect(data.budgets?.[0]).toMatchObject({
+      labelId: 'lbl-1',
+      period: 'monthly',
+      rollover: true,
+    });
+  });
+
+  it('accepts recurring transfers but not ones missing a destination', () => {
+    const base = {
+      id: 'r-1',
+      type: 'transfer',
+      amount: 100,
+      accountId: 'acc-1',
+      categoryId: 'cat-13',
+      note: '',
+      labels: [],
+      frequency: 'monthly',
+      startDate: '2026-01-01T00:00:00.000Z',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    const { data, report } = validateBackup({
+      recurring: [
+        { ...base, toAccountId: 'acc-2', endDate: '2026-12-31T00:00:00.000Z', maxOccurrences: 12 },
+        { ...base, id: 'r-2' },
+      ],
+    });
+
+    expect(data.recurring).toHaveLength(1);
+    expect(data.recurring?.[0]).toMatchObject({
+      toAccountId: 'acc-2',
+      maxOccurrences: 12,
+      occurrenceCount: 0,
+    });
+    expect(report.counts.recurring.rejected).toBe(1);
+  });
+
   it('keeps only known settings keys, dropping the legacy currency field', () => {
     const { data } = validateBackup({
       settings: { theme: 'dark', userName: 'Abhishek', autoLocalBackup: true, currency: 'USD' },
     });
-    expect(data.settings).toEqual({ theme: 'dark', userName: 'Abhishek', autoLocalBackup: true });
+    expect(data.settings).toEqual({
+      theme: 'dark',
+      userName: 'Abhishek',
+      autoLocalBackup: true,
+      monthStartDay: 1,
+    });
+  });
+
+  it('clamps an out-of-range month start day instead of trusting the file', () => {
+    expect(validateBackup({ settings: { monthStartDay: 31 } }).data.settings?.monthStartDay).toBe(
+      28,
+    );
+    expect(
+      validateBackup({ settings: { monthStartDay: 'the 5th' } }).data.settings?.monthStartDay,
+    ).toBe(1);
   });
 
   it('falls back to defaults for unknown settings values', () => {

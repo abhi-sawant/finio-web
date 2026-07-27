@@ -3,6 +3,7 @@ export type TransactionType = 'expense' | 'income' | 'transfer';
 export type CategoryType = 'expense' | 'income' | 'both';
 export type Theme = 'dark' | 'light' | 'system';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type BudgetPeriod = 'weekly' | 'monthly' | 'yearly';
 
 export interface Account {
   id: string;
@@ -60,24 +61,46 @@ export interface Label {
 
 export interface Budget {
   id: string;
-  /** Empty string means "overall" budget across all expense categories. */
+  /**
+   * Empty string means "overall" budget across all expense categories. Ignored when
+   * `labelId` is set.
+   */
   categoryId: string;
-  /** Monthly limit in INR. */
+  /** When set, the budget tracks every expense carrying this label instead of a category. */
+  labelId?: string;
+  /** Limit in INR, per `period`. */
   amount: number;
+  /** How often the limit resets. Monthly periods follow `Settings.monthStartDay`. */
+  period: BudgetPeriod;
+  /**
+   * Carry the previous period's unspent amount (or overspend, as a debt) into this one,
+   * envelope-style, instead of starting every period back at `amount`.
+   */
+  rollover: boolean;
   createdAt: string;
 }
 
 export interface RecurringTransaction {
   id: string;
-  type: Exclude<TransactionType, 'transfer'>;
+  type: TransactionType;
   amount: number;
   accountId: string;
+  /** Destination account. Required for `transfer` rules, absent otherwise. */
+  toAccountId?: string;
   categoryId: string;
   note: string;
   labels: string[];
   frequency: RecurrenceFrequency;
   /** ISO date of the first occurrence (also next due if never run). */
   startDate: string;
+  /** ISO date after which the rule stops generating. Absent means it runs forever. */
+  endDate?: string;
+  /** Stop after this many occurrences in total. Absent means unlimited. */
+  maxOccurrences?: number;
+  /** Occurrences generated so far, counted against `maxOccurrences`. */
+  occurrenceCount: number;
+  /** ISO timestamp of when the rule was paused, or absent while it is active. */
+  pausedAt?: string;
   /** ISO date of the most recent auto-generated occurrence, or null. */
   lastRunDate: string | null;
   createdAt: string;
@@ -88,6 +111,11 @@ export interface Settings {
   userName: string;
   /** Whether to automatically download a local backup JSON once per day. */
   autoLocalBackup: boolean;
+  /**
+   * Day of the month a financial month begins (1–28). Anything other than 1 shifts every
+   * "this month" total and monthly budget to a salary-cycle window.
+   */
+  monthStartDay: number;
   /**
    * ISO timestamp of when the first-run wizard was completed or skipped. Absent means this
    * is a fresh install and the wizard should run before anything else.
@@ -153,12 +181,24 @@ export interface FinanceStore {
   updateLabel: (id: string, updates: Partial<Omit<Label, 'id'>>) => void;
   deleteLabel: (id: string) => void;
 
+  /** Adding a budget for a scope that already has one replaces it — one limit per scope. */
   addBudget: (budget: Omit<Budget, 'id' | 'createdAt'>) => void;
   updateBudget: (id: string, updates: Partial<Omit<Budget, 'id'>>) => void;
   deleteBudget: (id: string) => void;
 
-  addRecurring: (rule: Omit<RecurringTransaction, 'id' | 'createdAt' | 'lastRunDate'>) => void;
+  /**
+   * Create a recurring rule. Pass `lastRunDate` to start the schedule mid-stream — that is how
+   * "skip the backfill" is expressed: the rule stays aligned to its `startDate` cadence but
+   * generates nothing for occurrences on or before that date.
+   */
+  addRecurring: (
+    rule: Omit<RecurringTransaction, 'id' | 'createdAt' | 'occurrenceCount' | 'lastRunDate'> & {
+      lastRunDate?: string | null;
+    },
+  ) => string;
   updateRecurring: (id: string, updates: Partial<Omit<RecurringTransaction, 'id'>>) => void;
+  /** Pause or resume a rule without losing its schedule or history. */
+  setRecurringPaused: (id: string, paused: boolean) => void;
   deleteRecurring: (id: string) => void;
   /** Generate any due transactions from recurring rules. Returns count generated. */
   processRecurring: () => number;

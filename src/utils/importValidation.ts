@@ -1,4 +1,5 @@
 import { defaultSettings } from '@/data/defaultData';
+import { normalizeMonthStartDay } from './period';
 import type {
   Budget,
   Category,
@@ -70,6 +71,7 @@ const ACCOUNT_TYPES = new Set(['checking', 'savings', 'cash', 'credit', 'investm
 const TRANSACTION_TYPES = new Set(['expense', 'income', 'transfer']);
 const CATEGORY_TYPES = new Set(['expense', 'income', 'both']);
 const FREQUENCIES = new Set(['daily', 'weekly', 'monthly', 'yearly']);
+const BUDGET_PERIODS = new Set(['weekly', 'monthly', 'yearly']);
 const THEMES = new Set(['dark', 'light', 'system']);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -194,19 +196,30 @@ const parseBudget: RowParser<Budget> = (row) => {
   const amount = asFiniteNumber(row.amount);
   if (amount === undefined) return 'amount is not a number';
   if (amount <= 0) return 'amount must be greater than zero';
+
+  const labelId = asId(row.labelId);
+
   return {
     id,
     categoryId: row.categoryId,
     amount,
+    // Pre-v7 backups have neither field; both defaults reproduce the old behaviour exactly.
+    period:
+      typeof row.period === 'string' && BUDGET_PERIODS.has(row.period)
+        ? (row.period as Budget['period'])
+        : 'monthly',
+    rollover: row.rollover === true,
     createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
+    ...(labelId ? { labelId } : {}),
   };
 };
 
 const parseRecurring: RowParser<RecurringTransaction> = (row) => {
   const id = asId(row.id);
   if (!id) return 'missing id';
-  const type = row.type === 'expense' || row.type === 'income' ? row.type : undefined;
-  if (!type) return `recurring rules cannot be "${String(row.type)}"`;
+  const type =
+    typeof row.type === 'string' && TRANSACTION_TYPES.has(row.type) ? row.type : undefined;
+  if (!type) return `unknown recurring type "${String(row.type)}"`;
   const amount = asFiniteNumber(row.amount);
   if (amount === undefined) return 'amount is not a number';
   if (amount < 0) return 'negative amount';
@@ -218,9 +231,18 @@ const parseRecurring: RowParser<RecurringTransaction> = (row) => {
   const startDate = asIsoDate(row.startDate);
   if (!startDate) return `unparseable startDate "${String(row.startDate)}"`;
 
+  const toAccountId = asId(row.toAccountId);
+  if (type === 'transfer' && !toAccountId) return 'transfer rule has no destination account';
+
+  const endDate = asIsoDate(row.endDate);
+  const maxRaw = asFiniteNumber(row.maxOccurrences);
+  const maxOccurrences = maxRaw !== undefined && maxRaw >= 1 ? Math.trunc(maxRaw) : undefined;
+  const occurrenceRaw = asFiniteNumber(row.occurrenceCount);
+  const pausedAt = asIsoDate(row.pausedAt);
+
   return {
     id,
-    type,
+    type: type as RecurringTransaction['type'],
     amount,
     accountId,
     categoryId: asString(row.categoryId, ''),
@@ -228,8 +250,15 @@ const parseRecurring: RowParser<RecurringTransaction> = (row) => {
     labels: asStringArray(row.labels),
     frequency: frequency as RecurringTransaction['frequency'],
     startDate,
+    // Pre-v7 backups carry none of the lifecycle fields — the defaults mean "runs forever".
+    occurrenceCount:
+      occurrenceRaw !== undefined && occurrenceRaw > 0 ? Math.trunc(occurrenceRaw) : 0,
     lastRunDate: asIsoDate(row.lastRunDate) ?? null,
     createdAt: asIsoDate(row.createdAt) ?? startDate,
+    ...(toAccountId && type === 'transfer' ? { toAccountId } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(maxOccurrences !== undefined ? { maxOccurrences } : {}),
+    ...(pausedAt ? { pausedAt } : {}),
   };
 };
 
@@ -246,6 +275,7 @@ function parseSettings(value: unknown): Settings | undefined {
       typeof value.autoLocalBackup === 'boolean'
         ? value.autoLocalBackup
         : defaultSettings.autoLocalBackup,
+    monthStartDay: normalizeMonthStartDay(value.monthStartDay),
   };
 }
 
@@ -360,7 +390,9 @@ export function validateBackup(raw: unknown): ValidatedBackup {
 
   if (accounts.rows && recurring.rows) {
     const ids = new Set(accounts.rows.map((a) => a.id));
-    const orphans = recurring.rows.filter((r) => !ids.has(r.accountId)).length;
+    const orphans = recurring.rows.filter(
+      (r) => !ids.has(r.accountId) || (r.toAccountId ? !ids.has(r.toAccountId) : false),
+    ).length;
     if (orphans > 0) {
       warnings.push(
         `${orphans} recurring rule${orphans === 1 ? '' : 's'} reference an account that is not in this file — they will not generate transactions`,
@@ -376,6 +408,16 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     if (orphans > 0) {
       warnings.push(
         `${orphans} budget${orphans === 1 ? '' : 's'} reference a category that is not in this file`,
+      );
+    }
+  }
+
+  if (labels.rows && budgets.rows) {
+    const ids = new Set(labels.rows.map((l) => l.id));
+    const orphans = budgets.rows.filter((b) => b.labelId && !ids.has(b.labelId)).length;
+    if (orphans > 0) {
+      warnings.push(
+        `${orphans} budget${orphans === 1 ? '' : 's'} reference a label that is not in this file`,
       );
     }
   }

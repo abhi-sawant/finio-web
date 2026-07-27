@@ -15,6 +15,8 @@ import {
   sumTransactionDeltas,
 } from './balance';
 import { planRecurring } from './recurring';
+import { budgetScopeKey } from '@/utils/calculations';
+import { normalizeMonthStartDay } from '@/utils/period';
 import type {
   Account,
   Budget,
@@ -150,7 +152,8 @@ export const useFinanceStore = create<FinanceStore>()(
             transactions: state.transactions.filter(
               (t) => t.accountId !== id && t.toAccountId !== id,
             ),
-            recurring: state.recurring.filter((r) => r.accountId !== id),
+            // A transfer rule pointing at the deleted account can never fire again either.
+            recurring: state.recurring.filter((r) => r.accountId !== id && r.toAccountId !== id),
           };
         });
       },
@@ -291,9 +294,11 @@ export const useFinanceStore = create<FinanceStore>()(
           id: generateUUID(),
           createdAt: new Date().toISOString(),
         };
+        const scope = budgetScopeKey(budget);
         set((state) => ({
-          // Replace any existing budget for the same category (only one per category)
-          budgets: [...state.budgets.filter((b) => b.categoryId !== budget.categoryId), budget],
+          // One limit per scope — a second budget for the same category, label, or "overall"
+          // would double-count the same spending.
+          budgets: [...state.budgets.filter((b) => budgetScopeKey(b) !== scope), budget],
         }));
       },
 
@@ -310,16 +315,32 @@ export const useFinanceStore = create<FinanceStore>()(
       addRecurring: (ruleData) => {
         const rule: RecurringTransaction = {
           ...ruleData,
+          lastRunDate: ruleData.lastRunDate ?? null,
+          occurrenceCount: 0,
           id: generateUUID(),
-          lastRunDate: null,
           createdAt: new Date().toISOString(),
         };
         set((state) => ({ recurring: [...state.recurring, rule] }));
+        return rule.id;
       },
 
       updateRecurring: (id, updates) => {
         set((state) => ({
           recurring: state.recurring.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+        }));
+      },
+
+      setRecurringPaused: (id, paused) => {
+        set((state) => ({
+          recurring: state.recurring.map((r) => {
+            if (r.id !== id) return r;
+            if (paused) return { ...r, pausedAt: new Date().toISOString() };
+            // Drop the key rather than storing undefined, so a resumed rule serializes
+            // identically to one that was never paused.
+            const resumed = { ...r };
+            delete resumed.pausedAt;
+            return resumed;
+          }),
         }));
       },
 
@@ -348,6 +369,9 @@ export const useFinanceStore = create<FinanceStore>()(
           labels: [...rule.labels],
           createdAt,
           recurringId: rule.id,
+          ...(rule.type === 'transfer' && rule.toAccountId
+            ? { toAccountId: rule.toAccountId }
+            : {}),
         }));
 
         set((s) => {
@@ -425,7 +449,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 6,
+      version: 7,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -489,6 +513,31 @@ export const useFinanceStore = create<FinanceStore>()(
               ...settings,
               onboardedAt: settings.onboardedAt ?? new Date().toISOString(),
             },
+          };
+        }
+
+        if (version < 7) {
+          // Budgets gained a period and rollover; recurring rules gained a lifecycle. Existing
+          // rows keep behaving exactly as they did: monthly, no rollover, never paused, and a
+          // zeroed occurrence tally (no limit was ever set, so nothing is counted against it).
+          const settings = (s.settings ?? {}) as Partial<Settings>;
+          s = {
+            ...s,
+            settings: {
+              ...defaultSettings,
+              ...settings,
+              monthStartDay: normalizeMonthStartDay(settings.monthStartDay),
+            },
+            budgets: Array.isArray(s.budgets)
+              ? s.budgets.map((b) => ({
+                  ...b,
+                  period: b.period ?? 'monthly',
+                  rollover: b.rollover ?? false,
+                }))
+              : s.budgets,
+            recurring: Array.isArray(s.recurring)
+              ? s.recurring.map((r) => ({ ...r, occurrenceCount: r.occurrenceCount ?? 0 }))
+              : s.recurring,
           };
         }
 

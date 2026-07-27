@@ -1,12 +1,14 @@
+import { parseISO } from 'date-fns';
 import {
-  parseISO,
-  isWithinInterval,
-  startOfMonth,
-  endOfMonth,
-  subMonths,
-  getDaysInMonth,
-  getDate,
-} from 'date-fns';
+  DEFAULT_MONTH_START_DAY,
+  daysElapsedInPeriod,
+  daysInPeriod,
+  isWithinPeriod,
+  periodRange,
+  periodStart,
+  shiftPeriod,
+  type PeriodRange,
+} from './period';
 import type { Transaction, Account, Budget, Category, Label } from '@/types';
 
 export function getTotalIncome(transactions: Transaction[]): number {
@@ -42,23 +44,33 @@ export function getTotalCreditOutstanding(accounts: Account[]): number {
     .reduce((sum, a) => sum + Math.abs(Math.min(a.balance, 0)), 0);
 }
 
-export function getCurrentMonthTransactions(transactions: Transaction[]): Transaction[] {
-  const now = new Date();
-  const start = startOfMonth(now);
-  const end = endOfMonth(now);
+export function transactionsInPeriod(
+  transactions: Transaction[],
+  range: PeriodRange,
+): Transaction[] {
   return transactions.filter((t) => {
     const date = parseISO(t.date);
-    return isWithinInterval(date, { start, end });
+    return !Number.isNaN(date.getTime()) && isWithinPeriod(date, range);
   });
 }
 
-export function getMonthTransactions(transactions: Transaction[], monthDate: Date): Transaction[] {
-  const start = startOfMonth(monthDate);
-  const end = endOfMonth(monthDate);
-  return transactions.filter((t) => {
-    const date = parseISO(t.date);
-    return isWithinInterval(date, { start, end });
-  });
+/**
+ * "This month" everywhere in the app. With a `monthStartDay` other than 1 the window is the
+ * user's salary cycle rather than the calendar month.
+ */
+export function getCurrentMonthTransactions(
+  transactions: Transaction[],
+  monthStartDay = DEFAULT_MONTH_START_DAY,
+): Transaction[] {
+  return transactionsInPeriod(transactions, periodRange('monthly', new Date(), monthStartDay));
+}
+
+export function getMonthTransactions(
+  transactions: Transaction[],
+  monthDate: Date,
+  monthStartDay = DEFAULT_MONTH_START_DAY,
+): Transaction[] {
+  return transactionsInPeriod(transactions, periodRange('monthly', monthDate, monthStartDay));
 }
 
 export function groupTransactionsByDate(
@@ -141,34 +153,142 @@ export function sortTransactionsDateDesc(transactions: Transaction[]): Transacti
   return [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export interface BudgetStatus {
-  budget: Budget;
+/** How many past periods a rollover chain is allowed to accumulate over. */
+export const MAX_ROLLOVER_LOOKBACK = 12;
+
+export interface BudgetPeriodOptions {
+  monthStartDay?: number;
+  /** Overridable for tests and for previewing a period other than the live one. */
+  now?: Date;
+}
+
+/** Identifies what a budget is a limit *for*. Two budgets may not share one scope. */
+export function budgetScopeKey(budget: Pick<Budget, 'categoryId' | 'labelId'>): string {
+  return budget.labelId ? `label:${budget.labelId}` : `category:${budget.categoryId}`;
+}
+
+/** Does this expense count against the budget? Income and transfers never do. */
+export function budgetMatchesTransaction(
+  budget: Pick<Budget, 'categoryId' | 'labelId'>,
+  transaction: Transaction,
+): boolean {
+  if (transaction.type !== 'expense') return false;
+  if (budget.labelId) return transaction.labels.includes(budget.labelId);
+  if (budget.categoryId === '') return true;
+  return transaction.categoryId === budget.categoryId;
+}
+
+export interface BudgetPeriodResult {
+  range: PeriodRange;
   spent: number;
-  remaining: number;
-  percent: number;
+  /** `budget.amount`, plus any rollover carried into this period. */
+  limit: number;
   isOver: boolean;
 }
 
-export function computeBudgetStatuses(budgets: Budget[], monthTxns: Transaction[]): BudgetStatus[] {
-  const expenseTxns = monthTxns.filter((t) => t.type === 'expense');
-  const totalExpenses = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
-  const byCat = new Map<string, number>();
-  for (const t of expenseTxns) {
-    byCat.set(t.categoryId, (byCat.get(t.categoryId) ?? 0) + t.amount);
-  }
+export interface BudgetStatus extends BudgetPeriodResult {
+  budget: Budget;
+  /** Unspent (or, when negative, overspent) amount carried in. Always 0 without rollover. */
+  carryover: number;
+  remaining: number;
+  percent: number;
+}
 
-  return budgets.map((b) => {
-    const spent = b.categoryId === '' ? totalExpenses : (byCat.get(b.categoryId) ?? 0);
-    const remaining = b.amount - spent;
-    const percent = b.amount > 0 ? (spent / b.amount) * 100 : 0;
+/**
+ * The periods before `currentRange` that a rollover chain runs through, oldest first — never
+ * reaching back past the period the budget was created in.
+ */
+function priorPeriods(
+  budget: Budget,
+  matching: Transaction[],
+  currentRange: PeriodRange,
+  monthStartDay: number,
+  lookback: number,
+): BudgetPeriodResult[] {
+  const created = parseISO(budget.createdAt);
+  const createdStart = Number.isNaN(created.getTime())
+    ? currentRange.start
+    : periodStart(budget.period, created, monthStartDay);
+
+  const ranges: PeriodRange[] = [];
+  let cursor = shiftPeriod(currentRange, -1);
+  while (ranges.length < lookback && cursor.start.getTime() >= createdStart.getTime()) {
+    ranges.push(cursor);
+    cursor = shiftPeriod(cursor, -1);
+  }
+  ranges.reverse();
+
+  let carry = 0;
+  return ranges.map((range) => {
+    const limit = budget.amount + (budget.rollover ? carry : 0);
+    const spent = sumAmounts(transactionsInPeriod(matching, range));
+    if (budget.rollover) carry = limit - spent;
+    return { range, spent, limit, isOver: spent > limit };
+  });
+}
+
+function sumAmounts(transactions: Transaction[]): number {
+  return transactions.reduce((sum, t) => sum + t.amount, 0);
+}
+
+/**
+ * Status of every budget in its *own* current period — weekly, monthly (aligned to
+ * `monthStartDay`) or yearly. Takes the full transaction list rather than a pre-filtered
+ * month, because each budget now defines its own window.
+ */
+export function computeBudgetStatuses(
+  budgets: Budget[],
+  transactions: Transaction[],
+  options: BudgetPeriodOptions = {},
+): BudgetStatus[] {
+  const now = options.now ?? new Date();
+  const monthStartDay = options.monthStartDay ?? DEFAULT_MONTH_START_DAY;
+
+  return budgets.map((budget) => {
+    const matching = transactions.filter((t) => budgetMatchesTransaction(budget, t));
+    const range = periodRange(budget.period, now, monthStartDay);
+    const spent = sumAmounts(transactionsInPeriod(matching, range));
+
+    let carryover = 0;
+    if (budget.rollover) {
+      const priors = priorPeriods(budget, matching, range, monthStartDay, MAX_ROLLOVER_LOOKBACK);
+      const previous = priors[priors.length - 1];
+      if (previous) carryover = previous.limit - previous.spent;
+    }
+
+    const limit = budget.amount + carryover;
+    const remaining = limit - spent;
     return {
-      budget: b,
+      budget,
+      range,
       spent,
+      carryover,
+      limit,
       remaining,
-      percent,
-      isOver: spent > b.amount,
+      percent: limit > 0 ? (spent / limit) * 100 : 0,
+      isOver: spent > limit,
     };
   });
+}
+
+/**
+ * How this budget did over its recent completed periods — "did I hit it last month?" —
+ * most recent first.
+ */
+export function computeBudgetHistory(
+  budget: Budget,
+  transactions: Transaction[],
+  options: BudgetPeriodOptions = {},
+  count = 6,
+): BudgetPeriodResult[] {
+  const now = options.now ?? new Date();
+  const monthStartDay = options.monthStartDay ?? DEFAULT_MONTH_START_DAY;
+  const matching = transactions.filter((t) => budgetMatchesTransaction(budget, t));
+  const range = periodRange(budget.period, now, monthStartDay);
+  // Walk the full rollover window so carried-over limits are right, then show the tail.
+  const lookback = Math.max(count, budget.rollover ? MAX_ROLLOVER_LOOKBACK : count);
+  const priors = priorPeriods(budget, matching, range, monthStartDay, lookback);
+  return priors.slice(-count).reverse();
 }
 
 export interface DashboardQuickStats {
@@ -185,16 +305,19 @@ export function getDashboardStats(
   monthTxns: Transaction[],
   previousMonthTxns: Transaction[],
   categories: Category[],
+  options: BudgetPeriodOptions = {},
 ): DashboardQuickStats {
   const expenses = monthTxns.filter((t) => t.type === 'expense');
   const income = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expensesTotal = expenses.reduce((s, t) => s + t.amount, 0);
 
-  const now = new Date();
-  const dayOfMonth = getDate(now);
-  const daysInMonth = getDaysInMonth(now);
-  const dailyAverage = dayOfMonth > 0 ? expensesTotal / dayOfMonth : 0;
-  const projectedMonth = dailyAverage * daysInMonth;
+  const now = options.now ?? new Date();
+  // Pace the average against the *cycle* the totals cover, not the calendar month, or a
+  // 25th-to-24th cycle reads as a fresh month every 1st.
+  const range = periodRange('monthly', now, options.monthStartDay ?? DEFAULT_MONTH_START_DAY);
+  const elapsed = daysElapsedInPeriod(range, now);
+  const dailyAverage = elapsed > 0 ? expensesTotal / elapsed : 0;
+  const projectedMonth = dailyAverage * daysInPeriod(range);
 
   let biggestExpense: Transaction | null = null;
   for (const t of expenses) {
@@ -229,8 +352,12 @@ export function getDashboardStats(
   };
 }
 
-export function getPreviousMonthTransactions(transactions: Transaction[]): Transaction[] {
-  return getMonthTransactions(transactions, subMonths(new Date(), 1));
+export function getPreviousMonthTransactions(
+  transactions: Transaction[],
+  monthStartDay = DEFAULT_MONTH_START_DAY,
+): Transaction[] {
+  const previous = shiftPeriod(periodRange('monthly', new Date(), monthStartDay), -1);
+  return transactionsInPeriod(transactions, previous);
 }
 
 /** Convert transactions to CSV string. */
