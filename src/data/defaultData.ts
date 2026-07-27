@@ -1,5 +1,8 @@
 import type { Category, Label, Settings } from '@/types';
 
+/** Catch-all category that orphaned rows fall back to when their category is deleted. */
+export const MISC_CATEGORY_ID = 'cat-24';
+
 export const defaultCategories: Category[] = [
   { id: 'cat-1', name: 'Food', icon: 'utensils', color: '#ef4444', type: 'expense' },
   { id: 'cat-2', name: 'Transport', icon: 'car', color: '#f97316', type: 'expense' },

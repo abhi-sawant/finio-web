@@ -114,7 +114,8 @@ export interface DashboardQuickStats {
   biggestExpense: Transaction | null;
   topCategory: { category: Category; amount: number } | null;
   monthOverMonthChange: number; // -1..+inf, e.g. 0.12 = +12%
-  savingsRate: number; // (income - expense) / income, 0 when income == 0
+  /** (income - expense) / income. Negative when overspending; 0 when income == 0. */
+  savingsRate: number;
 }
 
 export function getDashboardStats(
@@ -151,7 +152,9 @@ export function getDashboardStats(
     .reduce((s, t) => s + t.amount, 0);
   const monthOverMonthChange = prevExpenses > 0 ? (expensesTotal - prevExpenses) / prevExpenses : 0;
 
-  const savingsRate = income > 0 ? Math.max(0, (income - expensesTotal) / income) : 0;
+  // Deliberately not clamped: a month where spending exceeds income should read as
+  // negative, not as a flat 0%.
+  const savingsRate = income > 0 ? (income - expensesTotal) / income : 0;
 
   return {
     dailyAverage,

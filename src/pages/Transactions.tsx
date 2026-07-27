@@ -4,7 +4,7 @@ import { Search, Filter, X, Download } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { formatDate } from '@/utils/formatters';
+import { formatCurrency, formatDate } from '@/utils/formatters';
 import { groupTransactionsByDate, transactionsToCsv } from '@/utils/calculations';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { Button } from '@/components/ui/button';
@@ -79,8 +79,6 @@ export default function Transactions() {
     }
     return { totalIncome: income, totalExpense: expense };
   }, [filtered]);
-
-  const isIncomeMore = totalIncome > totalExpense;
 
   // Flatten grouped transactions into a single array for the virtualizer
   const virtualRows = useMemo<VirtualRow[]>(() => {
@@ -174,12 +172,18 @@ export default function Transactions() {
           />
         </div>
 
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex items-center justify-end gap-3">
           <span className="text-muted-foreground text-xs">
-            {isIncomeMore ? 'Total Earned:' : 'Total Spent:'}
+            Earned{' '}
+            <span className="font-bold text-emerald-500">
+              {formatCurrency(totalIncome, currency)}
+            </span>
           </span>
-          <span className={`font-bold text-xs ${isIncomeMore ? 'text-green-500' : 'text-red-500'}`}>
-            {currency} {isIncomeMore ? totalIncome : totalExpense}
+          <span className="text-muted-foreground text-xs">
+            Spent{' '}
+            <span className="font-bold text-rose-500">
+              {formatCurrency(totalExpense, currency)}
+            </span>
           </span>
         </div>
 

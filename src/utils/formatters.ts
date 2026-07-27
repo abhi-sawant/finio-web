@@ -11,18 +11,26 @@ const CURRENCY_LOCALE_MAP: Record<Currency, string> = {
   AUD: 'en-AU',
 };
 
+/**
+ * Only shorten amounts at or above this magnitude. Below it, compact notation would
+ * trade away precision people care about (₹1,234 → ₹1.2K) without saving any space.
+ */
+const COMPACT_THRESHOLD = 100_000;
+
 export function formatCurrency(
   amount: number,
   currency: Currency = 'INR',
-  _compact = false,
+  compact = false,
 ): string {
   const locale = CURRENCY_LOCALE_MAP[currency];
+  const useCompact = compact && Math.abs(amount) >= COMPACT_THRESHOLD;
 
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
+    notation: useCompact ? 'compact' : 'standard',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: useCompact ? 1 : 2,
   }).format(amount);
 }
 
@@ -60,17 +68,18 @@ export function toLocalDateTimeInputValue(iso: string | Date): string {
 }
 
 /**
- * Format a raw numeric input string for display using the Indian number system.
- * Keeps the decimal part intact while grouping the integer part.
- * e.g. "122999" → "1,22,999", "122999.5" → "1,22,999.5"
+ * Format a raw numeric input string for display using the number system of the
+ * given currency's locale. Keeps the decimal part intact while grouping the
+ * integer part.
+ * e.g. INR "122999" → "1,22,999"; USD "122999" → "122,999"
  */
-export function formatInputAmount(raw: string): string {
+export function formatInputAmount(raw: string, currency: Currency = 'INR'): string {
   if (!raw) return '0';
   const [intPart, decPart] = raw.split('.');
   const intNum = parseInt(intPart || '0', 10);
   const formatted = Number.isNaN(intNum)
     ? '0'
-    : new Intl.NumberFormat('en-IN').format(intNum);
+    : new Intl.NumberFormat(CURRENCY_LOCALE_MAP[currency]).format(intNum);
   return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
 }
 

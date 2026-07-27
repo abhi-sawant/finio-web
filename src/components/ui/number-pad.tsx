@@ -1,5 +1,6 @@
 import { Delete } from 'lucide-react';
 import { formatInputAmount } from '@/utils/formatters';
+import { useCurrency } from '@/store/useFinanceStore';
 
 interface NumberPadProps {
   value: string;
@@ -14,6 +15,8 @@ const BUTTONS = [
 ] as const;
 
 export function NumberPad({ value, onChange }: NumberPadProps) {
+  const currency = useCurrency();
+
   const handlePress = (key: string) => {
     if (key === '⌫') {
       onChange(value.slice(0, -1));
@@ -33,7 +36,7 @@ export function NumberPad({ value, onChange }: NumberPadProps) {
     }
   };
 
-  const display = formatInputAmount(value);
+  const display = formatInputAmount(value, currency);
 
   return (
     <div className="space-y-2">
