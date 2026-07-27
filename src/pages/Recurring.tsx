@@ -12,6 +12,7 @@ import {
   type BackfillPreview,
 } from '@/store/recurring';
 import { formatCurrency, toLocalDateTimeInputValue } from '@/utils/formatters';
+import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -66,6 +67,7 @@ export default function Recurring() {
   const recurring = useFinanceStore((s) => s.recurring);
   const allAccounts = useFinanceStore((s) => s.accounts);
   const categories = useFinanceStore((s) => s.categories);
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
   // A closed account cannot take new charges, so it must not back a new rule. Existing rules
   // still resolve their account name from the full list below.
   const accounts = useMemo(() => activeAccounts(allAccounts), [allAccounts]);
@@ -266,16 +268,19 @@ export default function Recurring() {
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-base font-semibold">Recurring</h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => (showForm ? resetForm() : startCreate())}
-          disabled={accounts.length === 0}
-          className="text-primary hover:bg-primary/10 h-9 w-9 rounded-full disabled:opacity-30"
-          aria-label="Add recurring"
-        >
-          <Plus size={20} />
-        </Button>
+        <div className="flex gap-1">
+          <HideAmountsToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => (showForm ? resetForm() : startCreate())}
+            disabled={accounts.length === 0}
+            className="text-primary hover:bg-primary/10 h-9 w-9 rounded-full disabled:opacity-30"
+            aria-label="Add recurring"
+          >
+            <Plus size={20} />
+          </Button>
+        </div>
       </Header>
 
       <Main className="lg:max-w-xl">
@@ -529,7 +534,7 @@ export default function Recurring() {
                     }`}
                   >
                     {r.type === 'income' ? '+' : r.type === 'expense' ? '-' : ''}
-                    {formatCurrency(r.amount, true)}
+                    {formatCurrency(r.amount, true, hideAmounts)}
                   </p>
                 </div>
 
@@ -611,7 +616,7 @@ export default function Recurring() {
                     </strong>{' '}
                     totalling{' '}
                     <strong className="text-foreground">
-                      {formatCurrency(pending.preview.total)}
+                      {formatCurrency(pending.preview.total, false, hideAmounts)}
                     </strong>{' '}
                     and move your balances.
                     {pending.preview.capped &&

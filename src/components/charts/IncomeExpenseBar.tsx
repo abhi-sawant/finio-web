@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
 import { format } from 'date-fns';
+import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency } from '@/utils/formatters';
 import type { Transaction } from '@/types';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function IncomeExpenseBar({ transactions }: Props) {
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
   const data = useMemo(() => {
     const monthMap = new Map<string, { income: number; expenses: number }>();
 
@@ -59,7 +61,7 @@ export function IncomeExpenseBar({ transactions }: Props) {
                 borderRadius: 12,
                 fontSize: 12,
               }}
-              formatter={(v) => formatCurrency(Number(v) || 0)}
+              formatter={(v) => formatCurrency(Number(v) || 0, false, hideAmounts)}
             />
             <Bar dataKey="income" fill="url(#barIncome)" radius={[6, 6, 0, 0]} />
             <Bar dataKey="expenses" fill="url(#barExpense)" radius={[6, 6, 0, 0]} />

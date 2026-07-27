@@ -27,6 +27,7 @@ import type {
   RecurringTransaction,
   Settings,
   Transaction,
+  TransactionTemplate,
 } from '@/types';
 
 /**
@@ -72,6 +73,7 @@ const defaultState = {
   labels: defaultLabels,
   budgets: [] as Budget[],
   recurring: [] as RecurringTransaction[],
+  templates: [] as TransactionTemplate[],
   settings: defaultSettings,
   isHydrated: false,
   lastLocalBackupAt: null as string | null,
@@ -217,6 +219,58 @@ export const useFinanceStore = create<FinanceStore>()(
             accounts: applyBalanceDelta(state.accounts, transaction, 1),
           };
         });
+      },
+
+      bulkDeleteTransactions: (ids) => {
+        const idSet = new Set(ids);
+        const removed = get().transactions.filter((t) => idSet.has(t.id));
+        if (removed.length === 0) return [];
+
+        set((state) => {
+          let accounts = state.accounts;
+          for (const tx of removed) accounts = applyBalanceDelta(accounts, tx, -1);
+          return {
+            transactions: state.transactions.filter((t) => !idSet.has(t.id)),
+            accounts,
+          };
+        });
+        return removed;
+      },
+
+      restoreTransactions: (transactions) => {
+        set((state) => {
+          const existingIds = new Set(state.transactions.map((t) => t.id));
+          // Guard against a double undo re-applying deltas twice.
+          const toRestore = transactions.filter((t) => !existingIds.has(t.id));
+          if (toRestore.length === 0) return state;
+
+          let accounts = state.accounts;
+          for (const tx of toRestore) accounts = applyBalanceDelta(accounts, tx, 1);
+          return {
+            transactions: [...toRestore, ...state.transactions],
+            accounts,
+          };
+        });
+      },
+
+      bulkRecategorize: (ids, categoryId) => {
+        const idSet = new Set(ids);
+        set((state) => ({
+          transactions: state.transactions.map((t) =>
+            idSet.has(t.id) ? { ...t, categoryId } : t,
+          ),
+        }));
+      },
+
+      bulkAddLabel: (ids, labelId) => {
+        const idSet = new Set(ids);
+        set((state) => ({
+          transactions: state.transactions.map((t) =>
+            idSet.has(t.id) && !t.labels.includes(labelId)
+              ? { ...t, labels: [...t.labels, labelId] }
+              : t,
+          ),
+        }));
       },
 
       addCategory: (categoryData) => {
@@ -387,6 +441,20 @@ export const useFinanceStore = create<FinanceStore>()(
         return newTxns.length;
       },
 
+      addTemplate: (templateData) => {
+        const template: TransactionTemplate = {
+          ...templateData,
+          id: generateUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ templates: [...state.templates, template] }));
+        return template.id;
+      },
+
+      deleteTemplate: (id) => {
+        set((state) => ({ templates: state.templates.filter((t) => t.id !== id) }));
+      },
+
       updateSettings: (updates) => {
         set((state) => ({
           settings: { ...state.settings, ...updates },
@@ -403,6 +471,7 @@ export const useFinanceStore = create<FinanceStore>()(
           labels: defaultLabels,
           budgets: [],
           recurring: [],
+          templates: [],
         });
       },
 
@@ -421,6 +490,7 @@ export const useFinanceStore = create<FinanceStore>()(
                   labels: mergeById(state.labels, data.labels),
                   budgets: mergeById(state.budgets, data.budgets),
                   recurring: mergeById(state.recurring, data.recurring),
+                  templates: mergeById(state.templates, data.templates),
                 }
               : {
                   accounts: (incomingAccounts ?? state.accounts) as ImportedAccount[],
@@ -429,6 +499,7 @@ export const useFinanceStore = create<FinanceStore>()(
                   labels: data.labels ?? state.labels,
                   budgets: data.budgets ?? state.budgets,
                   recurring: data.recurring ?? state.recurring,
+                  templates: data.templates ?? state.templates,
                 };
 
           return {
@@ -449,7 +520,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 7,
+      version: 8,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -541,6 +612,21 @@ export const useFinanceStore = create<FinanceStore>()(
           };
         }
 
+        if (version < 8) {
+          // Templates are new; hideAmounts defaults to off so nobody's amounts vanish
+          // out from under them on upgrade.
+          const settings = (s.settings ?? {}) as Partial<Settings>;
+          s = {
+            ...s,
+            settings: {
+              ...defaultSettings,
+              ...settings,
+              hideAmounts: settings.hideAmounts ?? false,
+            },
+            templates: Array.isArray(s.templates) ? s.templates : [],
+          };
+        }
+
         return s as FinanceStore;
       },
       onRehydrateStorage: () => (state) => {
@@ -559,4 +645,5 @@ export const useCategories = () => useFinanceStore((s) => s.categories);
 export const useLabels = () => useFinanceStore((s) => s.labels);
 export const useBudgets = () => useFinanceStore((s) => s.budgets);
 export const useRecurring = () => useFinanceStore((s) => s.recurring);
+export const useTemplates = () => useFinanceStore((s) => s.templates);
 export const useSettings = () => useFinanceStore((s) => s.settings);

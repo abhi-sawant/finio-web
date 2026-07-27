@@ -8,6 +8,7 @@ import { SpendingDonut } from '@/components/charts/SpendingDonut';
 import { IncomeExpenseBar } from '@/components/charts/IncomeExpenseBar';
 import { BalanceTrend } from '@/components/charts/BalanceTrend';
 import { LabelSpendingBar } from '@/components/charts/LabelSpendingBar';
+import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ export default function Analytics() {
   const budgets = useFinanceStore((s) => s.budgets);
   const recurring = useFinanceStore((s) => s.recurring);
   const monthStartDay = normalizeMonthStartDay(useFinanceStore((s) => s.settings.monthStartDay));
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
 
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('month');
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
@@ -80,6 +82,7 @@ export default function Analytics() {
     <>
       <Header>
         <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
+        <HideAmountsToggle />
       </Header>
 
       <Main>
@@ -165,7 +168,7 @@ export default function Analytics() {
                     Income
                   </p>
                   <p className="text-sm font-semibold text-emerald-500">
-                    {formatCurrency(totalIncome, true)}
+                    {formatCurrency(totalIncome, true, hideAmounts)}
                   </p>
                 </div>
                 <div>
@@ -173,7 +176,7 @@ export default function Analytics() {
                     Expenses
                   </p>
                   <p className="text-sm font-semibold text-rose-500">
-                    {formatCurrency(totalExpenses, true)}
+                    {formatCurrency(totalExpenses, true, hideAmounts)}
                   </p>
                 </div>
                 <div>
@@ -181,7 +184,7 @@ export default function Analytics() {
                   <p
                     className={`text-sm font-semibold ${net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
                   >
-                    {formatCurrency(net, true)}
+                    {formatCurrency(net, true, hideAmounts)}
                   </p>
                 </div>
               </div>

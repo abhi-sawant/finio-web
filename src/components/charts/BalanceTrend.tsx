@@ -21,6 +21,7 @@ interface Props {
 export function BalanceTrend({ from, to }: Props) {
   const transactions = useFinanceStore((s) => s.transactions);
   const accounts = useFinanceStore((s) => s.accounts);
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
 
   const data = useMemo(() => {
     const today = new Date();
@@ -123,7 +124,7 @@ export function BalanceTrend({ from, to }: Props) {
                 borderRadius: 12,
                 fontSize: 12,
               }}
-              formatter={(v) => formatCurrency(Number(v) || 0)}
+              formatter={(v) => formatCurrency(Number(v) || 0, false, hideAmounts)}
               labelStyle={{ color: 'var(--muted-foreground)' }}
             />
             <Line

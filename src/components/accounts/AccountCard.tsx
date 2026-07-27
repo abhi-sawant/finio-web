@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency } from '@/utils/formatters';
 import { getCreditCardDueInfo, getCreditUtilization } from '@/utils/calculations';
 import type { Account } from '@/types';
@@ -64,6 +65,7 @@ export const AccountCard = memo(function AccountCard({
   onDelete,
   onToggleArchive,
 }: AccountCardProps) {
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
   const isCredit = account.type === 'credit';
   const isArchived = !!account.archivedAt;
   const utilization = getCreditUtilization(account);
@@ -125,7 +127,7 @@ export const AccountCard = memo(function AccountCard({
         </div>
         <p className="mb-1 truncate text-sm font-medium">{account.name}</p>
         <p className={`text-base font-bold ${account.balance < 0 ? 'text-rose-500' : ''}`}>
-          {formatCurrency(account.balance, true)}
+          {formatCurrency(account.balance, true, hideAmounts)}
         </p>
         {isCredit && account.creditLimit && (
           <div className="mt-2">
@@ -152,7 +154,7 @@ export const AccountCard = memo(function AccountCard({
           <p
             className={`mt-1.5 text-[10px] font-medium ${dueInfo.isOverdue ? 'text-rose-500' : 'text-muted-foreground'}`}
           >
-            {dueLabel(dueInfo.daysUntilDue)} · Min {formatCurrency(dueInfo.minimumDue, true)}
+            {dueLabel(dueInfo.daysUntilDue)} · Min {formatCurrency(dueInfo.minimumDue, true, hideAmounts)}
           </p>
         )}
       </div>
@@ -181,7 +183,7 @@ export const AccountCard = memo(function AccountCard({
       </div>
       <p className="truncate text-sm font-medium">{account.name}</p>
       <p className={`mt-0.5 text-base font-bold ${account.balance < 0 ? 'text-rose-500' : ''}`}>
-        {formatCurrency(account.balance, true)}
+        {formatCurrency(account.balance, true, hideAmounts)}
       </p>
       {isCredit && account.creditLimit && (
         <div className="mt-2">

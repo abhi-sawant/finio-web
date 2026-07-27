@@ -9,6 +9,7 @@ import type {
   RecurringTransaction,
   Settings,
   Transaction,
+  TransactionTemplate,
 } from '@/types';
 
 /**
@@ -24,7 +25,8 @@ export type ImportEntity =
   | 'categories'
   | 'labels'
   | 'budgets'
-  | 'recurring';
+  | 'recurring'
+  | 'templates';
 
 export const IMPORT_ENTITIES: ImportEntity[] = [
   'accounts',
@@ -33,6 +35,7 @@ export const IMPORT_ENTITIES: ImportEntity[] = [
   'labels',
   'budgets',
   'recurring',
+  'templates',
 ];
 
 export const ENTITY_LABELS: Record<ImportEntity, string> = {
@@ -42,6 +45,7 @@ export const ENTITY_LABELS: Record<ImportEntity, string> = {
   labels: 'Labels',
   budgets: 'Budgets',
   recurring: 'Recurring rules',
+  templates: 'Templates',
 };
 
 export interface EntityReport {
@@ -262,6 +266,37 @@ const parseRecurring: RowParser<RecurringTransaction> = (row) => {
   };
 };
 
+const parseTemplate: RowParser<TransactionTemplate> = (row) => {
+  const id = asId(row.id);
+  if (!id) return 'missing id';
+  const name = asId(row.name);
+  if (!name) return 'missing name';
+  const type =
+    typeof row.type === 'string' && TRANSACTION_TYPES.has(row.type) ? row.type : undefined;
+  if (!type) return `unknown template type "${String(row.type)}"`;
+  const amount = asFiniteNumber(row.amount);
+  if (amount === undefined) return 'amount is not a number';
+  if (amount < 0) return 'negative amount';
+  const accountId = asId(row.accountId);
+  if (!accountId) return 'missing accountId';
+
+  const toAccountId = asId(row.toAccountId);
+  if (type === 'transfer' && !toAccountId) return 'transfer template has no destination account';
+
+  return {
+    id,
+    name,
+    type: type as TransactionTemplate['type'],
+    amount,
+    accountId,
+    categoryId: asString(row.categoryId, ''),
+    note: asString(row.note, ''),
+    labels: asStringArray(row.labels),
+    createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
+    ...(toAccountId && type === 'transfer' ? { toAccountId } : {}),
+  };
+};
+
 function parseSettings(value: unknown): Settings | undefined {
   if (!isRecord(value)) return undefined;
   // Pick only known keys — this is also what strips the legacy `currency` field.
@@ -276,6 +311,8 @@ function parseSettings(value: unknown): Settings | undefined {
         ? value.autoLocalBackup
         : defaultSettings.autoLocalBackup,
     monthStartDay: normalizeMonthStartDay(value.monthStartDay),
+    hideAmounts:
+      typeof value.hideAmounts === 'boolean' ? value.hideAmounts : defaultSettings.hideAmounts,
   };
 }
 
@@ -345,6 +382,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
   const labels = collect(raw.labels, 'labels', parseLabel);
   const budgets = collect(raw.budgets, 'budgets', parseBudget);
   const recurring = collect(raw.recurring, 'recurring', parseRecurring);
+  const templates = collect(raw.templates, 'templates', parseTemplate);
   const settings = parseSettings(raw.settings);
 
   const counts: Record<ImportEntity, EntityReport> = {
@@ -354,6 +392,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     labels: labels.report,
     budgets: budgets.report,
     recurring: recurring.report,
+    templates: templates.report,
   };
 
   const anyPresent = IMPORT_ENTITIES.some((e) => counts[e].present) || settings !== undefined;
@@ -366,6 +405,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     ...labels.issues,
     ...budgets.issues,
     ...recurring.issues,
+    ...templates.issues,
   ];
   const issues = allIssues.slice(0, MAX_REPORTED_ISSUES);
   if (allIssues.length > issues.length) {
@@ -437,6 +477,7 @@ export function validateBackup(raw: unknown): ValidatedBackup {
       ...(labels.rows ? { labels: labels.rows } : {}),
       ...(budgets.rows ? { budgets: budgets.rows } : {}),
       ...(recurring.rows ? { recurring: recurring.rows } : {}),
+      ...(templates.rows ? { templates: templates.rows } : {}),
       ...(settings ? { settings } : {}),
     },
     report: { counts, hasSettings: settings !== undefined, issues, warnings },

@@ -193,11 +193,23 @@ All of these endpoints are implemented in PHP and wired up in
 
 ### Quick wins
 
-- [ ] **[S] Transaction templates / duplicate.** Long-press a transaction → "Duplicate" or "Save as
-  template", then one-tap add from the FAB.
-- [ ] **[S] Bulk actions.** Multi-select in the transaction list → delete, recategorize, add label.
-- [ ] **[S] Hide-amounts toggle.** A blur/eye button in the header. The most-used privacy feature in
-  every finance app, and it fits the product positioning.
+- [x] **[S] Transaction templates / duplicate.** Fixed: long-press a transaction row (context menu
+  on desktop too, via a pointer-based long-press) opens **Select**, **Duplicate**, **Save as
+  template** and **Delete**. Duplicate re-adds the transaction dated today via `addTransaction`,
+  toast + undo. Templates are a new `TransactionTemplate` store collection (persisted-schema v8,
+  round-trips through backup import/export like every other entity) with `addTemplate`/
+  `deleteTemplate`. Long-pressing the FAB opens a popover of saved templates — tapping one is the
+  "one-tap add", also toast + undo.
+- [x] **[S] Bulk actions.** Fixed: the row context menu's **Select** action enters a selection mode
+  on the Transactions page — checkboxes replace navigate-on-tap, and a bottom action bar shows
+  **N selected** with **Add label**, **Recategorize**, **Delete** (toast + undo, restoring every
+  removed row) and **Cancel**. New store actions: `bulkDeleteTransactions`/`restoreTransactions`,
+  `bulkRecategorize`, `bulkAddLabel` (adds without duplicating a label a transaction already has).
+- [x] **[S] Hide-amounts toggle.** Fixed: `Settings.hideAmounts` (persisted-schema v8) plus a
+  `hidden` param on `formatCurrency` that masks to `₹••••` (sign kept, magnitude hidden). An eye/
+  eye-off icon button — [`HideAmountsToggle`](src/components/HideAmountsToggle.tsx) — sits in the
+  header of every data-bearing page (Dashboard, Accounts, Transactions, Analytics, Budgets,
+  Recurring) and masks every stat tile, list row, card and chart tooltip app-wide.
 
 ### Analytics depth
 

@@ -5,6 +5,7 @@ import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency } from '@/utils/formatters';
+import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { NumberPad } from '@/components/ui/number-pad';
@@ -174,15 +175,18 @@ export default function Budgets() {
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-base font-semibold">Budgets</h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => (showForm ? resetForm() : startCreate())}
-          className="text-primary hover:bg-primary/10 h-9 w-9 rounded-full"
-          aria-label="Add budget"
-        >
-          <Plus size={20} />
-        </Button>
+        <div className="flex gap-1">
+          <HideAmountsToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => (showForm ? resetForm() : startCreate())}
+            className="text-primary hover:bg-primary/10 h-9 w-9 rounded-full"
+            aria-label="Add budget"
+          >
+            <Plus size={20} />
+          </Button>
+        </div>
       </Header>
 
       <Main className="lg:max-w-xl">
@@ -364,6 +368,7 @@ function BudgetCard({
   onDelete,
 }: BudgetCardProps) {
   const transactions = useFinanceStore((s) => s.transactions);
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
   const { budget } = status;
 
   const history = useMemo(
@@ -412,7 +417,8 @@ function BudgetCard({
 
       <div className="mb-1.5 flex justify-between text-xs">
         <span className={status.isOver ? 'font-medium text-rose-500' : 'text-muted-foreground'}>
-          {formatCurrency(status.spent)} of {formatCurrency(status.limit)}
+          {formatCurrency(status.spent, false, hideAmounts)} of{' '}
+          {formatCurrency(status.limit, false, hideAmounts)}
         </span>
         <span
           className={`font-medium ${status.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
@@ -435,14 +441,14 @@ function BudgetCard({
       </div>
       <p className="text-muted-foreground mt-1.5 text-[11px]">
         {status.isOver
-          ? `Over by ${formatCurrency(-status.remaining)}`
-          : `${formatCurrency(status.remaining)} left ${PERIOD_NOUN[budget.period]}`}
+          ? `Over by ${formatCurrency(-status.remaining, false, hideAmounts)}`
+          : `${formatCurrency(status.remaining, false, hideAmounts)} left ${PERIOD_NOUN[budget.period]}`}
       </p>
       {budget.rollover && status.carryover !== 0 && (
         <p className="text-[11px] text-amber-500">
           {status.carryover > 0
-            ? `Includes ${formatCurrency(status.carryover)} rolled over`
-            : `Includes ${formatCurrency(-status.carryover)} overspend carried in`}
+            ? `Includes ${formatCurrency(status.carryover, false, hideAmounts)} rolled over`
+            : `Includes ${formatCurrency(-status.carryover, false, hideAmounts)} overspend carried in`}
         </p>
       )}
 
@@ -487,7 +493,8 @@ function BudgetCard({
                 <span
                   className={`w-28 shrink-0 text-right ${h.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
                 >
-                  {formatCurrency(h.spent, true)} / {formatCurrency(h.limit, true)}
+                  {formatCurrency(h.spent, true, hideAmounts)} /{' '}
+                  {formatCurrency(h.limit, true, hideAmounts)}
                 </span>
               </div>
             ))

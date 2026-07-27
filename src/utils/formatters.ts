@@ -10,7 +10,15 @@ const CURRENCY = 'INR';
  */
 const COMPACT_THRESHOLD = 100_000;
 
-export function formatCurrency(amount: number, compact = false): string {
+/** The bare currency symbol/prefix Intl would render for 0, e.g. "₹". Cached — it never changes. */
+const CURRENCY_PREFIX =
+  new Intl.NumberFormat(LOCALE, { style: 'currency', currency: CURRENCY, minimumFractionDigits: 0 })
+    .formatToParts(0)
+    .find((p) => p.type === 'currency')?.value ?? '₹';
+
+export function formatCurrency(amount: number, compact = false, hidden = false): string {
+  if (hidden) return `${amount < 0 ? '-' : ''}${CURRENCY_PREFIX}••••`;
+
   const useCompact = compact && Math.abs(amount) >= COMPACT_THRESHOLD;
 
   return new Intl.NumberFormat(LOCALE, {

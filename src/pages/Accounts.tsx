@@ -11,6 +11,7 @@ import {
 } from '@/utils/calculations';
 import type { Account } from '@/types';
 import { AccountCard } from '@/components/accounts/AccountCard';
+import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import { useConfirm } from '@/components/ui/use-confirm';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -22,6 +23,7 @@ export default function Accounts() {
   const transactions = useFinanceStore((s) => s.transactions);
   const deleteAccount = useFinanceStore((s) => s.deleteAccount);
   const setAccountArchived = useFinanceStore((s) => s.setAccountArchived);
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
 
   const [showArchived, setShowArchived] = useState(false);
 
@@ -74,13 +76,16 @@ export default function Accounts() {
       {/* Header */}
       <Header>
         <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
-        <button
-          onClick={() => navigate('/add-account')}
-          className="bg-grad-primary shadow-glow-primary flex h-9 w-9 items-center justify-center rounded-full text-white"
-          aria-label="Add account"
-        >
-          <Plus size={18} />
-        </button>
+        <div className="flex gap-2">
+          <HideAmountsToggle />
+          <button
+            onClick={() => navigate('/add-account')}
+            className="bg-grad-primary shadow-glow-primary flex h-9 w-9 items-center justify-center rounded-full text-white"
+            aria-label="Add account"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
       </Header>
       <Main>
         {/* Summary */}
@@ -92,7 +97,9 @@ export default function Accounts() {
                 Net Balance
               </p>
             </div>
-            <p className="text-lg font-bold">{formatCurrency(totalBalance, true)}</p>
+            <p className="text-lg font-bold">
+              {formatCurrency(totalBalance, true, hideAmounts)}
+            </p>
           </div>
           {creditAccounts.length > 0 && (
             <div className="card-elevated bg-grad-danger-soft rounded-2xl p-4">
@@ -102,7 +109,9 @@ export default function Accounts() {
                   Credit Due
                 </p>
               </div>
-              <p className="text-lg font-bold text-rose-500">{formatCurrency(creditDue, true)}</p>
+              <p className="text-lg font-bold text-rose-500">
+                {formatCurrency(creditDue, true, hideAmounts)}
+              </p>
             </div>
           )}
         </div>

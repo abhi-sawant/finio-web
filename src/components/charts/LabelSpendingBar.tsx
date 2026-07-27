@@ -9,6 +9,7 @@ interface Props {
 
 export function LabelSpendingBar({ transactions }: Props) {
   const labels = useFinanceStore((s) => s.labels);
+  const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
 
   const data = useMemo(() => {
     const byLabel = new Map<string, number>();
@@ -41,7 +42,9 @@ export function LabelSpendingBar({ transactions }: Props) {
             <div key={item.name} className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">{item.name}</span>
-                <span className="font-medium">{formatCurrency(item.amount, true)}</span>
+                <span className="font-medium">
+                  {formatCurrency(item.amount, true, hideAmounts)}
+                </span>
               </div>
               <div className="bg-muted h-2 overflow-hidden rounded-full">
                 <div
