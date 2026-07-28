@@ -394,11 +394,20 @@ All of these endpoints are implemented in PHP and wired up in
 
 ### Strategic
 
-- [ ] **[M] End-to-end encrypted cloud backup.** The app is positioned as privacy-first, but
-  `uploadBackup` sends the complete financial history to the server as plaintext JSON.
-  Passphrase-derived key via WebCrypto, encrypt before upload, server stores an opaque blob.
-  Contained change (`backup.ts` plus key-management UI) that turns a marketing claim into a
-  verifiable property.
+- [x] **[M] End-to-end encrypted cloud backup.** Fixed: an opt-in passphrase encrypts backups
+  client-side with AES-GCM before upload — the server only ever stores an opaque JSON envelope
+  (`{v, enc, kdf, iterations, salt, iv, ciphertext}`), so no backend change was needed. The key is
+  derived with PBKDF2-SHA256 in [`src/utils/backupCrypto.ts`](src/utils/backupCrypto.ts) and cached
+  in memory only, for the session, in
+  [`src/store/useBackupCryptoStore.ts`](src/store/useBackupCryptoStore.ts) (its own persistence key,
+  same reasoning as `AppLockConfig` — key material must never travel inside the payload it
+  protects). `services/backup.ts` encrypts on upload and decrypts on restore, falling back to a
+  passphrase prompt when no session key is cached; the salt travels with each backup, so a restore
+  on a brand-new device with no local config can still derive the right key and self-heal its own
+  config from it. Automatic background uploads skip silently (no unattended prompt) when the
+  session key isn't cached, and Settings shows a "locked" banner to resume them. Legacy plaintext
+  cloud backups remain restorable unchanged. There is deliberately no passphrase recovery — losing
+  it means losing access to backups encrypted under it, the guarantee the feature is for.
 
 ---
 
