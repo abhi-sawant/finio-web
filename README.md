@@ -613,6 +613,5 @@ backend change was needed, and older plaintext backups remain restorable.
 
 [CLAUDE.md](CLAUDE.md) is the architecture guide — domain types, state management, the PWA setup,
 and a long list of gotchas worth reading before you change anything money-related.
-[IMPROVEMENTS.md](IMPROVEMENTS.md) records the backlog and how each item was resolved.
 
 Before opening a PR: `npm test`, `npm run lint`, `npm run format`.

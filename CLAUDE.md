@@ -8,8 +8,7 @@
 - **Backend (optional):** PHP 8+ with MySQL, JWT auth, and email OTP. Cloud backups can be end-to-end encrypted client-side, in which case the server holds only an opaque envelope.
 
 [README.md](README.md) is the user- and self-hoster-facing document; this file is the architecture
-guide. [IMPROVEMENTS.md](IMPROVEMENTS.md) is the (now fully closed) backlog and records why each
-piece was built the way it was.
+guide.
 
 ---
 
