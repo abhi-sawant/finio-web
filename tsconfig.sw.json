@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.sw.tsbuildinfo",
+    "target": "es2023",
+    /* WebWorker rather than DOM — this is the whole reason the service worker needs its own
+       project. `ServiceWorkerGlobalScope` and `ExtendableEvent` do not exist under the app's
+       lib, and `window`/`document` must not exist under this one. */
+    "lib": ["ES2023", "WebWorker"],
+    "module": "esnext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /* Bundler mode — mirrors tsconfig.app.json */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "ignoreDeprecations": "6.0"
+  },
+  /* Only the roots — TypeScript follows the imports, so the shared notification modules get
+     typechecked under the WebWorker lib too. That is deliberate: it is what proves they never
+     reach for a DOM global. */
+  "include": ["src/sw"]
+}

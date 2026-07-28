@@ -32,8 +32,16 @@ Tests live next to their subject as `*.test.ts` and cover the pure money logic
 (`src/store/balance.ts`, `src/store/recurring.ts`, `src/utils/calculations.ts`,
 `src/utils/period.ts`, `src/utils/importValidation.ts`, `src/utils/csvImport.ts`,
 `src/utils/autoCategorize.ts`, `src/utils/analytics.ts`, `src/utils/forecast.ts`,
-`src/utils/netWorth.ts`, `src/utils/insights.ts`) plus the store itself. Config is in `vitest.config.ts` — separate
+`src/utils/netWorth.ts`, `src/utils/insights.ts`, `src/utils/notifications.ts`,
+`src/utils/notificationSchedule.ts`, `src/utils/shareTarget.ts`, `src/utils/pinCrypto.ts`,
+`src/utils/appLock.ts`) plus both the finance and app-lock stores. Config is in `vitest.config.ts` — separate
 from `vite.config.ts` and running in the `node` environment, so no browser plugins are loaded.
+
+That `node` environment is a real constraint: `include` matches **`.test.ts` only**, there is no
+jsdom and no setup file, so `window`, `Notification` and IndexedDB do not exist. Anything
+platform-facing has to be split into a pure module that is tested and a thin I/O wrapper that
+isn't (`notificationDb`/`notificationRunner`, `appLockBiometric`, `LockScreen`). Node *does*
+expose `crypto.subtle`, which is why `pinCrypto.ts` is fully testable.
 
 ---
 
@@ -65,17 +73,26 @@ src/
 │   ├── ui/                   # shadcn/ui primitives (button, input, dialog, calendar, etc.)
 │   ├── charts/               # Recharts wrappers (BalanceTrend, SpendingDonut, etc.)
 │   ├── analytics/            # Analytics-page cards (forecast, net worth, heatmap, insights)
+│   ├── applock/              # LockScreen + PinPad (rendered instead of the app while locked)
 │   ├── layout/Layout.tsx     # Shell for authenticated pages
 │   ├── ProtectedRoute.tsx    # Auth guard (redirects to /login if no token)
 │   └── ThemeProvider.tsx     # dark/light/system theme context
+├── sw/sw.ts                  # Hand-written service worker (own TS project — see PWA below)
+├── hooks/useAutoLock.ts      # visibilitychange/pagehide → re-lock after the grace window
 ├── store/
 │   ├── useFinanceStore.ts    # All finance data + actions (Zustand + localStorage)
 │   ├── balance.ts            # Pure balance math: deltas, opening-balance backfill, recompute
 │   ├── recurring.ts          # Pure recurring planner (planRecurring, nextDueDate, previewBackfill)
-│   └── useAuthStore.ts       # Token, user profile, lastBackupAt (Zustand + localStorage)
+│   ├── useAuthStore.ts       # Token, user profile, lastBackupAt (Zustand + localStorage)
+│   └── useAppLockStore.ts    # PIN hash, auto-lock delay, isLocked (key `finio-lock`)
 ├── services/
 │   ├── api.ts                # Typed fetch wrapper, Bearer token injection
-│   └── backup.ts             # Cloud upload/download + local JSON export/import
+│   ├── backup.ts             # Cloud upload/download + local JSON export/import
+│   ├── notifications.ts      # DOM-side: permission, schedule refresh, periodic sync
+│   ├── notificationDb.ts     # IndexedDB schedule + fired ledger (shared with the SW)
+│   ├── notificationRunner.ts # Shows what's due — called by the app *and* the worker
+│   ├── appLockSession.ts     # backgroundedAt timestamp (localStorage, survives a page kill)
+│   └── appLockBiometric.ts   # WebAuthn platform authenticator (convenience unlock)
 ├── types/index.ts            # All domain interfaces (Account, Transaction, Budget, etc.)
 ├── utils/
 │   ├── calculations.ts       # Financial aggregations, budget status/history, CSV export
@@ -87,6 +104,11 @@ src/
 │   ├── forecast.ts           # Liquid cash-flow projection (recurring + category averages)
 │   ├── netWorth.ts           # Net worth series, reconstruction, and monthly snapshots
 │   ├── insights.ts           # Insights feed + subscription detection
+│   ├── notifications.ts      # Reminder types + due-selection (leaf — imported by the SW)
+│   ├── notificationSchedule.ts # Pure builder: bills, budget breaches, card dues → schedule
+│   ├── shareTarget.ts        # Share Target / shortcut param parsing (SMS amount extraction)
+│   ├── pinCrypto.ts          # PBKDF2 PIN hashing, salt, base64url
+│   ├── appLock.ts            # shouldLockOnResume + failed-attempt backoff ladder
 │   └── formatters.ts         # Currency (INR), date, number formatting
 ├── lib/utils.ts              # shadcn cn() helper
 └── data/defaultData.ts       # Default categories, labels, and settings
@@ -94,10 +116,11 @@ src/
 
 ### State Management
 
-Two Zustand stores, both persisted to localStorage:
+Three Zustand stores, all persisted to localStorage:
 
-- **`useFinanceStore`** — accounts, transactions, categories, labels, budgets, recurring rules, settings. Exposes granular selector hooks (`useAccounts()`, `useTransactions()`, etc.) to avoid re-renders. Includes `processRecurring()` for generating due recurring transactions, `importData(payload, { mode })` for merge/replace restore, `captureNetWorthSnapshots()` for the monthly net-worth ledger, and `recomputeBalances()` to reconcile drift. Has migration support (currently v12).
-- **`useAuthStore`** — JWT token, user object, `lastBackupAt`. Use `loadAuth()` on app start to hydrate from storage.
+- **`useFinanceStore`** (`finio-storage`) — accounts, transactions, categories, labels, budgets, recurring rules, settings. Exposes granular selector hooks (`useAccounts()`, `useTransactions()`, etc.) to avoid re-renders. Includes `processRecurring()` for generating due recurring transactions, `importData(payload, { mode })` for merge/replace restore, `captureNetWorthSnapshots()` for the monthly net-worth ledger, and `recomputeBalances()` to reconcile drift. Has migration support (currently v13).
+- **`useAuthStore`** (`finio-auth`) — JWT token, user object, `lastBackupAt`. Use `loadAuth()` on app start to hydrate from storage.
+- **`useAppLockStore`** (`finio-lock`) — PIN hash + salt, auto-lock delay, WebAuthn credential id, failed-attempt count, and the transient `isLocked`/`isReady` flags. **Separate from the finance store on purpose** — see the app-lock gotcha below. Uses `partialize` so the transient flags are never written, and decides the cold-start lock in `onRehydrateStorage` rather than an effect.
 
 ### Routing
 
@@ -159,7 +182,9 @@ Defined in [src/types/index.ts](src/types/index.ts):
 | `RecurringTransaction` | id, type, amount, accountId, toAccountId?, categoryId, frequency, startDate, endDate?, maxOccurrences?, occurrenceCount, pausedAt?, lastRunDate |
 | `CategoryRule` | id, pattern, matchType, scope, categoryId, labelIds[], enabled |
 | `NetWorthSnapshot` | id, periodKey (`yyyy-MM`), date, assets, liabilities |
-| `Settings` | theme, userName, autoLocalBackup, monthStartDay |
+| `Settings` | theme, userName, autoLocalBackup, monthStartDay, hideAmounts, notificationsEnabled, notifyBills, notifyBudgets, notifyCreditDue, notifyLeadDays |
+| `AppLockConfig` | enabled, salt, hash, iterations, pinLength, autoLockMinutes, webauthnCredentialId — **not** in `Settings`, see gotchas |
+| `ScheduledNotification` | id (`kind:subject:occurrence`), kind, fireAt, expiresAt, title, body, url |
 
 Enums: `AccountType`, `TransactionType` (expense/income/transfer), `RecurrenceFrequency` (daily/weekly/monthly/yearly), `BudgetPeriod` (weekly/monthly/yearly), `RuleMatchType` (contains/startsWith/endsWith/equals/regex), `RuleScope` (expense/income/any), `Theme` (dark/light/system).
 
@@ -178,11 +203,34 @@ Enums: `AccountType`, `TransactionType` (expense/income/transfer), `RecurrenceFr
 
 ## PWA
 
-Configured in [vite.config.ts](vite.config.ts) via `vite-plugin-pwa`:
+Configured in [vite.config.ts](vite.config.ts) via `vite-plugin-pwa`, using **`strategies:
+'injectManifest'`** with a hand-written worker at [`src/sw/sw.ts`](src/sw/sw.ts).
 
 - App name: "Finio - Finance Tracker", theme color `#6C63FF`
-- Workbox pre-caches all JS/CSS/HTML assets; Google Fonts use CacheFirst strategy
-- Manifest icons: 64px, 192px, 512px, maskable 512px (in `public/`)
+- Manifest icons: 64px, 96px, 192px, 512px, maskable 512px (in `public/`)
+- `shortcuts`: Add Expense, Add Income, Transactions, Budgets (96px icon each)
+- `share_target`: `GET /share-target?title=&text=&url=` — GET is forced, not preferred:
+  `public/.htaccess` rewrites to a static `index.html` and cannot take a POST body, and a POST
+  target also needs the SW to already be controlling, which it isn't on a cold-start share
+- Notification schedule and fired-reminder ledger live in IndexedDB (`finio-notifications`), the
+  only storage the page and the worker can both reach
+
+**The worker is hand-written, so nothing is free.** `workbox.runtimeCaching`, `navigateFallback`,
+`cleanupOutdatedCaches` and `clientsClaim` are all `generateSW`-only options that `injectManifest`
+**ignores silently, with no error**. `sw.ts` writes each of them out; the one that matters most is
+the `NavigationRoute` SPA fallback, without which offline deep-links to `/settings` or `/budgets`
+404. `registerType: 'autoUpdate'` additionally requires `self.skipWaiting()` and `clientsClaim()`
+literally present in the worker source or updates stall behind a waiting worker.
+
+The worker needs the **WebWorker** lib while the app needs **DOM**, so it is its own TS project:
+[`tsconfig.sw.json`](tsconfig.sw.json) is in the root `references` *and* `src/sw` is excluded from
+`tsconfig.app.json`. Missing either half breaks `npm run build`. The `workbox-*` runtime packages
+are explicit devDependencies — they previously resolved only through npm hoisting `workbox-build`.
+
+`virtual:pwa-register` is deliberately never imported: `tsconfig.app.json` declares only
+`["vite/client"]` and there is no `vite-env.d.ts`, so it is a hard `tsc -b` break.
+`navigator.serviceWorker.ready` covers every need. **The PWA is not built under `vite dev`** — use
+`npm run build && npm run preview` (there is a `finio-preview` launch config).
 
 ---
 
@@ -243,6 +291,31 @@ All page components are lazy-loaded. This keeps the initial bundle small.
   pace-adjusted via `paceToFullPeriod`, or a month three days old reads as a spending collapse.
   A subscription candidate's `nextDate` is guaranteed to be in the future, so accepting the offered
   recurring rule can never backfill charges that are already in the ledger.
+- **A reminder's id is its dedupe contract:** the schedule is rebuilt from scratch on every app
+  open, so `buildNotificationSchedule` must produce byte-identical ids each time or every
+  reminder fires again on the next launch. Ids are keyed on the *occurrence* — the due date, or
+  `range.start` for a budget period — and **never** on `fireAt`, which is why changing the lead
+  time cannot re-send anything. Budget ids carry the severity too, so `near` → `over` is a
+  second reminder rather than a swallowed one. The fired ledger lives in IndexedDB, not the
+  store, because a service worker cannot touch localStorage and the two contexts would otherwise
+  re-fire each other's reminders; `claimFired` relies on IDB `add()` rejecting a duplicate key to
+  make the claim atomic, which also covers StrictMode's double mount.
+- **The service worker cannot read localStorage,** where all the finance data lives. It only ever
+  reads the precomputed schedule out of IndexedDB. Any new trigger must be baked in by the app —
+  which is also why budget alerts are foreground-only everywhere: they derive from `transactions`.
+- **App lock config must never touch `Settings`:** [`src/services/backup.ts`](src/services/backup.ts)
+  serializes `settings` into every exported JSON and every cloud upload, so a PIN hash there would
+  travel off-device — and `importData` merging that backup onto another machine would silently
+  install this device's PIN on it. It lives in [`useAppLockStore`](src/store/useAppLockStore.ts)
+  (`finio-lock`) instead, which makes both impossible with no scrubbing code and means
+  `resetToDefaults()` cannot unlock the app. A test asserts no `/pin|lock/i` key ever appears in
+  `defaultSettings`. Note also: the lock is a **screen gate, not encryption** — the data behind it
+  is still plaintext, the UI says so, and no amount of PBKDF2 iterations changes it.
+- **The lock gate must stay above `<Routes>` and must never navigate.** That is the only reason a
+  share target, a manifest shortcut or a notification click survives it: nothing on that path
+  touches `window.location`, so the URL is intact when the gate lifts. A `history.replaceState`
+  that strips query params from a top-level effect is the one realistic way to break this — do
+  param cleanup inside a route component. The same applies to the onboarding gate.
 - **Auth state:** Always call `useAuthStore.getState().loadAuth()` (or rely on Zustand hydration) before making authenticated API calls.
 - **Tailwind v4:** There is no `tailwind.config.js`. All customizations go in CSS files using `@theme`, `@layer`, etc.
 

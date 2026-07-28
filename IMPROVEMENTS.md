@@ -320,16 +320,77 @@ All of these endpoints are implemented in PHP and wired up in
 
 ### Platform / PWA
 
-- [ ] **[M] Local notifications** for bill due dates and budget threshold breaches. The upcoming-bills
-  card only helps if you happen to open the app.
-- [ ] **[S] Manifest shortcuts + Web Share Target.** Long-press the icon → "Add Expense" straight to
-  the number pad; share a payment SMS into Finio to prefill.
-- [ ] **[M] App lock.** PIN or WebAuthn/biometric, plus auto-lock on background. A privacy-first
-  finance app with zero local protection is a real gap.
-- [ ] **[M] Receipt attachments** in IndexedDB (not localStorage — it will blow the quota). Fits the
-  offline-first, nothing-leaves-your-device story.
-- [ ] **[S] Command palette + keyboard shortcuts.** A desktop sidebar already ships, so desktop is a
-  target surface.
+- [x] **[M] Local notifications.** Fixed: reminders for recurring bills coming due, budgets
+  crossing `BUDGET_NEAR_LIMIT_PERCENT` or going over, and credit card statement payments.
+  [`src/utils/notificationSchedule.ts`](src/utils/notificationSchedule.ts) is a pure, `now`-taking
+  builder that reuses `futureOccurrences`, `computeBudgetStatuses` + `budgetHealth` and
+  `getCreditCardDueInfo` rather than reimplementing any of them. The schedule is rebuilt from
+  scratch on every app open, so an id has to come out identical each time — that stability *is*
+  the dedupe contract. Ids key on the occurrence (the due date, or `range.start` for a budget
+  period) and never on the fire time, so changing the lead time can't re-send a reminder and a
+  budget re-arms by itself when the period rolls; severity is in the budget key, so `near` →
+  `over` is a second reminder rather than a swallowed one. A missed lead window clamps forward to
+  now (late beats lost) and `MAX_NOTIFICATIONS_PER_RUN` keeps a month away from becoming a wall of
+  banners. Bodies honour `hideAmounts`, which is exactly what a lock-screen preview is for.
+  Schedule and fired-ledger live in IndexedDB
+  ([`src/services/notificationDb.ts`](src/services/notificationDb.ts)) rather than the store: a
+  service worker cannot touch localStorage, so a ledger there would let the two contexts re-fire
+  each other's reminders, and the backup payload spreads the whole store so it would bloat every
+  export. `claimFired` leans on IDB `add()` rejecting a duplicate key, making the claim atomic —
+  which also covers StrictMode. Persisted schema v13 adds five flat settings: master off
+  (permission must be asked for behind a tap) with the per-trigger switches on.
+  **Background delivery** came with the service-worker switch below; without it, and on iOS and
+  Firefox always, reminders arrive on the next app open and the Settings copy says exactly that.
+- [x] **[S] Manifest shortcuts + Web Share Target.** Fixed: four shortcuts (Add Expense, Add
+  Income, Transactions, Budgets) and a `share_target` at `/share-target`.
+  `method: 'GET'` is forced rather than preferred — `public/.htaccess` rewrites to a static
+  `index.html` and cannot take a POST body, and a POST target also needs the SW to already be
+  controlling, which it isn't on a cold-start share from a fresh install.
+  [`src/utils/shareTarget.ts`](src/utils/shareTarget.ts) is the pure parser: `extractAmount` only
+  accepts a number sitting next to a currency marker, which is the whole guard against a payment
+  SMS — `"A/c XX1234 debited by Rs 99.00"` has two plausible numbers and only one is money.
+  `AddTransaction` seeds itself in its `useState` initializers rather than a mount effect, because
+  `setNote` alone doesn't run categorization rules; seeding `appliedRule` from `findMatchingRule`
+  makes the existing "Filed as Food by your rule / Undo" banner appear, so a shared transaction is
+  categorized as visibly and reversibly as a typed one. All three `navigate(-1)` sites became a
+  `goBack()` that checks `history.state.idx` — a cold start from a shortcut, share or notification
+  has nothing behind it, and going back would drop the user out of the PWA.
+- [x] **[M] Custom service worker + periodic background sync.** (Not originally listed; the
+  notifications item needs it.) `vite-plugin-pwa` moved from `generateSW` to `injectManifest` with
+  a hand-written [`src/sw/sw.ts`](src/sw/sw.ts), because `generateSW` cannot host a `periodicsync`
+  handler. The migration is mostly about *not* losing what the generated worker did for free:
+  `runtimeCaching`, `navigateFallback`, `cleanupOutdatedCaches` and `clientsClaim` are all
+  `generateSW`-only options that `injectManifest` **ignores silently, with no error**. The one that
+  matters is the navigation fallback — without a hand-written `NavigationRoute`, offline
+  deep-links to `/settings` or `/budgets` 404, a regression with nothing to do with notifications.
+  `registerType: 'autoUpdate'` additionally needs `skipWaiting()`/`clientsClaim()` literally in the
+  source or updates stall behind a waiting worker. The worker gets its own TS project
+  (`tsconfig.sw.json` in the root references, `src/sw` excluded from `tsconfig.app.json` — missing
+  either half fails the build) since it needs the WebWorker lib while the app needs DOM. The
+  `workbox-*` runtime packages became explicit devDeps; they had been resolving only through npm
+  hoisting `workbox-build`.
+- [x] **[M] App lock.** Fixed: a PIN gate in front of the app, an optional WebAuthn platform
+  authenticator for biometric unlock, and auto-lock after a configurable time in the background.
+  It is a **screen gate, not encryption**, and the UI says so where the user can see it — the data
+  behind it is still plaintext in localStorage. Lock state lives in a new `finio-lock` store
+  ([`src/store/useAppLockStore.ts`](src/store/useAppLockStore.ts)) rather than on `Settings`, and
+  that is load-bearing: `services/backup.ts` serializes settings into every export and cloud
+  upload, so a PIN hash there would travel off-device, and restoring that backup elsewhere would
+  silently install this device's PIN on it. Separate stores make both impossible with no scrubbing
+  code, and mean `resetToDefaults()` can't unlock the app either. The cold-start decision sits in
+  `onRehydrateStorage`, not an effect — localStorage is synchronous, so it lands before the first
+  render (no flash of balances) and StrictMode can't double-fire it. `shouldLockOnResume` fails
+  closed on a missing timestamp, since iOS doesn't reliably fire `pagehide` when it kills a
+  backgrounded PWA. [`src/utils/pinCrypto.ts`](src/utils/pinCrypto.ts) is PBKDF2-SHA256 at 310k
+  iterations and is candid about what that buys: a 4-digit PIN is 10⁴ candidates, so hashing
+  doesn't make it unguessable and no count would — it stops the PIN sitting in plaintext, nothing
+  more. WebAuthn is a convenience unlock and never a second factor (no server means the challenge
+  is client-generated and unverifiable), but `userVerification: 'required'` still makes the OS
+  demand a face or finger, and the UV flag is checked rather than assumed. Failed attempts get a
+  persisted 15s–5min backoff ladder; there is deliberately **no** wipe-after-N-attempts, which in
+  a local-only app would turn a forgotten PIN into unrecoverable loss. Recovery is stated honestly
+  instead, and the set-PIN dialog nudges toward a backup first. Deep links survive the gate for
+  free — it renders above `<Routes>` and nothing on that path touches the URL.
 
 ### Strategic
 
@@ -401,5 +462,20 @@ All of these endpoints are implemented in PHP and wired up in
 7. ~~**Accessibility & quality** (section 4) — switch semantics, status not by colour alone, chart
    data tables.~~ **Done**, and it depended on nothing pending: it touches presentation only, so it
    was independent of the platform/PWA and encrypted-backup work still open in section 3. Section 4
-   is now fully checked off. What remains is section 3's platform/PWA group and the strategic
-   end-to-end-encrypted backup item.
+   is now fully checked off.
+8. ~~**Platform / PWA** — local notifications, manifest shortcuts + Web Share Target, app lock.~~
+   **Done**, and none of it was blocked either: it built on the recurring engine,
+   `computeBudgetStatuses`, `getCreditCardDueInfo` and `period.ts`, all long landed. What the
+   group *did* need was a platform layer that didn't exist — there was no custom service worker,
+   and no use of `Notification`, WebAuthn, `crypto.subtle` or `visibilitychange` anywhere in
+   `src/`. Order mattered internally: shortcuts and the share target first (config and prefill
+   only, no SW), then reminders on the existing generated worker, then the `injectManifest`
+   migration as its own commit so the riskiest change — losing the offline navigation fallback —
+   could be reverted alone, and the app lock last, since its gate has to wrap the deep-link entry
+   points the first two commits added.
+
+   **What remains is the strategic end-to-end-encrypted backup item.** It is now the only open
+   entry in the whole backlog. Worth noting it is *adjacent* to the app lock but not continuous
+   with it: the lock is a UI gate over plaintext local data, whereas E2E backup is about the
+   payload leaving the device. They share only `crypto.subtle` and the base64url helpers in
+   [`src/utils/pinCrypto.ts`](src/utils/pinCrypto.ts), which the passphrase-derived key can reuse.

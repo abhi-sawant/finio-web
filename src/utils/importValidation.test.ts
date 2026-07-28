@@ -210,7 +210,25 @@ describe('validateBackup', () => {
       autoLocalBackup: true,
       monthStartDay: 1,
       hideAmounts: false,
+      notificationsEnabled: false,
+      notifyBills: true,
+      notifyBudgets: true,
+      notifyCreditDue: true,
+      notifyLeadDays: 2,
     });
+  });
+
+  it('clamps an out-of-range notification lead time', () => {
+    expect(validateBackup({ settings: { notifyLeadDays: 99 } }).data.settings?.notifyLeadDays).toBe(
+      7,
+    );
+    expect(validateBackup({ settings: { notifyLeadDays: -3 } }).data.settings?.notifyLeadDays).toBe(
+      0,
+    );
+    // A non-number falls back to the default rather than poisoning the schedule with NaN.
+    expect(
+      validateBackup({ settings: { notifyLeadDays: 'soon' } }).data.settings?.notifyLeadDays,
+    ).toBe(2);
   });
 
   it('clamps an out-of-range month start day instead of trusting the file', () => {

@@ -1432,3 +1432,54 @@ describe('v12 migration', () => {
     expect(useFinanceStore.getState().netWorthSnapshots).toEqual([]);
   });
 });
+
+describe('v13 migration', () => {
+  const preV13 = (settings: Record<string, unknown>) =>
+    JSON.stringify({
+      version: 12,
+      state: {
+        accounts: [account('a', 100)],
+        transactions: [],
+        settings: {
+          theme: 'dark',
+          userName: 'Alex',
+          autoLocalBackup: false,
+          monthStartDay: 1,
+          hideAmounts: false,
+          ...settings,
+        },
+      },
+    });
+
+  it('leaves reminders off, so an upgrade never opts anyone into notifications', async () => {
+    backing.set('finio-storage', preV13({}));
+
+    await useFinanceStore.persist.rehydrate();
+
+    const { settings } = useFinanceStore.getState();
+    expect(settings.notificationsEnabled).toBe(false);
+  });
+
+  it('defaults the per-trigger switches on, so the master switch alone is useful', async () => {
+    backing.set('finio-storage', preV13({}));
+
+    await useFinanceStore.persist.rehydrate();
+
+    const { settings } = useFinanceStore.getState();
+    expect(settings.notifyBills).toBe(true);
+    expect(settings.notifyBudgets).toBe(true);
+    expect(settings.notifyCreditDue).toBe(true);
+    expect(settings.notifyLeadDays).toBe(2);
+  });
+
+  it('preserves settings the user already chose', async () => {
+    backing.set('finio-storage', preV13({ theme: 'dark', monthStartDay: 25 }));
+
+    await useFinanceStore.persist.rehydrate();
+
+    const { settings } = useFinanceStore.getState();
+    expect(settings.theme).toBe('dark');
+    expect(settings.userName).toBe('Alex');
+    expect(settings.monthStartDay).toBe(25);
+  });
+});

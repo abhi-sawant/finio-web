@@ -1,11 +1,12 @@
-import { useState, useMemo, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useState, useMemo, useRef, useCallback } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ArrowLeft, Trash2, Split, Plus, X, Wand2 } from 'lucide-react';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { roundMoney } from '@/store/balance';
 import { findMatchingRule, mergeLabels } from '@/utils/autoCategorize';
+import { parseSharePayload } from '@/utils/shareTarget';
 import { formatCurrency, toLocalDateTimeInputValue } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -26,6 +27,7 @@ import Header from '@/components/ui/header';
 export default function AddTransaction() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const transactions = useFinanceStore((s) => s.transactions);
   const accounts = useFinanceStore((s) => s.accounts);
   const categories = useFinanceStore((s) => s.categories);
@@ -38,20 +40,54 @@ export default function AddTransaction() {
 
   const existing = id ? transactions.find((t) => t.id === id) : null;
 
-  const [type, setType] = useState<TransactionType>(existing?.type ?? 'expense');
-  const [amount, setAmount] = useState(existing?.amount?.toString() ?? '');
+  /**
+   * A draft handed to us by the OS: the Web Share Target (`/share-target?title=&text=&url=`) or
+   * a manifest shortcut (`/add-transaction?type=expense`). Only ever consumed by the `useState`
+   * initializers below, so it seeds a blank form and can never overwrite something typed.
+   * `existing` is always null on both of those routes, but the guard makes that explicit.
+   */
+  const shared = useMemo(
+    () =>
+      existing
+        ? null
+        : parseSharePayload({
+            title: searchParams.get('title'),
+            text: searchParams.get('text'),
+            url: searchParams.get('url'),
+            type: searchParams.get('type'),
+          }),
+    [existing, searchParams],
+  );
+
+  /**
+   * Auto-categorize the shared note up front rather than in a mount effect: `setNote` alone
+   * does not run rules (that lives in `applyRulesToNote`, which can't be called during render),
+   * and seeding `appliedRule` below means the existing "filed by your rule / Undo" banner shows
+   * up — so a shared transaction gets the same visible, reversible treatment as a typed one.
+   */
+  const sharedRule = useMemo(
+    () => (shared?.note ? findMatchingRule(rules, shared.note, shared.type) : undefined),
+    [rules, shared],
+  );
+
+  const [type, setType] = useState<TransactionType>(existing?.type ?? shared?.type ?? 'expense');
+  const [amount, setAmount] = useState(existing?.amount?.toString() ?? shared?.amount ?? '');
   const [accountId, setAccountId] = useState(
     existing?.accountId ?? accounts.find((a) => !a.archivedAt)?.id ?? '',
   );
   const [toAccountId, setToAccountId] = useState(existing?.toAccountId ?? '');
-  const [categoryId, setCategoryId] = useState(existing?.categoryId ?? '');
+  const [categoryId, setCategoryId] = useState(
+    existing?.categoryId ?? sharedRule?.categoryId ?? '',
+  );
   const [date, setDate] = useState(
     existing?.date
       ? toLocalDateTimeInputValue(existing.date)
       : toLocalDateTimeInputValue(new Date()),
   );
-  const [note, setNote] = useState(existing?.note ?? '');
-  const [selectedLabels, setSelectedLabels] = useState<string[]>(existing?.labels ?? []);
+  const [note, setNote] = useState(existing?.note ?? shared?.note ?? '');
+  const [selectedLabels, setSelectedLabels] = useState<string[]>(
+    existing?.labels ?? mergeLabels([], sharedRule?.labelIds ?? []),
+  );
 
   const [splitMode, setSplitMode] = useState(!!existing?.splits?.length);
   const [splitRows, setSplitRows] = useState<{ categoryId: string; amount: string }[]>(
@@ -73,7 +109,22 @@ export default function AddTransaction() {
     rule: CategoryRule;
     prevCategoryId: string;
     prevLabels: string[];
-  } | null>(null);
+  } | null>(
+    // A rule seeded from a shared note starts from a blank baseline, so editing the note backs
+    // it out to an empty category exactly as if the user had typed the note themselves.
+    sharedRule ? { rule: sharedRule, prevCategoryId: '', prevLabels: [] } : null,
+  );
+
+  /**
+   * A cold start from a manifest shortcut, a share or a notification has nothing behind it in
+   * the history stack, and `navigate(-1)` there drops the user straight out of the PWA. React
+   * Router stamps `history.state.idx`, and 0 means this is the first entry.
+   */
+  const goBack = useCallback(() => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof idx === 'number' && idx > 0) navigate(-1);
+    else navigate('/', { replace: true });
+  }, [navigate]);
 
   const applyRulesToNote = (value: string, txType: TransactionType, splitting: boolean) => {
     if (existing || categoryTouched.current || (txType === 'expense' && splitting)) return;
@@ -261,7 +312,7 @@ export default function AddTransaction() {
       addTransaction(txData);
       toast.success('Transaction added');
     }
-    navigate(-1);
+    goBack();
   };
 
   const handleDelete = () => {
@@ -269,7 +320,7 @@ export default function AddTransaction() {
     // Cheap and fully reversible, so undo beats a confirm prompt here.
     const removed = deleteTransaction(existing.id);
     if (!removed) return;
-    navigate(-1);
+    goBack();
     toast.success('Transaction deleted', {
       action: { label: 'Undo', onClick: () => restoreTransaction(removed) },
     });
@@ -288,7 +339,7 @@ export default function AddTransaction() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="h-9 w-9 rounded-full"
         >
           <ArrowLeft size={20} />

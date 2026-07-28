@@ -825,7 +825,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 12,
+      version: 13,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -966,6 +966,25 @@ export const useFinanceStore = create<FinanceStore>()(
           s = {
             ...s,
             netWorthSnapshots: Array.isArray(s.netWorthSnapshots) ? s.netWorthSnapshots : [],
+          };
+        }
+
+        if (version < 13) {
+          // Local reminders are new, and off: notification permission has to be asked for
+          // behind a tap, so an upgrade cannot opt anyone in. The per-trigger switches default
+          // on, so flipping the master switch alone gives useful reminders.
+          const settings = (s.settings ?? {}) as Partial<Settings>;
+          s = {
+            ...s,
+            settings: {
+              ...defaultSettings,
+              ...settings,
+              notificationsEnabled: settings.notificationsEnabled ?? false,
+              notifyBills: settings.notifyBills ?? true,
+              notifyBudgets: settings.notifyBudgets ?? true,
+              notifyCreditDue: settings.notifyCreditDue ?? true,
+              notifyLeadDays: settings.notifyLeadDays ?? 2,
+            },
           };
         }
 

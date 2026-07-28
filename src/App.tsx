@@ -5,9 +5,15 @@ import { Layout } from '@/components/layout/Layout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ConfirmProvider } from '@/components/ui/confirm';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { useAppLockStore } from '@/store/useAppLockStore';
+import { useAutoLock } from '@/hooks/useAutoLock';
 
 const Onboarding = lazy(() =>
   import('@/components/onboarding/Onboarding').then((m) => ({ default: m.Onboarding })),
+);
+
+const LockScreen = lazy(() =>
+  import('@/components/applock/LockScreen').then((m) => ({ default: m.LockScreen })),
 );
 
 // Lazy-loaded pages (route-based code splitting)
@@ -43,10 +49,21 @@ function PageLoader() {
 function AppRoutes() {
   const isHydrated = useFinanceStore((s) => s.isHydrated);
   const onboardedAt = useFinanceStore((s) => s.settings.onboardedAt);
+  const isLockReady = useAppLockStore((s) => s.isReady);
+  const isLocked = useAppLockStore((s) => s.isLocked);
 
-  // Gate on hydration so a returning user never sees the wizard flash before their
-  // persisted settings land.
-  if (!isHydrated) return <PageLoader />;
+  // Gate on both hydrations so a returning user never sees the wizard — or a flash of their
+  // balances — before the persisted state lands.
+  //
+  // Every gate here renders *instead of* <Routes> and never navigates, which is what lets a
+  // share target, a manifest shortcut or a notification click survive them: the URL — query
+  // string and all — is untouched, and matches the moment the gates lift. Redirecting to "/"
+  // from any of them would silently break every deep-link entry point.
+  //
+  // Lock before onboarding: in practice the states are disjoint, but if they ever co-occur a
+  // locked app must not show a wizard that a stranger could complete.
+  if (!isHydrated || !isLockReady) return <PageLoader />;
+  if (isLocked) return <LockScreen />;
   if (!onboardedAt) return <Onboarding />;
 
   return (
@@ -60,6 +77,9 @@ function AppRoutes() {
       </Route>
       <Route path="add-transaction" element={<AddTransaction />} />
       <Route path="edit-transaction/:id" element={<AddTransaction />} />
+      {/* Web Share Target. Must be an explicit route — the "*" catch-all below redirects to
+          "/" and would drop the shared payload's query params on the way. */}
+      <Route path="share-target" element={<AddTransaction />} />
       <Route path="add-account" element={<AddAccount />} />
       <Route path="edit-account/:id" element={<AddAccount />} />
       <Route path="manage-categories" element={<ManageCategories />} />
@@ -81,6 +101,10 @@ function AppRoutes() {
 }
 
 export default function App() {
+  // Here rather than in AppRoutes: AppRoutes is inside <Suspense>, and a suspending lazy route
+  // would tear down the visibility listener while its chunk loads. App never suspends.
+  useAutoLock();
+
   return (
     <ErrorBoundary>
       <BrowserRouter>
