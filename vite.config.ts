@@ -10,6 +10,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // A hand-written worker, because `generateSW` cannot host the `periodicsync` handler that
+      // lets a reminder fire while the app is closed. Note that `workbox.runtimeCaching`,
+      // `navigateFallback`, `cleanupOutdatedCaches` and `clientsClaim` are generateSW-only and
+      // are *silently ignored* here — src/sw/sw.ts writes all of them out by hand.
+      strategies: 'injectManifest',
+      srcDir: 'src/sw',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon-180x180.png', 'pwa-64x64.png', 'pwa-96x96.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png'],
       manifest: {
@@ -91,21 +98,8 @@ export default defineConfig({
           params: { title: 'title', text: 'text', url: 'url' },
         },
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365,
-              },
-            },
-          },
-        ],
       },
     }),
   ],

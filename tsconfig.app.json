@@ -26,5 +26,8 @@
     },
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src"]
+  "include": ["src"],
+  /* The service worker is its own project (tsconfig.sw.json) because it needs the WebWorker
+     lib. Compiling it here under DOM fails on ServiceWorkerGlobalScope / ExtendableEvent. */
+  "exclude": ["src/sw"]
 }

@@ -50,7 +50,9 @@ import {
   isFolderPickerSupported,
 } from '@/services/backupFolder';
 import {
+  enablePeriodicSync,
   isNotificationSupported,
+  isPeriodicSyncActive,
   notificationPermission,
   refreshNotificationSchedule,
   requestNotificationPermission,
@@ -139,6 +141,9 @@ export default function Settings() {
   // behind the app's back, so the switch below derives from both.
   const [permission, setPermission] = useState(notificationPermission());
   const [showLeadDaysPicker, setShowLeadDaysPicker] = useState(false);
+  // Whether reminders can actually arrive while the app is closed. Only true on an installed
+  // Chromium PWA, so the row's copy is derived rather than asserted.
+  const [backgroundDelivery, setBackgroundDelivery] = useState(false);
   const remindersOn = settings.notificationsEnabled && permission === 'granted';
 
   const [showBackupHistory, setShowBackupHistory] = useState(false);
@@ -169,6 +174,14 @@ export default function Settings() {
   useEffect(() => {
     if (!isFolderPickerSupported()) return;
     getSavedDirectoryHandle().then((handle) => setBackupFolderName(handle?.name ?? null));
+  }, []);
+
+  // Resolve whether background delivery is really registered, so the Reminders row describes
+  // what this device does rather than what the feature can do somewhere else.
+  useEffect(() => {
+    isPeriodicSyncActive()
+      .then(setBackgroundDelivery)
+      .catch(() => setBackgroundDelivery(false));
   }, []);
 
   const handleExport = async () => {
@@ -298,6 +311,9 @@ export default function Settings() {
     }
 
     updateSettings({ notificationsEnabled: true });
+    // Best-effort: unsupported or engagement-gated on most platforms, and the foreground pass
+    // covers those, so a false here is not worth telling anyone about.
+    setBackgroundDelivery(await enablePeriodicSync());
     await refreshNotificationSchedule();
     toast.success('Reminders are on');
   };
@@ -674,7 +690,9 @@ export default function Settings() {
               description={
                 permission === 'denied'
                   ? 'Blocked in your browser settings for this site'
-                  : 'Bill, budget and card alerts, shown when you open Finio'
+                  : backgroundDelivery
+                    ? 'Bill, budget and card alerts, even when Finio is closed'
+                    : 'Bill, budget and card alerts, shown when you open Finio'
               }
               checked={remindersOn}
               disabled={permission === 'denied'}

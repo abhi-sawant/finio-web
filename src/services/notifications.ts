@@ -2,7 +2,7 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { clearNotificationData, pruneFired, writeSchedule } from '@/services/notificationDb';
 import { fireDueNotifications } from '@/services/notificationRunner';
 import { buildNotificationSchedule } from '@/utils/notificationSchedule';
-import type { NotificationPrefs } from '@/utils/notifications';
+import { NOTIFICATION_SYNC_TAG, type NotificationPrefs } from '@/utils/notifications';
 import { normalizeMonthStartDay } from '@/utils/period';
 
 /**
@@ -19,6 +19,9 @@ import { normalizeMonthStartDay } from '@/utils/period';
 
 /** How long a fired-reminder record is kept before it is pruned. */
 const FIRED_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+/** Periodic sync asks for twice a day; the browser treats this as a floor, not a promise. */
+const PERIODIC_SYNC_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
 /** Mirrors `backup.ts`'s `backupInProgress` — also the StrictMode double-mount guard. */
 let refreshInFlight = false;
@@ -46,6 +49,58 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
     return await Notification.requestPermission();
   } catch {
     return 'denied';
+  }
+}
+
+/**
+ * Whether a background wake-up is actually registered for this device.
+ *
+ * Checks the registered tags rather than merely probing for the API: only Chromium with the PWA
+ * installed gets this far, and claiming "even when Finio is closed" on the strength of the API
+ * existing would overclaim on exactly the platforms where it silently does nothing.
+ */
+export async function isPeriodicSyncActive(): Promise<boolean> {
+  if (!isNotificationSupported()) return false;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    if (!registration.periodicSync) return false;
+    const tags = await registration.periodicSync.getTags();
+    return tags.includes(NOTIFICATION_SYNC_TAG);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Best-effort background wake-up. Also gated on the browser's own site-engagement heuristics,
+ * so a `false` return is ordinary and never worth surfacing as an error.
+ */
+export async function enablePeriodicSync(): Promise<boolean> {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    if (!registration.periodicSync) return false;
+
+    // Throws TypeError on browsers that do not know the permission name.
+    const status = await navigator.permissions.query({
+      name: 'periodic-background-sync' as PermissionName,
+    });
+    if (status.state !== 'granted') return false;
+
+    await registration.periodicSync.register(NOTIFICATION_SYNC_TAG, {
+      minInterval: PERIODIC_SYNC_INTERVAL_MS,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function disablePeriodicSync(): Promise<void> {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    await registration.periodicSync?.unregister(NOTIFICATION_SYNC_TAG);
+  } catch {
+    /* nothing registered, or unsupported — either way there is nothing to undo */
   }
 }
 
@@ -122,8 +177,9 @@ export async function refreshNotificationSchedule(now = new Date()): Promise<voi
   }
 }
 
-/** Turning reminders off: drop the pending schedule so nothing can fire afterwards. */
+/** Turning reminders off: stop the background wake-ups and drop the pending schedule. */
 export async function teardownNotifications(): Promise<void> {
+  await disablePeriodicSync();
   try {
     await writeSchedule([]);
   } catch {
