@@ -295,4 +295,30 @@
   .bottom-safe-nav {
     bottom: env(safe-area-inset-bottom, 0);
   }
+
+  /* Wrong-PIN feedback on the lock screen. */
+  @keyframes finio-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20%,
+    60% {
+      transform: translateX(-6px);
+    }
+    40%,
+    80% {
+      transform: translateX(6px);
+    }
+  }
+
+  .animate-shake {
+    animation: finio-shake 320ms ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-shake {
+      animation: none;
+    }
+  }
 }

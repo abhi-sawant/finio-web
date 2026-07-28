@@ -5,9 +5,15 @@ import { Layout } from '@/components/layout/Layout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ConfirmProvider } from '@/components/ui/confirm';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { useAppLockStore } from '@/store/useAppLockStore';
+import { useAutoLock } from '@/hooks/useAutoLock';
 
 const Onboarding = lazy(() =>
   import('@/components/onboarding/Onboarding').then((m) => ({ default: m.Onboarding })),
+);
+
+const LockScreen = lazy(() =>
+  import('@/components/applock/LockScreen').then((m) => ({ default: m.LockScreen })),
 );
 
 // Lazy-loaded pages (route-based code splitting)
@@ -43,15 +49,21 @@ function PageLoader() {
 function AppRoutes() {
   const isHydrated = useFinanceStore((s) => s.isHydrated);
   const onboardedAt = useFinanceStore((s) => s.settings.onboardedAt);
+  const isLockReady = useAppLockStore((s) => s.isReady);
+  const isLocked = useAppLockStore((s) => s.isLocked);
 
-  // Gate on hydration so a returning user never sees the wizard flash before their
-  // persisted settings land.
+  // Gate on both hydrations so a returning user never sees the wizard — or a flash of their
+  // balances — before the persisted state lands.
   //
-  // Both gates render *instead of* <Routes> and never navigate, which is what lets a share
-  // target or a manifest shortcut survive them: the URL — query string and all — is untouched
-  // while the wizard runs, and matches the moment `onboardedAt` lands. Redirecting to "/" from
-  // either gate would silently break every deep-link entry point.
-  if (!isHydrated) return <PageLoader />;
+  // Every gate here renders *instead of* <Routes> and never navigates, which is what lets a
+  // share target, a manifest shortcut or a notification click survive them: the URL — query
+  // string and all — is untouched, and matches the moment the gates lift. Redirecting to "/"
+  // from any of them would silently break every deep-link entry point.
+  //
+  // Lock before onboarding: in practice the states are disjoint, but if they ever co-occur a
+  // locked app must not show a wizard that a stranger could complete.
+  if (!isHydrated || !isLockReady) return <PageLoader />;
+  if (isLocked) return <LockScreen />;
   if (!onboardedAt) return <Onboarding />;
 
   return (
@@ -89,6 +101,10 @@ function AppRoutes() {
 }
 
 export default function App() {
+  // Here rather than in AppRoutes: AppRoutes is inside <Suspense>, and a suspending lazy route
+  // would tear down the visibility listener while its chunk loads. App never suspends.
+  useAutoLock();
+
   return (
     <ErrorBoundary>
       <BrowserRouter>

@@ -163,6 +163,34 @@ export interface Settings {
   notifyLeadDays: number;
 }
 
+/**
+ * App lock configuration.
+ *
+ * Deliberately *not* part of `Settings`: `services/backup.ts` serializes settings into every
+ * exported JSON and every cloud upload, so a PIN hash there would travel to the user's Downloads
+ * folder and the backup server — and restoring that backup onto another device would silently
+ * install this device's PIN on it. It lives in its own `finio-lock` store instead, which makes
+ * both of those structurally impossible.
+ *
+ * This is a screen gate, not encryption. The data behind it stays unencrypted in localStorage.
+ */
+export interface AppLockConfig {
+  enabled: boolean;
+  /** base64url, 16 random bytes. */
+  salt: string;
+  /** base64url of the PBKDF2-SHA256 output. */
+  hash: string;
+  /** Stored per record so the cost can be raised later without invalidating existing PINs. */
+  iterations: number;
+  /** 4 or 6 — drives the dot count and the auto-submit on the lock screen. */
+  pinLength: number;
+  /** Minutes backgrounded before re-locking. 0 locks the moment the app is hidden. */
+  autoLockMinutes: number;
+  /** base64url rawId of the platform credential, or null when biometric unlock is off. */
+  webauthnCredentialId: string | null;
+  createdAt: string;
+}
+
 export interface Goal {
   id: string;
   name: string;
