@@ -147,6 +147,20 @@ export interface Settings {
   onboardedAt?: string;
   /** Mask every rendered amount behind dots, e.g. in public or over someone's shoulder. */
   hideAmounts: boolean;
+  /**
+   * Master switch for local reminders. Off until the user turns it on with a tap — notification
+   * permission has to be requested from a gesture, and a privacy-first app opts nobody in
+   * silently. The per-trigger switches below default on, so the master alone is useful.
+   */
+  notificationsEnabled: boolean;
+  /** Remind me before a recurring bill comes due. */
+  notifyBills: boolean;
+  /** Warn me when a budget crosses `BUDGET_NEAR_LIMIT_PERCENT` or goes over. */
+  notifyBudgets: boolean;
+  /** Remind me before a credit card statement payment is due. */
+  notifyCreditDue: boolean;
+  /** Days before a due date to send a bill or card reminder (0–`MAX_NOTIFY_LEAD_DAYS`). */
+  notifyLeadDays: number;
 }
 
 export interface Goal {

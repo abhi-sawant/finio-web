@@ -1,5 +1,6 @@
 import { defaultSettings } from '@/data/defaultData';
 import { isValidPattern } from './autoCategorize';
+import { MAX_NOTIFY_LEAD_DAYS } from './notifications';
 import { normalizeMonthStartDay } from './period';
 import type {
   Budget,
@@ -510,6 +511,26 @@ function parseSettings(value: unknown): Settings | undefined {
     monthStartDay: normalizeMonthStartDay(value.monthStartDay),
     hideAmounts:
       typeof value.hideAmounts === 'boolean' ? value.hideAmounts : defaultSettings.hideAmounts,
+    // A backup from a device that had reminders on is harmless to carry: nothing fires unless
+    // this device also holds notification permission, which is checked at run time.
+    notificationsEnabled:
+      typeof value.notificationsEnabled === 'boolean'
+        ? value.notificationsEnabled
+        : defaultSettings.notificationsEnabled,
+    notifyBills:
+      typeof value.notifyBills === 'boolean' ? value.notifyBills : defaultSettings.notifyBills,
+    notifyBudgets:
+      typeof value.notifyBudgets === 'boolean'
+        ? value.notifyBudgets
+        : defaultSettings.notifyBudgets,
+    notifyCreditDue:
+      typeof value.notifyCreditDue === 'boolean'
+        ? value.notifyCreditDue
+        : defaultSettings.notifyCreditDue,
+    notifyLeadDays:
+      typeof value.notifyLeadDays === 'number' && Number.isFinite(value.notifyLeadDays)
+        ? Math.min(MAX_NOTIFY_LEAD_DAYS, Math.max(0, Math.trunc(value.notifyLeadDays)))
+        : defaultSettings.notifyLeadDays,
   };
 }
 

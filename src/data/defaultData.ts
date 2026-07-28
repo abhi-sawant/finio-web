@@ -56,4 +56,11 @@ export const defaultSettings: Settings = {
   autoLocalBackup: false,
   monthStartDay: DEFAULT_MONTH_START_DAY,
   hideAmounts: false,
+  // Master off, sub-toggles on: nobody is opted into notifications without a tap, but the one
+  // tap that turns them on immediately does something useful.
+  notificationsEnabled: false,
+  notifyBills: true,
+  notifyBudgets: true,
+  notifyCreditDue: true,
+  notifyLeadDays: 2,
 };

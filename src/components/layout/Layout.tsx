@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useLongPress } from '@/hooks/useLongPress';
 import { formatCurrency } from '@/utils/formatters';
 import { autoBackupIfNeeded, autoLocalBackupIfNeeded } from '@/services/backup';
+import { refreshNotificationSchedule, runDueNotifications } from '@/services/notifications';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { Sidebar } from './Sidebar';
 import { navTabs } from './navItems';
@@ -88,6 +89,24 @@ export function Layout() {
     if (!isHydrated || !isAuthLoaded) return;
     autoLocalBackupIfNeeded();
   }, [isHydrated, isAuthLoaded]);
+
+  // Rebuild the reminder schedule and fire anything already due. Runs after `processRecurring`
+  // above, which matters: a bill it has just turned into a real transaction is history, not an
+  // upcoming one to warn about. No-ops unless the user has granted notification permission.
+  useEffect(() => {
+    if (!isHydrated) return;
+    refreshNotificationSchedule();
+  }, [isHydrated]);
+
+  // Coming back to a backgrounded tab is the other moment a reminder can land. Only the cheap
+  // "show what's due" pass runs here — one IndexedDB read when there is nothing to do.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') runDueNotifications();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   return (
     <>
