@@ -191,6 +191,31 @@ export interface AppLockConfig {
   createdAt: string;
 }
 
+/**
+ * Cloud backup encryption configuration.
+ *
+ * Deliberately *not* part of `Settings`, for the same reason as `AppLockConfig`: `services/backup.ts`
+ * serializes settings into every exported JSON and every cloud upload, so key material there would
+ * travel in the very payload it's supposed to protect — restoring that backup on another device
+ * would hand over this device's passphrase-derived salt alongside the plaintext data it was meant
+ * to guard. It lives in its own `finio-backup-crypto` store instead.
+ *
+ * The actual derived `CryptoKey` is never persisted anywhere — it isn't JSON-serializable, and it
+ * is deliberately kept in-memory-only (a session cache) so a passphrase never touches localStorage.
+ */
+export interface BackupCryptoConfig {
+  enabled: boolean;
+  /** base64url, 16 random bytes. Also embedded in every uploaded backup's envelope. */
+  salt: string;
+  /** Stored per record so the cost can be raised later without invalidating existing backups. */
+  iterations: number;
+  /** base64url IV + ciphertext of a known plaintext, encrypted under the configured passphrase —
+   *  lets the UI confirm a passphrase before an actual backup exists to test it against. */
+  verifierIv: string;
+  verifierCiphertext: string;
+  createdAt: string;
+}
+
 export interface Goal {
   id: string;
   name: string;

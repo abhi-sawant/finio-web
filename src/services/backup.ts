@@ -1,5 +1,6 @@
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useBackupCryptoStore } from '@/store/useBackupCryptoStore';
 import { api } from './api';
 import {
   getSavedDirectoryHandle,
@@ -8,7 +9,25 @@ import {
   writeBackupAndRotate,
 } from './backupFolder';
 import { validateBackup } from '@/utils/importValidation';
+import {
+  createVerifier,
+  decryptJson,
+  deriveEncryptionKey,
+  encryptJson,
+  isEncryptedEnvelope,
+  packEnvelope,
+} from '@/utils/backupCrypto';
 import type { FinanceStore } from '@/types';
+
+/** Thrown when a cloud restore hits an encrypted backup and no usable key is cached — the
+ *  caller (Settings UI) catches this specifically to prompt for the passphrase and retry,
+ *  rather than reporting it as a generic failure. */
+export class PassphraseRequiredError extends Error {
+  constructor() {
+    super('This backup is encrypted. Enter your passphrase to restore it.');
+    this.name = 'PassphraseRequiredError';
+  }
+}
 
 type BackupPayload = Pick<
   FinanceStore,
@@ -58,6 +77,12 @@ export async function saveLocalBackup(
   URL.revokeObjectURL(url);
 }
 
+/** True when the cached session key can encrypt/decrypt for the currently configured salt. */
+function hasUsableSessionKey(salt: string): CryptoKey | null {
+  const { sessionKey, sessionKeySalt } = useBackupCryptoStore.getState();
+  return sessionKey && sessionKeySalt === salt ? sessionKey : null;
+}
+
 export async function uploadBackup(): Promise<string> {
   const { token } = useAuthStore.getState();
   if (!token) throw new Error('Not signed in');
@@ -94,20 +119,80 @@ export async function uploadBackup(): Promise<string> {
     netWorthSnapshots,
     settings,
   };
-  await api.uploadBackup(token, payload);
+
+  const { config } = useBackupCryptoStore.getState();
+  if (config?.enabled) {
+    const key = hasUsableSessionKey(config.salt);
+    if (!key) throw new Error('Cloud backup is locked — enter your passphrase to continue.');
+    const { iv, ciphertext } = await encryptJson(key, payload);
+    const envelope = packEnvelope({ salt: config.salt, iterations: config.iterations, iv, ciphertext });
+    await api.uploadBackup(token, envelope);
+  } else {
+    await api.uploadBackup(token, payload);
+  }
 
   const now = new Date().toISOString();
   useAuthStore.getState().setLastBackupAt(now);
   return now;
 }
 
-export async function restoreLatestBackup(): Promise<void> {
+/**
+ * Decodes a fetched backup response, decrypting it first if it's an encrypted envelope.
+ * Legacy plaintext backups (no `enc` field) pass straight through unchanged.
+ *
+ * On a successful decrypt with a passphrase that doesn't match the locally cached session key —
+ * a fresh session, a rotated passphrase, or a brand-new device with no local config at all — the
+ * derived key is adopted as the session key, and local config is seeded/updated from the
+ * envelope's own salt/iterations if it doesn't already match. That's what makes cross-device
+ * restore self-healing: a new device has nothing local to go on but the passphrase and the
+ * envelope it just fetched.
+ */
+async function decodeBackupResponse(raw: unknown, passphrase?: string): Promise<unknown> {
+  if (!isEncryptedEnvelope(raw)) return raw;
+
+  const cached = hasUsableSessionKey(raw.salt);
+  let key: CryptoKey;
+  if (cached) {
+    key = cached;
+  } else {
+    if (!passphrase) throw new PassphraseRequiredError();
+    key = await deriveEncryptionKey(passphrase, raw.salt, raw.iterations);
+  }
+
+  let plaintext: unknown;
+  try {
+    plaintext = await decryptJson(key, raw.iv, raw.ciphertext);
+  } catch {
+    throw new Error('Incorrect passphrase');
+  }
+
+  if (!cached) {
+    useBackupCryptoStore.getState().setSessionKey(key, raw.salt);
+    const { config } = useBackupCryptoStore.getState();
+    if (!config || config.salt !== raw.salt) {
+      const verifier = await createVerifier(key);
+      useBackupCryptoStore.getState().setConfig({
+        enabled: true,
+        salt: raw.salt,
+        iterations: raw.iterations,
+        verifierIv: verifier.iv,
+        verifierCiphertext: verifier.ciphertext,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  return plaintext;
+}
+
+export async function restoreLatestBackup(passphrase?: string): Promise<void> {
   const { token } = useAuthStore.getState();
   if (!token) throw new Error('Not signed in');
   const res = await api.getLatestBackup(token);
+  const decoded = await decodeBackupResponse(res, passphrase);
   // Cloud payloads get the same validation as a hand-picked file — a malformed backup
   // must not be able to corrupt local state.
-  const { data } = validateBackup(res);
+  const { data } = validateBackup(decoded);
   useFinanceStore.getState().importData(data, { mode: 'replace' });
 }
 
@@ -118,11 +203,12 @@ export async function listCloudBackups() {
   return backups;
 }
 
-export async function restoreBackupByDate(date: string): Promise<void> {
+export async function restoreBackupByDate(date: string, passphrase?: string): Promise<void> {
   const { token } = useAuthStore.getState();
   if (!token) throw new Error('Not signed in');
   const res = await api.getBackup(token, date);
-  const { data } = validateBackup(res);
+  const decoded = await decodeBackupResponse(res, passphrase);
+  const { data } = validateBackup(decoded);
   useFinanceStore.getState().importData(data, { mode: 'replace' });
 }
 
@@ -198,6 +284,12 @@ export async function autoBackupIfNeeded(): Promise<void> {
 
   const { token, lastBackupAt } = useAuthStore.getState();
   if (!token) return;
+
+  // Encryption is on but no session key is cached (e.g. a fresh app launch) — there's no user
+  // present to prompt for the passphrase, so skip silently and let the Settings "locked" banner
+  // pick this back up. Same best-effort spirit as autoLocalBackupIfNeeded's catch-all below.
+  const { config: cryptoConfig } = useBackupCryptoStore.getState();
+  if (cryptoConfig?.enabled && !hasUsableSessionKey(cryptoConfig.salt)) return;
 
   const { accounts, transactions, budgets, recurring, goals, people } = useFinanceStore.getState();
   if (

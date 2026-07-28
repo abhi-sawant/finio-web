@@ -36,9 +36,11 @@ import {
   LockKeyhole,
   Fingerprint,
   Timer,
+  ShieldCheck,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useBackupCryptoStore } from '@/store/useBackupCryptoStore';
 import {
   uploadBackup,
   restoreLatestBackup,
@@ -46,7 +48,16 @@ import {
   listCloudBackups,
   restoreBackupByDate,
   deleteCloudBackup,
+  PassphraseRequiredError,
 } from '@/services/backup';
+import {
+  isBackupCryptoSupported,
+  generateBackupSalt,
+  deriveEncryptionKey,
+  createVerifier,
+  verifyPassphraseAgainstConfig,
+  BACKUP_KEY_ITERATIONS,
+} from '@/utils/backupCrypto';
 import {
   chooseBackupFolder,
   clearBackupFolder,
@@ -194,6 +205,27 @@ export default function Settings() {
   }> | null>(null);
   const [backupListLoading, setBackupListLoading] = useState(false);
   const [busyBackupDate, setBusyBackupDate] = useState<string | null>(null);
+
+  const cryptoConfig = useBackupCryptoStore((s) => s.config);
+  const setCryptoConfig = useBackupCryptoStore((s) => s.setConfig);
+  const clearCryptoConfig = useBackupCryptoStore((s) => s.clearConfig);
+  const sessionKeySalt = useBackupCryptoStore((s) => s.sessionKeySalt);
+  const setSessionKey = useBackupCryptoStore((s) => s.setSessionKey);
+  const cryptoEnabled = cryptoConfig?.enabled === true;
+  // True once enabled but the in-memory key hasn't been (re-)entered this session — a fresh
+  // launch, or a rotated passphrase whose salt no longer matches whatever is cached.
+  const cryptoLocked = cryptoEnabled && sessionKeySalt !== cryptoConfig?.salt;
+
+  const [cryptoDialog, setCryptoDialog] = useState<
+    'set' | 'change' | 'disable' | 'unlock' | 'restore' | null
+  >(null);
+  const [cryptoPhase, setCryptoPhase] = useState<'current' | 'enter' | 'confirm'>('enter');
+  const [passphraseEntry, setPassphraseEntry] = useState('');
+  const [firstPassphrase, setFirstPassphrase] = useState('');
+  const [passphraseError, setPassphraseError] = useState<string | null>(null);
+  const [passphraseBusy, setPassphraseBusy] = useState(false);
+  // null means "restore latest" — set to a date to restore that dated backup instead.
+  const [pendingRestoreDate, setPendingRestoreDate] = useState<string | null>(null);
 
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -489,6 +521,10 @@ export default function Settings() {
   };
 
   const handleCloudBackup = async () => {
+    if (cryptoLocked) {
+      openCryptoDialog('unlock');
+      return;
+    }
     setBackingUp(true);
     try {
       await uploadBackup();
@@ -512,7 +548,11 @@ export default function Settings() {
       await restoreLatestBackup();
       toast.success('Data restored from cloud backup');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Restore failed');
+      if (err instanceof PassphraseRequiredError) {
+        openRestorePassphrasePrompt(null);
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Restore failed');
+      }
     } finally {
       setRestoring(false);
     }
@@ -545,9 +585,145 @@ export default function Settings() {
       toast.success('Data restored from backup');
       setShowBackupHistory(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Restore failed');
+      if (err instanceof PassphraseRequiredError) {
+        openRestorePassphrasePrompt(date);
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Restore failed');
+      }
     } finally {
       setBusyBackupDate(null);
+    }
+  };
+
+  const closeCryptoDialog = () => {
+    setCryptoDialog(null);
+    setCryptoPhase('enter');
+    setPassphraseEntry('');
+    setFirstPassphrase('');
+    setPassphraseError(null);
+    setPassphraseBusy(false);
+    setPendingRestoreDate(null);
+  };
+
+  const openCryptoDialog = (which: 'set' | 'change' | 'disable' | 'unlock') => {
+    setPassphraseEntry('');
+    setFirstPassphrase('');
+    setPassphraseError(null);
+    setCryptoPhase(which === 'set' ? 'enter' : 'current');
+    setCryptoDialog(which);
+  };
+
+  const openRestorePassphrasePrompt = (date: string | null) => {
+    setPassphraseEntry('');
+    setPassphraseError(null);
+    setPendingRestoreDate(date);
+    setCryptoDialog('restore');
+  };
+
+  /** Same reasoning as `handleToggleAppLock`: both directions need input, so the switch opens a
+   *  dialog rather than writing state optimistically. */
+  const handleToggleBackupEncryption = (next: boolean) =>
+    openCryptoDialog(next ? 'set' : 'disable');
+
+  const saveBackupPassphrase = async (passphrase: string) => {
+    setPassphraseBusy(true);
+    try {
+      const salt = generateBackupSalt();
+      const key = await deriveEncryptionKey(passphrase, salt, BACKUP_KEY_ITERATIONS);
+      const verifier = await createVerifier(key);
+      setCryptoConfig({
+        enabled: true,
+        salt,
+        iterations: BACKUP_KEY_ITERATIONS,
+        verifierIv: verifier.iv,
+        verifierCiphertext: verifier.ciphertext,
+        createdAt: new Date().toISOString(),
+      });
+      setSessionKey(key, salt);
+      const wasChanging = cryptoDialog === 'change';
+      closeCryptoDialog();
+      toast.success(wasChanging ? 'Backup passphrase changed' : 'Cloud backups are now encrypted');
+    } finally {
+      setPassphraseBusy(false);
+    }
+  };
+
+  const handleCryptoPassphraseSubmit = async () => {
+    if (passphraseBusy || passphraseEntry.length === 0) return;
+    setPassphraseError(null);
+
+    if (cryptoDialog === 'unlock' || cryptoPhase === 'current') {
+      if (!cryptoConfig) return;
+      setPassphraseBusy(true);
+      const key = await deriveEncryptionKey(passphraseEntry, cryptoConfig.salt, cryptoConfig.iterations);
+      const ok = await verifyPassphraseAgainstConfig(key, cryptoConfig);
+      setPassphraseBusy(false);
+
+      if (!ok) {
+        setPassphraseError('Incorrect passphrase');
+        setPassphraseEntry('');
+        return;
+      }
+
+      if (cryptoDialog === 'disable') {
+        clearCryptoConfig();
+        closeCryptoDialog();
+        toast.success('Cloud backup encryption is off');
+        return;
+      }
+
+      if (cryptoDialog === 'unlock') {
+        setSessionKey(key, cryptoConfig.salt);
+        closeCryptoDialog();
+        toast.success('Cloud backup unlocked for this session');
+        return;
+      }
+
+      // 'change' — current passphrase verified, move on to choosing the new one.
+      setPassphraseEntry('');
+      setCryptoPhase('enter');
+      return;
+    }
+
+    if (cryptoPhase === 'enter') {
+      if (passphraseEntry.length < 8) {
+        setPassphraseError('Use at least 8 characters');
+        return;
+      }
+      setFirstPassphrase(passphraseEntry);
+      setPassphraseEntry('');
+      setCryptoPhase('confirm');
+      return;
+    }
+
+    if (cryptoPhase === 'confirm') {
+      if (passphraseEntry !== firstPassphrase) {
+        setPassphraseEntry('');
+        setCryptoPhase('enter');
+        setPassphraseError("Those didn't match. Try again.");
+        return;
+      }
+      await saveBackupPassphrase(passphraseEntry);
+    }
+  };
+
+  const handleRestorePassphraseSubmit = async () => {
+    if (passphraseBusy || passphraseEntry.length === 0) return;
+    setPassphraseError(null);
+    setPassphraseBusy(true);
+    try {
+      if (pendingRestoreDate === null) {
+        await restoreLatestBackup(passphraseEntry);
+      } else {
+        await restoreBackupByDate(pendingRestoreDate, passphraseEntry);
+      }
+      closeCryptoDialog();
+      setShowBackupHistory(false);
+      toast.success('Data restored from cloud backup');
+    } catch (err) {
+      setPassphraseError(err instanceof Error ? err.message : 'Restore failed');
+    } finally {
+      setPassphraseBusy(false);
     }
   };
 
@@ -738,6 +914,160 @@ export default function Settings() {
             </button>
           </div>
         )}
+
+        {/* Backup Encryption */}
+        {token && isBackupCryptoSupported() && (
+          <div className="card-elevated divide-border divide-y rounded-2xl">
+            <SwitchField
+              className="p-4"
+              icon={<ShieldCheck size={18} className="text-muted-foreground shrink-0" />}
+              title="Encrypt cloud backups"
+              description="Encrypt backups with a passphrase before they leave this device. Finio never sees it and can't recover it if you forget it."
+              checked={cryptoEnabled}
+              onCheckedChange={handleToggleBackupEncryption}
+            />
+
+            {cryptoEnabled && (
+              <>
+                {cryptoLocked && (
+                  <button
+                    onClick={() => openCryptoDialog('unlock')}
+                    className="flex w-full items-center gap-3 p-4"
+                  >
+                    <LockKeyhole size={18} className="shrink-0 text-amber-500" />
+                    <div className="flex-1 text-left">
+                      <span className="block text-sm font-medium">Cloud backup locked</span>
+                      <span className="text-muted-foreground text-xs">
+                        Tap to enter your passphrase and resume automatic backups
+                      </span>
+                    </div>
+                  </button>
+                )}
+                <button
+                  onClick={() => openCryptoDialog('change')}
+                  className="flex w-full items-center justify-between p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <KeyRound size={18} className="text-muted-foreground" />
+                    <span className="text-sm font-medium">Change passphrase</span>
+                  </div>
+                  <ChevronRight size={16} className="text-muted-foreground" />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* One dialog for set / change / disable / unlock — same phase machine as the app lock
+            PIN dialog, with a text passphrase instead of a PinPad. */}
+        <Dialog
+          open={cryptoDialog !== null && cryptoDialog !== 'restore'}
+          onOpenChange={(open) => !open && closeCryptoDialog()}
+        >
+          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>
+                {cryptoDialog === 'disable'
+                  ? 'Turn off backup encryption'
+                  : cryptoDialog === 'unlock'
+                    ? 'Unlock cloud backup'
+                    : cryptoDialog === 'change'
+                      ? 'Change passphrase'
+                      : 'Set a backup passphrase'}
+              </DialogTitle>
+              <DialogDescription>
+                {cryptoDialog === 'disable'
+                  ? 'Enter your current passphrase to turn off encryption. Future backups will be plaintext; existing encrypted backups still need this passphrase to restore.'
+                  : cryptoDialog === 'unlock'
+                    ? 'Enter your backup passphrase to resume automatic cloud backups for this session.'
+                    : cryptoPhase === 'current'
+                      ? 'Enter your current passphrase first.'
+                      : cryptoPhase === 'confirm'
+                        ? 'Enter it once more to confirm.'
+                        : "Choose a passphrase you'll remember — it's separate from your account password and can't be recovered if lost."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <Input
+                type="password"
+                autoFocus
+                value={passphraseEntry}
+                onChange={(e) => {
+                  if (passphraseError) setPassphraseError(null);
+                  setPassphraseEntry(e.target.value);
+                }}
+                placeholder={cryptoPhase === 'confirm' ? 'Confirm passphrase' : 'Passphrase'}
+                onKeyDown={(e) => e.key === 'Enter' && handleCryptoPassphraseSubmit()}
+                disabled={passphraseBusy}
+              />
+              {passphraseError && (
+                <p
+                  role="alert"
+                  className="text-destructive flex items-center gap-1.5 text-xs font-medium"
+                >
+                  <AlertTriangle size={13} aria-hidden="true" />
+                  {passphraseError}
+                </p>
+              )}
+              <Button
+                size="lg"
+                className="bg-grad-primary w-full text-white"
+                disabled={passphraseBusy || passphraseEntry.length === 0}
+                onClick={handleCryptoPassphraseSubmit}
+              >
+                {cryptoDialog === 'disable'
+                  ? 'Turn off'
+                  : cryptoPhase === 'confirm'
+                    ? 'Confirm'
+                    : 'Continue'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* One-shot passphrase prompt for a cloud restore that turned out to be encrypted. */}
+        <Dialog open={cryptoDialog === 'restore'} onOpenChange={(open) => !open && closeCryptoDialog()}>
+          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Enter backup passphrase</DialogTitle>
+              <DialogDescription>
+                This backup is encrypted. Enter the passphrase it was encrypted with to restore it.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                type="password"
+                autoFocus
+                value={passphraseEntry}
+                onChange={(e) => {
+                  if (passphraseError) setPassphraseError(null);
+                  setPassphraseEntry(e.target.value);
+                }}
+                placeholder="Passphrase"
+                onKeyDown={(e) => e.key === 'Enter' && handleRestorePassphraseSubmit()}
+                disabled={passphraseBusy}
+              />
+              {passphraseError && (
+                <p
+                  role="alert"
+                  className="text-destructive flex items-center gap-1.5 text-xs font-medium"
+                >
+                  <AlertTriangle size={13} aria-hidden="true" />
+                  {passphraseError}
+                </p>
+              )}
+              <Button
+                size="lg"
+                className="bg-grad-primary w-full text-white"
+                disabled={passphraseBusy || passphraseEntry.length === 0}
+                onClick={handleRestorePassphraseSubmit}
+              >
+                Restore
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Profile name */}
         <div className="card-elevated divide-border divide-y rounded-2xl">
