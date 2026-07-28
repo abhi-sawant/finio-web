@@ -1,600 +1,262 @@
 # Finio — Personal Finance Tracker
 
-Finio is a privacy-first personal finance PWA (Progressive Web App) built with React, TypeScript, and Vite. It runs entirely in the browser with all data stored locally on your device.
+**Your money, on your device.** Finio is a privacy-first personal finance app that runs entirely
+in your browser. Every rupee you record stays in local storage on your phone or laptop — there is
+no account to create, no server watching, and no analytics of any kind. Cloud backup exists, it is
+opt-in, and it can be end-to-end encrypted so even the backup server can't read it.
 
-**The app is live at [finio.slowatcoding.com](https://finio.slowatcoding.com)** — you can use it right now with a fully functional cloud backup backend included. No setup required.
+**Try it now: [finio.slowatcoding.com](https://finio.slowatcoding.com)** — nothing to install, no
+sign-up, works offline the moment it loads.
 
-If you prefer to keep your backup data on infrastructure you control, you can self-host the PHP backend yourself. See [Self-Hosting the Backend](#self-hosting-the-backend) for a complete guide.
+This README has two halves:
 
----
-
-## Table of Contents
-
-- [About the PWA](#about-the-pwa)
-- [Features](#features)
-  - [Dashboard](#dashboard)
-  - [Accounts](#accounts)
-  - [Transactions](#transactions)
-  - [Analytics](#analytics)
-  - [Budgets](#budgets)
-  - [Recurring Transactions](#recurring-transactions)
-  - [Categories & Labels](#categories--labels)
-  - [Cloud Backup](#cloud-backup)
-  - [Settings](#settings)
-- [How to Use](#how-to-use)
-- [PWA Installation](#pwa-installation)
-- [Frontend Development Setup](#frontend-development-setup)
-- [Self-Hosting the Backend](#self-hosting-the-backend)
-  - [Prerequisites](#prerequisites)
-  - [Step 1 — Create the MySQL database](#step-1--create-the-mysql-database)
-  - [Step 2 — Import the database schema](#step-2--import-the-database-schema)
-  - [Step 3 — Create a subdomain for the API](#step-3--create-a-subdomain-for-the-api)
-  - [Step 4 — Generate a JWT secret](#step-4--generate-a-jwt-secret)
-  - [Step 5 — Create the email account](#step-5--create-the-email-account)
-  - [Step 6 — Create the config file and backup folder](#step-6--create-the-config-file-and-backup-folder)
-  - [Step 7 — Upload the backend files](#step-7--upload-the-backend-files)
-  - [Step 8 — Install Composer dependencies](#step-8--install-composer-dependencies)
-  - [Step 9 — Point the subdomain to the public/ folder](#step-9--point-the-subdomain-to-the-public-folder)
-  - [Step 10 — Test the API](#step-10--test-the-api)
-  - [Step 11 — Point the frontend at your API](#step-11--point-the-frontend-at-your-api)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
+- **[Part 1 — For Everyone](#part-1--for-everyone)** — what Finio does and how to use it.
+- **[Part 2 — For Developers](#part-2--for-developers)** — running it locally and self-hosting the
+  optional backend.
 
 ---
 
-## About the PWA
+# Part 1 — For Everyone
 
-Finio is a mobile-first personal finance tracker that works completely offline. Your financial data never leaves your device unless you explicitly choose to enable cloud backup. The app is installable on Android, iOS, and desktop as a standalone PWA — it looks and feels like a native app with no browser chrome.
+## Why Finio
 
-**Key characteristics:**
+Most finance apps ask you to hand over your bank login and then monetize what they learn. Finio
+takes the opposite approach: it is a plain web app that keeps a ledger for you, and that's it.
 
-- **Offline-first** — all data is persisted in `localStorage` via Zustand; no internet connection required to use the app.
-- **Installable** — add to your home screen on iOS/Android or install on desktop via the browser's install prompt.
-- **Privacy-first** — zero analytics, zero telemetry; your data is yours.
-- **Optional cloud backup** — create a free account on the live hosted backend at [finio.slowatcoding.com](https://finio.slowatcoding.com) to get daily auto-backups that you can restore on any device. Self-hosting is also supported for maximum privacy.
-- **Rupee-native** — all amounts are in INR, formatted with the Indian numbering system (lakh/crore).
-- **Themeable** — light, dark, and system-follow themes.
+|  | What it means |
+|---|---|
+| **Offline-first** | All data lives in your browser's local storage. Turn off the internet and the app still works completely. |
+| **No account required** | You can use every feature — accounts, budgets, goals, analytics, reminders — without ever signing up. |
+| **Zero tracking** | No analytics, no telemetry, no third-party scripts. |
+| **Installable** | Add it to your home screen on Android or iOS, or install it on desktop. It opens like a native app, no browser bars. |
+| **Optional encrypted backup** | If you want your data on more than one device, turn on cloud backup — and optionally encrypt it with a passphrase only you know. |
+| **Rupee-native** | Amounts are in INR, formatted the Indian way (₹1,22,999, and ₹1.2L / ₹1.2Cr where space is tight). |
 
 ---
 
-## Features
+## Getting Started
+
+The first time you open Finio, a short wizard asks for your name, your first account, and its
+current balance. You can skip past the account step — handy if you're reinstalling and want to go
+straight to Settings and restore a backup.
+
+After that:
+
+1. **Add a transaction** — tap the **+** button. Pick Expense, Income, or Transfer, punch in the
+   amount on the number pad, choose the account and category, add a note, and save.
+2. **Set a budget** — Settings → Budgets → **+**. Pick a category (or "Overall"), a limit, and
+   whether it resets weekly, monthly, or yearly.
+3. **Automate the regulars** — Settings → Recurring → **+** for rent, salary, subscriptions. Finio
+   files them for you.
+4. **Watch it come together** — the Analytics tab fills in as your history grows.
+
+**Two shortcuts worth knowing early:** long-press the **+** button to re-add a saved template in
+one tap, and long-press any transaction row for Duplicate / Save as template / Select / Delete.
+
+---
+
+## Installing the App
+
+**Android (Chrome / Edge)** — open the app, tap the ⋮ menu → **Add to Home Screen** → **Install**.
+
+**iPhone / iPad (Safari)** — open the app, tap **Share** → **Add to Home Screen** → **Add**.
+
+**Desktop (Chrome / Edge)** — click the install icon in the address bar, or menu → **Install
+Finio**.
+
+Once installed you also get **home-screen shortcuts** (long-press the icon for Add Expense, Add
+Income, Transactions, Budgets) and Finio appears in your phone's **share sheet** — share a payment
+SMS or a note to it and the Add Transaction screen opens with the amount already filled in.
+
+---
+
+## What's Inside
 
 ### Dashboard
 
-The dashboard is the home screen of Finio. It greets you by name with a time-aware greeting (Good morning / afternoon / evening) and gives you a snapshot of your financial health at a glance:
+Your financial state in one screen: total balance across your spending accounts, an "after dues"
+figure that subtracts credit card outstanding, this month's income and expenses with a comparison
+against last month, and a scrollable row of your account cards.
 
-- **Hero balance card** — total balance across all non-credit accounts with an ambient gradient glow, plus "After Dues" subtitle (balance minus credit card outstanding).
-- **This month's income & expenses** — with a percentage change badge compared to last month (green for improvement, red for decline).
-- **Account cards** — a horizontal scrollable row of all your accounts; tap any card to edit it.
-- **Budget progress** — if you have set an overall budget, a progress ring shows how much of it you've used this month.
-- **Budget alerts** — when any budget reaches 85% of its limit, a prominent alert card appears showing which budgets are near their limits (amber for 85–99%, red for over limit). Tap to navigate to Budgets.
-- **Upcoming recurring transactions** — a list of recurring transactions due within the next 7 days, with icons and due dates.
-- **Top spending categories this month** — the three categories you've spent the most on.
-- **Recent transactions** — the five most recent transactions with category icon, note, and amount; tap any to edit.
-- **Quick-action shortcuts** — direct links to Budgets, Recurring, Analytics, and Accounts from the dashboard.
+Below that, only what needs your attention appears:
 
----
+- **Budget alerts** when a budget passes 85% or goes over.
+- **Card Payments Due** when a credit card statement payment lands within a week.
+- **Upcoming Bills** — recurring transactions due in the next 7 days.
+- **Savings Goals** in progress and **Debts & Lending** balances still open.
+- Your top spending categories this month, and your most recent transactions.
 
 ### Accounts
 
-Manage all your financial accounts in one place.
+Six account types — Checking, Savings, Cash, Credit, Investment, Wallet — each with its own name,
+icon, and colour.
 
-**Supported account types:**
+Credit cards get a full lifecycle: a credit limit with a utilization reading, plus an optional
+statement cycle (close day, days until payment is due, minimum-due percentage). Set it once and
+Finio tracks the due date and warns you before it arrives.
 
-| Type | Description |
-|---|---|
-| Checking | Standard bank current account |
-| Savings | Bank savings account |
-| Cash | Physical cash wallet |
-| Credit | Credit card (tracks outstanding balance vs. credit limit) |
-| Investment | Stocks, mutual funds, crypto portfolio |
-| Wallet | Digital wallets (UPI, PayPal, etc.) |
-
-**Features:**
-
-- Add accounts with a custom name, icon, color, and starting balance.
-- Credit accounts additionally accept a **credit limit** so you can track how much of your limit you've used.
-- The Accounts page shows the **net balance** (sum of all non-credit accounts) and the **total credit due** (sum of outstanding balances on credit cards).
-- Tap any account card to edit it; swipe or press the delete button to remove it (all associated transactions are also removed).
-
----
+Closed an account? **Archive** it rather than deleting. Archived accounts keep every transaction
+and drop out of your totals and pickers, and you can restore them any time. Deleting is still
+available, and the confirmation tells you exactly how many transactions would go with it.
 
 ### Transactions
 
-The full transaction ledger with powerful search and filtering.
+The full ledger, grouped by date and virtualized so it stays fast with tens of thousands of rows.
 
-**Transaction types:**
-
-- **Expense** — money going out of an account.
-- **Income** — money coming into an account.
-- **Transfer** — money moved between two of your own accounts (no net change in net worth).
-
-**Adding a transaction:**
-
-1. Tap the **+** floating action button on the Dashboard or navigate to the Transactions tab and tap **+**.
-2. Select the type (Expense / Income / Transfer).
-3. Enter the amount using the **NumberPad** — tap number keys, use the decimal button (·), or backspace (⌫). Numbers are formatted in the Indian number system (e.g., 1,22,999) for easy reading.
-4. Choose the source account (and destination account for transfers).
-5. Pick a category (filtered to show only relevant types).
-6. Set the date and time (defaults to now).
-7. Add an optional note.
-8. Attach one or more labels for further classification.
-9. Tap **Save**.
-
-**Transaction list features:**
-
-- All transactions are grouped by date and displayed in reverse-chronological order.
-- The list is **virtualized** (via `@tanstack/react-virtual`) so it remains smooth even with thousands of entries.
-- **Search** by note text or category name.
-- **Filters** — filter by transaction type (expense/income/transfer), account, from date, and to date.
-- A **summary bar** shows the total income and total expense of the currently filtered view.
-- **CSV export** — tap the download icon to export the currently filtered transactions as a `.csv` file with columns for date, type, amount, account, category, labels, and note.
-- Tap any transaction row to edit it; the edit screen also has a delete button.
-
----
-
-### Analytics
-
-Visual insights into your financial data with flexible date filtering.
-
-**Date filters:**
-
-- This Month
-- Last 3 Months
-- Last 6 Months
-- This Year
-- All Time
-- Custom date range (date picker)
-
-**Charts included:**
-
-| Chart | What it shows |
-|---|---|
-| **Spending Donut** | Breakdown of expenses by category for the selected period |
-| **Income vs Expense Bar** | Month-by-month grouped bar chart comparing income and expenses |
-| **Balance Trend** | Line chart showing cumulative net balance over time |
-| **Label Spending Bar** | Horizontal bar chart of total spending per label |
-
-Each chart section also shows the total income, total expenses, and net (income − expenses) for the selected period.
-
-The Analytics page also surfaces shortcuts to your **Budgets** and **Recurring** rules.
-
----
+- **Search** across notes, categories, both sides of a transfer, labels, and amounts — typing
+  `₹1,200` finds `1200`.
+- **Filter** by type, account, and date range.
+- **Split one expense across categories** — a ₹3,000 supermarket run can be ₹2,200 Food and ₹800
+  Household, and both budgets see their share.
+- **Bulk actions** — select multiple rows to add a label, recategorize, or delete them together.
+- **Templates and duplicates** — save any transaction's shape and re-add it in a tap.
+- **CSV export** of whatever the current filter shows.
+- Deleting a transaction doesn't nag you with a dialog; it shows an **Undo** toast instead.
 
 ### Budgets
 
-Set monthly spending limits and track your progress.
+Budgets can be **overall** (all spending), **per category**, or **per label**, and each one runs on
+its own **weekly, monthly, or yearly** cycle.
 
-- Create an **overall budget** — a single monthly cap across all expense categories.
-- Create **per-category budgets** — individual monthly limits for specific expense categories (e.g., ₹5,000 for Food, ₹2,000 for Entertainment).
-- Each budget card shows a progress bar with the amount spent vs. the limit, color-coded:
-  - Green — under 80% used.
-  - Amber — 80–100% used.
-  - Red — over budget.
-- Budgets reset automatically each calendar month (they are evaluated against the current month's transactions only).
-- You can have at most one overall budget and one budget per category.
+Turn on **rollover** and unspent money carries into the next period, envelope-style — and an
+overspend carries forward as a debt, which is the honest version. Every budget card shows a
+progress bar with a plain-language badge (On track / Near limit / Over budget) and a collapsible
+history so you can see whether you actually hit it last month.
 
----
+### Savings Goals
+
+Set a target amount and an optional deadline, then log contributions and withdrawals against the
+goal. Finio shows the percentage complete, what's left, and — once it has enough history — a
+projected completion date based on your actual pace.
+
+Goal contributions are their own ledger, deliberately separate from your accounts, so tracking a
+goal can never accidentally move a real balance.
+
+### Debts & Lending
+
+Track who owes you and who you owe, per person. Log entries as **They owe me** or **I owe them**,
+and see each person's running balance.
+
+**Settle up** is the one moment real money moves: enter the amount and the account, and Finio
+creates a genuine income or expense transaction *and* balances the person's ledger in one step.
 
 ### Recurring Transactions
 
-Automate regular income or expense entries so you never forget them.
+Rules for daily, weekly, monthly, or yearly income, expenses, or transfers. Open the app after a
+week away and everything you missed is filed automatically.
 
-- Create rules for **daily**, **weekly**, **monthly**, or **yearly** transactions.
-- Each rule stores the type (income/expense), amount, account, category, note, labels, frequency, and start date.
-- When you open the app, Finio automatically checks all recurring rules and **generates any past-due transactions** — so even if you haven't opened the app for a week, all your weekly recurring entries are caught up automatically.
-- When you create a new rule with a start date in the past, all missed occurrences are generated immediately.
-- Rules are listed with their last run date and next due date.
-- Delete a rule to stop future generation (previously generated transactions remain).
+Rules are fully editable — pause and resume them, set an end date or a maximum number of
+occurrences, and see "next due", "3 of 12", or "until 31 Dec" on each card. Create a rule dated in
+the past and Finio asks first, showing you exactly how many transactions it would add and their
+total, so you can add them or just start from today.
 
----
+### Analytics
 
-### Categories & Labels
+Filter by this month, last 3 or 6 months, this year, all time, or a custom range, then explore:
 
-**Categories** classify what a transaction is for:
+| | |
+|---|---|
+| **Insights feed** | Plain-language observations — a category running above its 3-month average, a budget on pace to blow past its limit, a savings rate worth noticing. It also spots **subscriptions** hiding in your history and offers to turn them into recurring rules. |
+| **Cash-flow forecast** | Projects your liquid cash 30 / 60 / 90 days ahead from your recurring bills and your everyday spending, flags the low point, and names the date you'd run dry. |
+| **Net worth over time** | A trend line that freezes each month as it closes, so editing old history doesn't silently rewrite your past. |
+| **Compare periods** | This period vs. the last one vs. the same one a year ago, with the biggest category swings ranked. An in-progress period is labelled as such and shows what it's on pace for. |
+| **Spending heatmap** | A calendar of your spending, month by month, with the busiest day called out. |
+| **Charts** | Spending by category, income vs. expenses, balance trend, and spending by label. |
 
-- 24 built-in categories covering common expense and income types (Food, Transport, Shopping, Entertainment, Utilities, Healthcare, Education, Housing, Travel, Gifts, Personal Care, Subscriptions, Vehicles, Financial, Investments, Salary, Freelance, Business, Rent, Interest, Transfer, Miscellaneous).
-- Create custom categories with any name, color, and icon (from the Lucide icon library).
-- Set each category's type: **Expense**, **Income**, or **Both** (e.g., Gifts, Transfer).
-- Edit or delete categories (built-in categories can also be modified).
+Every chart has a **View data table** toggle — the same numbers as plain text, for screen readers
+or for anyone who'd rather read the figures than the picture.
 
-**Labels** are optional tags you can attach to any transaction for cross-category classification:
+### Categories, Labels, and Rules
 
-- 9 built-in labels: Essential, Discretionary, Recurring, Tax, Obligation, Investment, Lending, For Self, For Others.
-- Create custom labels with any name and color.
-- A transaction can have multiple labels.
-- Labels appear in the Label Spending Bar chart on the Analytics page.
+**23 built-in categories** and **9 built-in labels** ship with the app, and you can add, edit, or
+delete any of them. Categories have an icon, a colour, and a type (expense, income, or both);
+labels are free-form tags you can stack on any transaction.
 
----
+**Categorization rules** file transactions for you. "If the note contains *Uber*, make it Transport
+and tag it Essential." Rules run as you type a note (with an Undo right there in the banner),
+during CSV import, and on demand over your existing history — with a live count of what would
+change before you commit, and a single-tap undo after.
 
-### Cloud Backup
+### Import from Your Bank
 
-Finio works 100% offline by default. Cloud backup is **opt-in** and requires either creating an account on the hosted backend or self-hosting your own.
+Settings → **Import from CSV** walks a bank statement through three steps: upload, map the columns,
+review. Finio auto-detects the date, amount, and note columns and the date format; handles either a
+single signed amount column or separate debit/credit columns; understands currency symbols,
+thousand separators, and accounting-style parentheses; and flags likely duplicates against what's
+already in your ledger before anything is added.
 
-**How it works:**
+### Reminders
 
-- **Register** with a name, email, and password. An OTP is sent to your email to verify your account.
-- **Log in** to link the app to your account.
-- Once logged in, Finio automatically backs up your data **once per day** when you open the app (only if you have at least one account, transaction, budget, or recurring rule).
-- You can also **manually back up** at any time from Settings → Back Up Now.
-- To restore data (e.g., on a new device), log in and tap **Restore from Cloud** — this pulls the latest backup and merges it into the local store.
-- Backups are stored as JSON files on the server, one file per user per day. Only the latest backup is exposed through the API.
-- **Forgot password** — enter your email to receive a reset OTP; enter the OTP and your new password to regain access.
+Optional local notifications for bills coming due, budgets crossing their limit, and credit card
+payments — with your own lead time of up to 7 days. Nothing is on until you turn it on.
 
-**Local import/export:**
+On Android these can arrive while the app is closed. On iOS and Firefox they arrive the next time
+you open the app, and the Settings screen says so plainly rather than pretending otherwise.
 
-Even without a cloud account, you can back up and restore your data locally:
-- **Export** — downloads your entire data store as a `.json` file.
-- **Import** — uploads a previously exported `.json` file to restore data.
+### App Lock
 
-**Auto-download daily backup (guests only):**
+Lock Finio behind a 4- or 6-digit PIN, with optional face or fingerprint unlock, and auto-lock
+after 0, 1, 5, 15, or 60 minutes in the background. Repeated wrong PINs trigger a growing delay.
 
-If you are not signed in, Finio can automatically download a backup JSON to your device once per day when you open the app. This is useful if you want a no-account backup safety net.
-- Enable this in **Settings → Auto-download daily backup** (the toggle is only visible when you are not logged in).
-- The download uses the browser's native file-download mechanism — no server involved.
-- A backup is only downloaded if you have at least one account, transaction, budget, or recurring rule; an empty vault is skipped.
-- Only one download per calendar day — re-opening the app on the same day does nothing.
-- Logged-in users are never affected by this setting; they always use the cloud auto-backup path.
+Finio is straight with you about what this is: **a screen gate, not encryption.** Your data behind
+it is still stored unencrypted, and there is deliberately no wipe-after-N-attempts, because in a
+local-only app that turns a forgotten PIN into permanent data loss.
 
----
+### Backups
+
+Finio gives you four ways to not lose your data, and you can use any combination:
+
+1. **Export / Import a JSON file** — no account needed. Every import runs a dry-run preview first,
+   showing you exactly what will be accepted, what's malformed, and what references are missing,
+   then lets you **Merge** or **Replace**.
+2. **Automatic daily local backup** — Finio downloads a backup file once a day when you open it.
+   On supporting browsers you can point it at a folder and it keeps the 10 most recent, tidying up
+   the older ones for you.
+3. **Cloud backup** — register with an email, verify the OTP, and Finio uploads a backup once a
+   day. **Backup History** lists every version by date and size so you can restore or delete a
+   specific one.
+4. **End-to-end encrypted cloud backup** — turn on a passphrase and your backup is encrypted in
+   your browser before it ever leaves. The server stores an opaque blob. Nobody who has the server
+   can read your finances. There's no passphrase recovery, because that's the whole point.
 
 ### Settings
 
-Accessible via the gear icon on the Dashboard.
+Everything above is configured from one screen: display name, theme (light / dark / follow
+system), **hide amounts** (masks every figure app-wide behind dots when you're in public), the day
+your financial month starts (1–28, so a 25th-of-the-month salary cycle really runs 25 Jun – 24
+Jul), reminders, app lock, cloud account and password, encryption, backups, CSV import, and
+category / label / rule management.
 
-| Setting | Options |
-|---|---|
-| **Display name** | Any text — shown in the dashboard greeting |
-| **Theme** | System (follows OS), Light, Dark |
-| **Auto-download daily backup** | On / Off — guests only; automatically downloads a backup JSON once per day on app open |
-
-Additional actions available in Settings:
-
-- **Manage Categories** — add, edit, delete categories.
-- **Manage Labels** — add, edit, delete labels.
-- **Budgets** — shortcut to the Budgets page.
-- **Recurring** — shortcut to the Recurring Transactions page.
-- **Back Up Now** / **Restore from Cloud** — cloud backup controls (visible when logged in).
-- **Auto-download daily backup** — toggle (visible when not logged in) to enable automatic daily local backup downloads.
-- **Export Data** — download a full JSON backup to your device.
-- **Import Data** — restore from a local JSON file.
-- **Reset to Defaults** — clears all data and restores factory defaults (accounts, transactions, budgets, and recurring rules are deleted; categories and labels reset to defaults).
-- **Sign In / Sign Out** — manage your cloud backup account.
+There's also **Reconcile Balances**, which rebuilds every account balance from its opening balance
+and its transactions and reports what it corrected — a safety net you'll probably never need.
 
 ---
 
-## How to Use
+## Frequently Asked
 
-1. **Open the app** and you land on the Dashboard.
-2. **Add an account** — tap the accounts row or navigate to Accounts → tap **+** → fill in name, type, and starting balance → Save.
-3. **Add a transaction** — tap **+** on the Dashboard → choose Expense / Income / Transfer → fill in amount, account, category, date, note, labels → Save.
-4. **Set budgets** — go to Settings → Budgets → tap **+** → choose "Overall" or a specific category → enter a monthly limit → Save.
-5. **Set up recurring rules** — go to Settings → Recurring → tap **+** → fill in type, amount, account, category, frequency, and start date → Save. Past-due entries are generated immediately.
-6. **View analytics** — go to Analytics → select a date range → explore the charts.
-7. **Enable cloud backup** (optional) — go to Settings → Sign In → Register → verify your email via OTP → sign in. Your data will auto-back up daily.
+**Do I need an account?** No. Every feature works signed out. An account only adds cloud backup.
 
----
+**Where is my data?** In your browser's local storage on that device. Clearing your browser data
+for the site deletes it — which is why the backup options above are worth setting up.
 
-## PWA Installation
+**Can I use it on two devices?** Yes, via cloud backup: back up on one, restore on the other. Finio
+doesn't do live sync between devices.
 
-**Android (Chrome/Edge):**
-1. Open the app URL in Chrome or Edge.
-2. Tap the three-dot menu → **Add to Home Screen** (or look for the install banner at the bottom of the screen).
-3. Tap **Install**. The app will appear on your home screen like a native app.
+**Does it connect to my bank?** No. You add transactions manually, or import a CSV statement.
 
-**iOS (Safari):**
-1. Open the app URL in Safari.
-2. Tap the **Share** button (the square with an arrow pointing up).
-3. Scroll down and tap **Add to Home Screen**.
-4. Tap **Add**. The app icon will appear on your home screen.
-
-**Desktop (Chrome/Edge):**
-1. Open the app URL.
-2. Click the install icon (monitor with a down arrow) in the address bar, or go to the browser menu → **Install Finio**.
-3. Click **Install**.
-
-Once installed, Finio opens in standalone mode (no browser chrome) and works fully offline.
+**Is it free?** Yes, and the source is here.
 
 ---
 
-## Frontend Development Setup
-
-**Requirements:** Node.js 18+ and npm.
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/abhi-sawant/finio-web.git
-cd finio-web
-
-# 2. Install dependencies
-npm install
-
-# 3. (Optional) Point to a custom backend
-#    Copy and edit the environment variable
-echo "VITE_API_URL=https://api.yourdomain.com" > .env.local
-
-# 4. Start the development server
-npm run dev
-```
-
-The app will be available at `http://localhost:5173`.
-
-**Other scripts:**
-
-```bash
-npm run build        # Production build (outputs to dist/)
-npm run preview      # Preview the production build locally
-npm run lint         # Run ESLint
-npm run format       # Format source files with Prettier
-npm run format:check # Check formatting without writing
-```
-
 ---
 
-## Self-Hosting the Backend
+# Part 2 — For Developers
 
-> **This is entirely optional.** The live app at [finio.slowatcoding.com](https://finio.slowatcoding.com) already includes a working cloud backup backend — just create a free account and you're done. Self-hosting is only for users who want full control over where their backup data is stored.
+Finio is a React 19 + TypeScript PWA. The optional backend is a small PHP 8 app built to run on
+ordinary cPanel shared hosting.
 
-The backend is a lightweight PHP application designed for **cPanel shared hosting** (e.g., MilesWeb, Hostinger, SiteGround). It provides JWT authentication, email OTP verification, and JSON backup storage. The steps below guide you through a complete setup with no prior PHP or server experience required.
-
-**Estimated time: ~45 minutes**
-
-### Prerequisites
-
-- A cPanel hosting account with:
-  - PHP 8.0 or higher
-  - MySQL database support
-  - Composer (or Terminal access to install it)
-  - An email account on your domain (for sending OTPs)
-- A domain or subdomain to host the API (e.g., `api.yourdomain.com`)
-
----
-
-### Step 1 — Create the MySQL database
-
-1. Log in to your cPanel (usually `https://yourdomain.com:2083`).
-2. Navigate to **Databases → MySQL® Databases**.
-3. Create a new database named `finio`. cPanel will prefix it with your username (e.g., `johndoe_finio`). Note this full name.
-4. Under **MySQL Users**, create a new user named `finiouser` with a strong password. The full username will be `johndoe_finiouser`. Save the password.
-5. Under **Add User to Database**, add `johndoe_finiouser` to `johndoe_finio` with **ALL PRIVILEGES**.
-
----
-
-### Step 2 — Import the database schema
-
-1. In cPanel, go to **Databases → phpMyAdmin**.
-2. In the left sidebar, click your database (`johndoe_finio`).
-3. Click the **Import** tab.
-4. Click **Choose File** and select `backend/schema.sql` from this project.
-5. Click **Go**. You should see two new tables: `users` and `backups`.
-
-The schema creates the following tables:
-
-```sql
-users   — id, name, email, password_hash, is_verified, otp_hash, otp_expires,
-           reset_token_hash, reset_token_expires, created_at
-backups — id, user_id, backup_date, file_size, created_at
-          (unique constraint: one backup per user per day)
-```
-
----
-
-### Step 3 — Create a subdomain for the API
-
-1. In cPanel, go to **Domains** (or **Subdomains**).
-2. Create a new subdomain: `api`. This gives you `api.yourdomain.com`.
-3. Set the **Document Root** to `public_html/api` (the default — accept it).
-4. Click **Create** and wait 5–10 minutes for DNS to propagate.
-
----
-
-### Step 4 — Generate a JWT secret
-
-1. In cPanel, go to **Advanced → Terminal**.
-2. Run:
-   ```bash
-   openssl rand -hex 32
-   ```
-3. Copy the 64-character output. This is your JWT signing secret. **Keep it private.**
-
----
-
-### Step 5 — Create the email account
-
-1. In cPanel, go to **Email → Email Accounts**.
-2. Create a new account: `noreply@yourdomain.com` with a strong password.
-3. Note the SMTP settings:
-   - **Host:** `mail.yourdomain.com`
-   - **Port:** `465` (SSL) or `587` (TLS) — try 465 first
-   - **Username:** `noreply@yourdomain.com`
-
-This address will send OTP verification and password-reset emails to your users.
-
----
-
-### Step 6 — Create the config file and backup folder
-
-1. In cPanel Terminal, run:
-   ```bash
-   mkdir -p ~/finio-backups
-   chmod 750 ~/finio-backups
-   mkdir -p ~/finio-config
-   ```
-   The backup folder lives **outside** `public_html` so it is not web-accessible.
-
-2. Open **File Manager** in cPanel and navigate to your home directory.
-
-3. Go into `finio-config/` and create a new file named `config.php`.
-
-4. Open `backend/config.example.php` from this project, copy its entire contents, and paste them into the new `config.php`.
-
-5. Replace every placeholder value:
-
-   | Placeholder | Replace with |
-   |---|---|
-   | `CPANEL_USER_finio` | Your actual DB name (e.g. `johndoe_finio`) |
-   | `CPANEL_USER_finiouser` | Your actual DB user (e.g. `johndoe_finiouser`) |
-   | `YOUR_DB_PASSWORD` | The DB password from Step 1 |
-   | `CHANGE_THIS_TO_...` | The 64-char JWT secret from Step 4 |
-   | `mail.yourdomain.com` | Your actual mail host |
-   | `noreply@yourdomain.com` | Your noreply email from Step 5 |
-   | `YOUR_EMAIL_PASSWORD` | The email password from Step 5 |
-   | `CPANEL_USER` (in backup_dir) | Your cPanel username (e.g. `johndoe`) |
-   | `https://api.yourdomain.com` | Your actual API subdomain URL |
-
-6. Update `allowed_origins` to include your frontend URL:
-   ```php
-   'allowed_origins' => [
-       'https://finio.yourdomain.com',  // your frontend
-       'http://localhost:5173',          // Vite dev server (remove in production)
-   ],
-   ```
-
-7. Save the file.
-
----
-
-### Step 7 — Upload the backend files
-
-**Using cPanel File Manager (recommended):**
-
-1. On your machine, create a zip of the backend (excluding any existing `vendor/` directory):
-   ```bash
-   cd /path/to/finio-web
-   zip -r backend.zip backend/ --exclude "backend/vendor/*"
-   ```
-2. In File Manager, navigate to `public_html/api/`.
-3. Click **Upload** and upload `backend.zip`.
-4. Right-click `backend.zip` → **Extract** → extract to `/public_html/api/`.
-5. Go into `public_html/api/backend/`, select all files, click **Move**, and move them to `/public_html/api/`.
-6. Delete the now-empty `backend/` folder and `backend.zip`.
-
-Your final structure inside `public_html/api/` should be:
-```
-public_html/api/
-  public/
-    .htaccess
-    index.php
-  src/
-    Config.php
-    Database.php
-    Router.php
-    helpers.php
-    controllers/
-    middleware/
-  composer.json
-  schema.sql
-  config.example.php
-```
-
-**Using FTP (FileZilla or similar):**
-- Host: `ftp.yourdomain.com`
-- Credentials: your cPanel username and password
-- Upload everything in `backend/` directly to `public_html/api/`
-- Skip the `vendor/` folder if it exists (installed in the next step)
-
----
-
-### Step 8 — Install Composer dependencies
-
-The backend requires two packages: `firebase/php-jwt` (JWT signing) and `phpmailer/phpmailer` (email).
-
-1. In cPanel Terminal:
-   ```bash
-   cd ~/public_html/api
-   curl -sS https://getcomposer.org/installer | php
-   php composer.phar install --no-dev
-   ```
-2. Verify the install:
-   ```bash
-   ls vendor/
-   # Expected: autoload.php  composer/  firebase/  phpmailer/
-   ```
-
----
-
-### Step 9 — Point the subdomain to the public/ folder
-
-The API's entry point is `public/index.php`, but by default the subdomain points to `public_html/api/`. You need to redirect it one level deeper.
-
-**Option A — Change the document root (recommended):**
-
-1. In cPanel → **Subdomains** (or **Domains**).
-2. Find `api.yourdomain.com` and click **Edit**.
-3. Change the Document Root from `public_html/api` to `public_html/api/public`.
-4. Click **Change**.
-
-**Option B — Add a redirect `.htaccess` (fallback):**
-
-Create `public_html/api/.htaccess` with:
-```apache
-RewriteEngine On
-RewriteRule ^(.*)$ public/$1 [L]
-```
-
----
-
-### Step 10 — Test the API
-
-Replace `api.yourdomain.com` with your actual subdomain in the commands below.
-
-```bash
-# Test 1: Register a new user
-curl -X POST https://api.yourdomain.com/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"John","email":"john@example.com","password":"secret1234"}'
-# Expected: {"message":"Account created. Please check your email to verify your account."}
-
-# Test 2: Verify OTP (check your email for the 6-digit code)
-curl -X POST https://api.yourdomain.com/auth/verify-otp \
-  -H "Content-Type: application/json" \
-  -d '{"email":"john@example.com","otp":"123456"}'
-# Expected: {"token":"eyJ...","user":{"id":1,"name":"John","email":"john@example.com"}}
-
-# Test 3: Log in
-curl -X POST https://api.yourdomain.com/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"john@example.com","password":"secret1234"}'
-# Expected: {"token":"eyJ...","user":{...}}
-
-# Test 4: Upload a backup (replace YOUR_TOKEN)
-curl -X POST https://api.yourdomain.com/backup/upload \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"accounts":[],"transactions":[],"categories":[],"labels":[],"budgets":[],"recurring":[],"settings":{}}'
-# Expected: {"message":"Backup saved"}
-
-# Test 5: Retrieve the latest backup
-curl https://api.yourdomain.com/backup/latest \
-  -H "Authorization: Bearer YOUR_TOKEN"
-# Expected: the JSON object you uploaded in Test 4
-```
-
----
-
-### Step 11 — Point the frontend at your API
-
-In your local project (or in your hosting's environment variables), set:
-
-```bash
-VITE_API_URL=https://api.yourdomain.com
-```
-
-Create a `.env.local` file in the project root:
-
-```
-VITE_API_URL=https://api.yourdomain.com
-```
-
-Then rebuild and redeploy the frontend:
-
-```bash
-npm run build
-```
-
-Deploy the contents of the `dist/` folder to your web host (e.g., `public_html/` or a subdomain like `finio.yourdomain.com`).
-
----
+**You do not need the backend.** The frontend is a complete application on its own; the backend
+only adds user accounts and cloud backup storage.
 
 ## Tech Stack
 
@@ -603,84 +265,354 @@ Deploy the contents of the `dist/` folder to your web host (e.g., `public_html/`
 | Framework | React 19 |
 | Language | TypeScript 6 |
 | Build tool | Vite 8 |
-| Styling | Tailwind CSS v4 |
-| UI components | shadcn/ui + Base UI |
-| State management | Zustand 5 (with `localStorage` persistence) |
-| Routing | React Router 7 |
+| Styling | Tailwind CSS v4 (no config file — `@theme` in CSS) |
+| UI components | shadcn/ui (`base-nova`) on Base UI |
+| State | Zustand 5, persisted to `localStorage` |
+| Routing | React Router 7 (`react-router`) |
 | Charts | Recharts 3 |
-| Date handling | date-fns 4 |
+| Dates | date-fns 4 |
 | Virtual scrolling | @tanstack/react-virtual |
+| CSV | papaparse |
 | Icons | Lucide React |
-| PWA | vite-plugin-pwa + Workbox |
+| Tests | Vitest (node environment) |
+| PWA | vite-plugin-pwa with `injectManifest` + a hand-written Workbox service worker |
 | Backend | PHP 8 + Composer |
-| Auth | firebase/php-jwt (JWT, 30-day access tokens) |
-| Email | PHPMailer (SMTP via cPanel email) |
-| Database | MySQL (cPanel shared hosting) |
+| Auth | firebase/php-jwt (30-day tokens) |
+| Email | PHPMailer over SMTP |
+| Database | MySQL |
 
----
+## Local Development
 
-## Project Structure
+**Requirements:** Node.js 18+ and npm.
+
+```bash
+git clone https://github.com/abhi-sawant/finio-web.git
+cd finio-web
+npm install
+npm run dev
+```
+
+The app runs at `http://localhost:5173`. With no `.env`, the API client points at the hosted
+backend — irrelevant unless you sign in.
+
+### Scripts
+
+```bash
+npm run dev          # Vite dev server
+npm run build        # tsc -b && vite build → dist/
+npm run preview      # Serve the production build (required to exercise the PWA)
+npm test             # Vitest, single run
+npm run test:watch   # Vitest watch mode
+npm run lint         # ESLint
+npm run format       # Prettier (with the Tailwind class-sorting plugin)
+npm run format:check # Check formatting without writing
+```
+
+### Tests
+
+463 tests across 22 files, living next to their subjects as `*.test.ts`. They cover the pure money
+logic — balance deltas and reconciliation, the recurring planner, budget status and rollover,
+period math, backup validation, CSV parsing, the categorization engine, forecasting, net worth,
+insights, the notification schedule, PIN and backup crypto — plus the finance, app-lock, and
+backup-crypto stores.
+
+`vitest.config.ts` is deliberately separate from `vite.config.ts` and runs in the **node**
+environment: no jsdom, no setup file, and `include` matches `.test.ts` only. That's a real
+constraint — `window`, `Notification`, and IndexedDB don't exist, so anything platform-facing has
+to be split into a pure module (tested) and a thin I/O wrapper (not). Node does provide
+`crypto.subtle`, which is why the PIN and backup crypto are fully testable.
+
+### A Few Things That Will Bite You
+
+Read [CLAUDE.md](CLAUDE.md) for the full set. The short version:
+
+- **Balances are derived.** `Account.openingBalance` is the source of truth; `balance` is a cache
+  of `openingBalance + Σ(deltas)`. Bulk mutations must apply deltas or call `recomputeBalances()`.
+- **"This month" is a financial month.** Never call `startOfMonth`/`endOfMonth` in feature code —
+  go through `src/utils/period.ts`, which honours `Settings.monthStartDay`.
+- **The PWA doesn't run under `vite dev`.** Use `npm run build && npm run preview`.
+- **The service worker is hand-written.** `runtimeCaching`, `navigateFallback`,
+  `cleanupOutdatedCaches`, and `clientsClaim` are `generateSW`-only options that `injectManifest`
+  ignores *silently*. `src/sw/sw.ts` writes them all out by hand; the SPA navigation fallback is
+  the one that matters most.
+- **Never put secrets in `Settings`.** It's serialized into every export and cloud upload. The PIN
+  hash and backup-encryption config live in their own stores for exactly this reason.
+- **New entity?** Wire it into `services/backup.ts` and `utils/importValidation.ts` too, or it
+  silently drops out of every backup.
+
+### Project Layout
 
 ```
 finio-web/
 ├── src/
-│   ├── App.tsx                  # Route definitions and lazy loading
-│   ├── main.tsx                 # App entry point
-│   ├── index.css                # Global styles and Tailwind directives
-│   ├── assets/                  # Static assets (app logo, etc.)
-│   ├── components/
-│   │   ├── layout/              # Bottom navigation layout wrapper
-│   │   ├── accounts/            # AccountCard component
-│   │   ├── categories/          # CategoryIcon component
-│   │   ├── charts/              # Recharts chart components
-│   │   ├── transactions/        # TransactionItem component
-│   │   └── ui/                  # shadcn/ui primitives + custom NumberPad component
-│   ├── data/
-│   │   └── defaultData.ts       # Default categories, labels, and settings
-│   ├── lib/
-│   │   └── utils.ts             # Tailwind class merge utility
-│   ├── pages/
-│   │   ├── Dashboard.tsx
-│   │   ├── Accounts.tsx / AddAccount.tsx
-│   │   ├── Transactions.tsx / AddTransaction.tsx
-│   │   ├── Analytics.tsx
-│   │   ├── Budgets.tsx
-│   │   ├── Recurring.tsx
-│   │   ├── ManageCategories.tsx
-│   │   ├── ManageLabels.tsx
-│   │   ├── Settings.tsx
-│   │   └── auth/                # Login, Register, VerifyOtp, ForgotPassword, ResetPassword
-│   ├── services/
-│   │   ├── api.ts               # Typed API client (all backend calls)
-│   │   └── backup.ts            # Auto-backup and restore logic
-│   ├── store/
-│   │   ├── useFinanceStore.ts   # Main data store (accounts, transactions, etc.)
-│   │   └── useAuthStore.ts      # Auth token and user session store
-│   ├── types/
-│   │   └── index.ts             # TypeScript type definitions
-│   └── utils/
-│       ├── calculations.ts      # Financial calculations and aggregations
-│       └── formatters.ts        # Currency (INR), date, and number formatters
-├── backend/
-│   ├── public/
-│   │   ├── index.php            # Single entry point for all API requests
-│   │   └── .htaccess            # URL rewriting rules
-│   ├── src/
-│   │   ├── Config.php           # Config loader (reads ~/finio-config/config.php)
-│   │   ├── Database.php         # PDO database connection
-│   │   ├── Router.php           # Lightweight URL router
-│   │   ├── helpers.php          # Response and JWT helper functions
-│   │   ├── controllers/
-│   │   │   ├── AuthController.php    # register, verify-otp, login, forgot/reset password
-│   │   │   ├── BackupController.php  # upload and retrieve backups
-│   │   │   └── UserController.php    # user profile endpoints
-│   │   └── middleware/
-│   │       └── AuthMiddleware.php    # JWT bearer token validation
-│   ├── composer.json            # PHP dependencies (firebase/php-jwt, phpmailer)
-│   ├── schema.sql               # Database schema (run once in phpMyAdmin)
-│   └── config.example.php       # Config template — copy to ~/finio-config/config.php
-├── public/                      # PWA icons and static assets served by Vite
-├── vite.config.ts               # Vite + PWA + Tailwind + chunk splitting config
-├── tsconfig.json                # TypeScript project references
-└── package.json                 # npm dependencies and scripts
+│   ├── App.tsx              # Router + the hydration / lock / onboarding gates
+│   ├── pages/               # One file per route, all lazy-loaded
+│   ├── components/          # ui/ charts/ analytics/ applock/ onboarding/ layout/ …
+│   ├── sw/sw.ts             # Hand-written service worker (its own TS project)
+│   ├── store/               # Zustand stores + pure balance/recurring modules
+│   ├── services/            # API client, backup, notifications, app lock
+│   ├── utils/               # All the pure logic (and all the tests)
+│   ├── types/index.ts       # Every domain interface
+│   └── data/defaultData.ts  # Default categories, labels, settings
+├── backend/                 # Optional PHP API (see below)
+├── public/                  # PWA icons, .htaccess
+├── vite.config.ts           # Vite + PWA manifest + chunk splitting
+├── vitest.config.ts         # Test config (node environment)
+└── tsconfig.sw.json         # Separate TS project for the service worker
 ```
+
+### Deploying the Frontend
+
+```bash
+npm run build
+```
+
+Deploy `dist/` to any static host. Because it's an SPA, the host must rewrite unknown paths to
+`index.html` — `public/.htaccess` does this for Apache/cPanel; on Netlify, Vercel, or Nginx use
+their equivalent.
+
+---
+
+## Self-Hosting the Backend
+
+> **Optional.** The live app at [finio.slowatcoding.com](https://finio.slowatcoding.com) already
+> runs a working backend — create a free account and you're done. Self-host only if you want your
+> backup data on infrastructure you control.
+>
+> Worth knowing: with **encrypted cloud backup** turned on, the server only ever holds an opaque
+> encrypted blob, so self-hosting isn't the only way to keep the operator out of your data.
+
+The backend is a single-entry-point PHP app designed for **cPanel shared hosting** (MilesWeb,
+Hostinger, SiteGround, and similar). It provides JWT auth, email OTP verification, and JSON backup
+storage. No prior PHP or server experience is required.
+
+**Estimated time: ~45 minutes.** `backend/SETUP_GUIDE.txt` has the same steps in plain text.
+
+### Prerequisites
+
+- A cPanel hosting account with PHP 8.0+, MySQL, and Composer (or Terminal access to install it)
+- An email account on your domain, for sending OTPs
+- A subdomain for the API (e.g. `api.yourdomain.com`)
+
+### Step 1 — Create the MySQL database
+
+1. Log in to cPanel (usually `https://yourdomain.com:2083`).
+2. **Databases → MySQL® Databases**.
+3. Create a database named `finio`. cPanel prefixes it with your username (e.g. `johndoe_finio`).
+   Note the full name.
+4. Under **MySQL Users**, create `finiouser` with a strong password (full name:
+   `johndoe_finiouser`). Save the password.
+5. Under **Add User to Database**, grant `johndoe_finiouser` **ALL PRIVILEGES** on `johndoe_finio`.
+
+### Step 2 — Import the schema
+
+1. **Databases → phpMyAdmin**, click your database in the sidebar.
+2. **Import** tab → **Choose File** → select `backend/schema.sql` → **Go**.
+3. You should now have two tables:
+
+```sql
+users   — id, name, email, password_hash, is_verified, otp_hash, otp_expires,
+          reset_token_hash, reset_token_expires, created_at
+backups — id, user_id, backup_date, file_size, created_at
+          (unique constraint: one backup per user per day)
+```
+
+### Step 3 — Create the API subdomain
+
+1. cPanel → **Domains** (or **Subdomains**).
+2. Create the subdomain `api`, giving you `api.yourdomain.com`.
+3. Accept the default Document Root of `public_html/api`.
+4. **Create**, then wait 5–10 minutes for DNS.
+
+### Step 4 — Generate a JWT secret
+
+In cPanel → **Advanced → Terminal**:
+
+```bash
+openssl rand -hex 32
+```
+
+Copy the 64-character output. This signs your tokens — keep it private.
+
+### Step 5 — Create the email account
+
+1. cPanel → **Email → Email Accounts**.
+2. Create `noreply@yourdomain.com` with a strong password.
+3. Note the SMTP settings: host `mail.yourdomain.com`, port `465` (SSL) or `587` (TLS) — try 465
+   first, username `noreply@yourdomain.com`.
+
+This address sends OTP verification and password-reset emails.
+
+### Step 6 — Create the config file and backup folder
+
+In cPanel Terminal:
+
+```bash
+mkdir -p ~/finio-backups && chmod 750 ~/finio-backups && mkdir -p ~/finio-config
+```
+
+The backup folder lives **outside** `public_html` so it is never web-accessible.
+
+Then, in **File Manager**, create `~/finio-config/config.php` and paste in the entire contents of
+`backend/config.example.php`. Replace every placeholder:
+
+| Placeholder | Replace with |
+|---|---|
+| `CPANEL_USER_finio` | Your DB name (e.g. `johndoe_finio`) |
+| `CPANEL_USER_finiouser` | Your DB user (e.g. `johndoe_finiouser`) |
+| `YOUR_DB_PASSWORD` | The DB password from Step 1 |
+| `CHANGE_THIS_TO_...` | The 64-char JWT secret from Step 4 |
+| `mail.yourdomain.com` | Your mail host |
+| `noreply@yourdomain.com` | Your noreply address from Step 5 |
+| `YOUR_EMAIL_PASSWORD` | The email password from Step 5 |
+| `CPANEL_USER` (in `backup_dir`) | Your cPanel username (e.g. `johndoe`) |
+| `https://api.yourdomain.com` | Your API subdomain URL |
+
+Then set `allowed_origins` to the frontends allowed to call the API — CORS is enforced against
+this list:
+
+```php
+'allowed_origins' => [
+    'https://finio.yourdomain.com',  // your frontend
+    'http://localhost:5173',         // Vite dev server (remove in production)
+],
+```
+
+### Step 7 — Upload the backend
+
+**Via File Manager (recommended):**
+
+```bash
+cd /path/to/finio-web
+zip -r backend.zip backend/ --exclude "backend/vendor/*"
+```
+
+Upload `backend.zip` to `public_html/api/`, extract it there, move everything from
+`public_html/api/backend/` up into `public_html/api/`, then delete the empty folder and the zip.
+
+The result should be:
+
+```
+public_html/api/
+  public/
+    .htaccess
+    index.php
+  src/
+    Config.php  Database.php  Router.php  helpers.php
+    controllers/  middleware/
+  composer.json
+  schema.sql
+  config.example.php
+```
+
+**Via FTP:** host `ftp.yourdomain.com`, your cPanel credentials, upload the contents of `backend/`
+straight into `public_html/api/`, skipping `vendor/`.
+
+### Step 8 — Install Composer dependencies
+
+Two packages: `firebase/php-jwt` and `phpmailer/phpmailer`.
+
+```bash
+cd ~/public_html/api
+curl -sS https://getcomposer.org/installer | php
+php composer.phar install --no-dev
+ls vendor/   # expect: autoload.php  composer/  firebase/  phpmailer/
+```
+
+### Step 9 — Point the subdomain at `public/`
+
+The entry point is `public/index.php`, one level below the default document root.
+
+**Option A (recommended):** cPanel → **Subdomains** → edit `api.yourdomain.com` → change the
+Document Root from `public_html/api` to `public_html/api/public` → **Change**.
+
+**Option B (fallback):** create `public_html/api/.htaccess`:
+
+```apache
+RewriteEngine On
+RewriteRule ^(.*)$ public/$1 [L]
+```
+
+### Step 10 — Test the API
+
+```bash
+curl -X POST https://api.yourdomain.com/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John","email":"john@example.com","password":"secret1234"}'
+```
+
+```bash
+curl -X POST https://api.yourdomain.com/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","otp":"123456"}'
+```
+
+```bash
+curl -X POST https://api.yourdomain.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"secret1234"}'
+```
+
+```bash
+curl -X POST https://api.yourdomain.com/backup/upload \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"accounts":[],"transactions":[],"categories":[],"labels":[],"budgets":[],"recurring":[],"settings":{}}'
+```
+
+```bash
+curl https://api.yourdomain.com/backup/latest -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Expected, in order: the "check your email" message, then `{"token":"eyJ...","user":{...}}` twice,
+then `{"message":"Backup saved"}`, then the payload you uploaded.
+
+### Step 11 — Point the frontend at your API
+
+Create `.env.local` in the project root:
+
+```
+VITE_API_URL=https://api.yourdomain.com
+```
+
+`VITE_*` variables are inlined at **build time**, so rebuild and redeploy:
+
+```bash
+npm run build
+```
+
+Deploy `dist/` to your web host (e.g. `public_html/` or `finio.yourdomain.com`). Make sure that
+origin is in the backend's `allowed_origins`.
+
+### API Reference
+
+| Method + path | Auth | Purpose |
+|---|---|---|
+| `POST /auth/register` | — | Create account, email an OTP |
+| `POST /auth/verify-otp` | — | → `{ token, user }` |
+| `POST /auth/resend-otp` | — | Re-send the verification OTP |
+| `POST /auth/login` | — | → `{ token, user }` |
+| `POST /auth/forgot-password` | — | Email a reset OTP |
+| `POST /auth/reset-password` | — | Set a new password with the OTP |
+| `POST /backup/upload` | JWT | Store a backup (one per user per day) |
+| `GET /backup/latest` | JWT | Most recent backup |
+| `GET /backup/list` | JWT | Every backup's date and size |
+| `GET /backup/{date}` | JWT | One specific backup |
+| `DELETE /backup/{date}` | JWT | Delete one backup |
+| `GET /user/me` | JWT | Profile |
+| `PUT /user/me` | JWT | Change password → returns a fresh token |
+| `DELETE /user/me` | JWT | Delete the account and all its backups |
+
+The backup body is opaque to the server. With encryption enabled the client uploads an
+`{v, enc, kdf, iterations, salt, iv, ciphertext}` envelope instead of the finance payload — no
+backend change was needed, and older plaintext backups remain restorable.
+
+---
+
+## Contributing
+
+[CLAUDE.md](CLAUDE.md) is the architecture guide — domain types, state management, the PWA setup,
+and a long list of gotchas worth reading before you change anything money-related.
+[IMPROVEMENTS.md](IMPROVEMENTS.md) records the backlog and how each item was resolved.
+
+Before opening a PR: `npm test`, `npm run lint`, `npm run format`.
