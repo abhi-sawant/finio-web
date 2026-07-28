@@ -46,6 +46,11 @@ function AppRoutes() {
 
   // Gate on hydration so a returning user never sees the wizard flash before their
   // persisted settings land.
+  //
+  // Both gates render *instead of* <Routes> and never navigate, which is what lets a share
+  // target or a manifest shortcut survive them: the URL — query string and all — is untouched
+  // while the wizard runs, and matches the moment `onboardedAt` lands. Redirecting to "/" from
+  // either gate would silently break every deep-link entry point.
   if (!isHydrated) return <PageLoader />;
   if (!onboardedAt) return <Onboarding />;
 
@@ -60,6 +65,9 @@ function AppRoutes() {
       </Route>
       <Route path="add-transaction" element={<AddTransaction />} />
       <Route path="edit-transaction/:id" element={<AddTransaction />} />
+      {/* Web Share Target. Must be an explicit route — the "*" catch-all below redirects to
+          "/" and would drop the shared payload's query params on the way. */}
+      <Route path="share-target" element={<AddTransaction />} />
       <Route path="add-account" element={<AddAccount />} />
       <Route path="edit-account/:id" element={<AddAccount />} />
       <Route path="manage-categories" element={<ManageCategories />} />

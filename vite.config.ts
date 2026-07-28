@@ -11,7 +11,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon-180x180.png', 'pwa-64x64.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon-180x180.png', 'pwa-64x64.png', 'pwa-96x96.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png'],
       manifest: {
         name: 'Finio - Finance Tracker',
         short_name: 'Finio',
@@ -49,6 +49,47 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        // Long-press the installed icon. Capped at four — Android surfaces 3–4 and silently
+        // drops the rest. 96x96 is the conventional shortcut icon size.
+        shortcuts: [
+          {
+            name: 'Add Expense',
+            short_name: 'Expense',
+            description: 'Record a new expense',
+            url: '/add-transaction?type=expense',
+            icons: [{ src: 'pwa-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Add Income',
+            short_name: 'Income',
+            description: 'Record new income',
+            url: '/add-transaction?type=income',
+            icons: [{ src: 'pwa-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Transactions',
+            short_name: 'History',
+            description: 'Browse your transactions',
+            url: '/transactions',
+            icons: [{ src: 'pwa-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Budgets',
+            short_name: 'Budgets',
+            description: 'Check your budgets',
+            url: '/budgets',
+            icons: [{ src: 'pwa-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+        ],
+        // GET, not POST, and that is forced rather than preferred: `public/.htaccess` rewrites
+        // to a static index.html, which cannot receive a POST body, and a POST target also
+        // needs the service worker to already be controlling — which it is not on a cold-start
+        // share from a fresh install. The rewrite carries [QSA], so the query survives.
+        share_target: {
+          action: '/share-target',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
