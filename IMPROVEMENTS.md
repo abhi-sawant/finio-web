@@ -482,9 +482,3 @@ All of these endpoints are implemented in PHP and wired up in
    migration as its own commit so the riskiest change — losing the offline navigation fallback —
    could be reverted alone, and the app lock last, since its gate has to wrap the deep-link entry
    points the first two commits added.
-
-   **What remains is the strategic end-to-end-encrypted backup item.** It is now the only open
-   entry in the whole backlog. Worth noting it is *adjacent* to the app lock but not continuous
-   with it: the lock is a UI gate over plaintext local data, whereas E2E backup is about the
-   payload leaving the device. They share only `crypto.subtle` and the base64url helpers in
-   [`src/utils/pinCrypto.ts`](src/utils/pinCrypto.ts), which the passphrase-derived key can reuse.
