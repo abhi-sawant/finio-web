@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { Mail } from 'lucide-react';
 import { api } from '@/services/api';
+import { getErrorMessage } from '@/utils/errors';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,8 +25,8 @@ export default function ForgotPassword() {
       await api.forgotPassword(email);
       toast.success('If an account exists, an OTP has been sent.');
       navigate('/reset-password', { state: { email } });
-    } catch (err: any) {
-      toast.error(err.message || 'Something went wrong');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Something went wrong'));
     } finally {
       setLoading(false);
     }

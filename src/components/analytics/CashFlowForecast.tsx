@@ -96,7 +96,7 @@ export function CashFlowForecast() {
               interval="preserveStartEnd"
               minTickGap={32}
             />
-            <YAxis fontSize={10} tickLine={false} axisLine={false} width={50} />
+            <YAxis fontSize={10} tickLine={false} axisLine={false} width={50} tickFormatter={money} />
             <Tooltip
               cursor={{ stroke: 'rgba(124,92,255,0.25)', strokeWidth: 1 }}
               contentStyle={{

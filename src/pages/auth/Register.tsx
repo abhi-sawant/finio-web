@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { api } from '@/services/api';
+import { getErrorMessage } from '@/utils/errors';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,8 +32,8 @@ export default function Register() {
       await api.register(name, email, password);
       toast.success('Account created! Check your email for the OTP.');
       navigate('/verify-otp', { state: { email } });
-    } catch (err: any) {
-      toast.error(err.message || 'Registration failed');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }

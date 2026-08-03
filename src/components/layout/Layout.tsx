@@ -110,12 +110,16 @@ export function Layout() {
 
   return (
     <>
-      {/* Desktop sidebar (lg+) */}
-      <Sidebar />
+      {/* Desktop sidebar (lg+) sits beside the content column; #root itself stays a plain
+          flex-col so standalone (non-Layout) routes don't inherit a row direction meant only
+          for this layout. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <Sidebar />
 
-      {/* Content column */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <Outlet />
+        {/* Content column */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <Outlet />
+        </div>
       </div>
 
       {/* FAB — mobile only. Long-press for one-tap add from a saved template. */}

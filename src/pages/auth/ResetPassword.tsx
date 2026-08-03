@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { api } from '@/services/api';
+import { getErrorMessage } from '@/utils/errors';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,8 +65,8 @@ export default function ResetPassword() {
       await api.resetPassword(email, code, password);
       toast.success('Password reset successfully! Please sign in.');
       navigate('/login', { replace: true });
-    } catch (err: any) {
-      toast.error(err.message || 'Reset failed');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Reset failed'));
     } finally {
       setLoading(false);
     }

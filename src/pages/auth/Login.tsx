@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { api } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getErrorMessage } from '@/utils/errors';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,8 +30,8 @@ export default function Login() {
       setAuth(result.token, result.user);
       toast.success('Logged in successfully');
       navigate('/', { replace: true });
-    } catch (err: any) {
-      toast.error(err.message || 'Login failed');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Login failed'));
     } finally {
       setLoading(false);
     }

@@ -65,7 +65,7 @@ export function IncomeExpenseBar({ transactions }: Props) {
             </defs>
             <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
             <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis fontSize={10} tickLine={false} axisLine={false} width={40} />
+            <YAxis fontSize={10} tickLine={false} axisLine={false} width={40} tickFormatter={money} />
             <Tooltip
               cursor={{ fill: 'rgba(124,92,255,0.06)' }}
               contentStyle={{

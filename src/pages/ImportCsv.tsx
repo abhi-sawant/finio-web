@@ -38,10 +38,6 @@ const NONE = '__none__';
 /** Large statements shouldn't make the preview table itself the bottleneck. */
 const MAX_PREVIEW_ROWS = 200;
 
-function colToStr(col: number | undefined): string {
-  return col === undefined ? NONE : String(col);
-}
-
 function strToCol(value: string): number | undefined {
   return value === NONE || value === '' ? undefined : Number(value);
 }

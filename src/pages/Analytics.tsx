@@ -134,26 +134,28 @@ export default function Analytics() {
                 This Year
               </Button>
               <Popover>
-                <PopoverTrigger>
-                  <Button
-                    variant={selectedFilter === 'custom' ? 'default' : 'outline'}
-                    id="date-picker-range"
-                    className="justify-start px-2.5 font-normal"
-                  >
-                    <CalendarIcon />
-                    {date?.from ? (
-                      date.to ? (
-                        <>
-                          {format(date.from, 'LLL dd, y')} - {format(date.to, 'LLL dd, y')}
-                        </>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant={selectedFilter === 'custom' ? 'default' : 'outline'}
+                      id="date-picker-range"
+                      className="justify-start px-2.5 font-normal"
+                    >
+                      <CalendarIcon />
+                      {date?.from ? (
+                        date.to ? (
+                          <>
+                            {format(date.from, 'LLL dd, y')} - {format(date.to, 'LLL dd, y')}
+                          </>
+                        ) : (
+                          format(date.from, 'LLL dd, y')
+                        )
                       ) : (
-                        format(date.from, 'LLL dd, y')
-                      )
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  }
+                />
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="range"

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { api } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getErrorMessage } from '@/utils/errors';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,8 +61,8 @@ export default function VerifyOtp() {
       setAuth(result.token, result.user);
       toast.success('Email verified successfully!');
       navigate('/', { replace: true });
-    } catch (err: any) {
-      toast.error(err.message || 'Verification failed');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Verification failed'));
     } finally {
       setLoading(false);
     }
@@ -72,8 +73,8 @@ export default function VerifyOtp() {
     try {
       await api.resendOtp(email);
       toast.success('New OTP sent to your email');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to resend OTP');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Failed to resend OTP'));
     } finally {
       setResending(false);
     }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -7,21 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-
-/**
- * Parse the value used by `<input type="datetime-local">` (e.g., "2026-05-27T14:30")
- * into a Date in local time. Returns null for empty/invalid input.
- */
-function parseDateTimeLocal(value: string): Date | null {
-  if (!value) return null;
-  const d = parse(value, "yyyy-MM-dd'T'HH:mm", new Date());
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-/** Format a Date as the value used by `<input type="datetime-local">`. */
-function formatDateTimeLocal(d: Date): string {
-  return format(d, "yyyy-MM-dd'T'HH:mm");
-}
+import { formatDateTimeLocal, parseDateTimeLocal } from './date-time-picker-utils';
 
 export interface DateTimePickerProps {
   /** Value formatted like `<input type="datetime-local">` (e.g., "2026-05-27T14:30"). */
@@ -108,6 +94,3 @@ export function DateTimePicker({
     </div>
   );
 }
-
-/** Re-export the value helpers so callers can convert between Date and the picker's value. */
-export { parseDateTimeLocal, formatDateTimeLocal };

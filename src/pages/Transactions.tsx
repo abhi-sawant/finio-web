@@ -134,6 +134,10 @@ export default function Transactions() {
     return rows;
   }, [filtered]);
 
+  // TanStack Virtual's returned functions (scrollToIndex, measure, etc.) are stable across
+  // renders by the library's own contract, so React Compiler's inability to verify that and
+  // skip memoizing this component is a known false positive, not a real staleness risk.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: virtualRows.length,
     getScrollElement: () => scrollRef.current,
