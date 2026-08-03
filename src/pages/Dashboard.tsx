@@ -296,6 +296,10 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Budget/goal/debt/bill cards — each is independent and self-contained, so they pair up
+            two-per-row starting at tablet width instead of running the full content width (a
+            progress bar or a 2-row list doesn't need ~750px to read). */}
+        <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
         {/* Budget Alerts — shown when any budget hits 85%+ */}
         {nearLimitBudgets.length > 0 && (
           <button
@@ -501,10 +505,19 @@ export default function Dashboard() {
                         {label}
                       </p>
                     </div>
-                    <p className="shrink-0 text-xs font-semibold text-rose-500">
-                      Min{' '}
-                      {formatCurrency(dueInfo.minimumDue, true, hideAmounts, { precise: false })}
-                    </p>
+                    <div className="shrink-0 text-right">
+                      <p className="text-xs font-semibold text-rose-500">
+                        {formatCurrency(dueInfo.outstanding, true, hideAmounts, {
+                          precise: false,
+                        })}
+                      </p>
+                      <p className="text-muted-foreground text-[10px]">
+                        Min{' '}
+                        {formatCurrency(dueInfo.minimumDue, true, hideAmounts, {
+                          precise: false,
+                        })}
+                      </p>
+                    </div>
                   </div>
                 );
               })}
@@ -565,6 +578,7 @@ export default function Dashboard() {
             </div>
           </button>
         )}
+        </div>
 
         {/* Accounts */}
         <>
@@ -627,6 +641,8 @@ export default function Dashboard() {
                   transaction={tx}
                   categories={categories}
                   accounts={accounts}
+                  labels={labels}
+                  showDate
                   onClick={() => navigate(`/edit-transaction/${tx.id}`)}
                 />
               ))}

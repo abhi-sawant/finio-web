@@ -277,51 +277,103 @@ rules (one paused) now shows "2 active".
 
 ## P2 — UX gaps
 
-### 17. Transaction rows never show the category, and never show labels
+### 17. Transaction rows never show the category, and never show labels — ✅ Fixed
 
 In [`TransactionItem.tsx:109`](src/components/transactions/TransactionItem.tsx#L109) the category
 is used only for the icon *tint*, and as a title fallback when `note` is empty — which is rare.
 Labels are not rendered at all. So each row shows note + account + `12:00 PM`, and the two primary
 organizing dimensions of the app are invisible in the list.
 
-- [ ] Show the category name in the secondary line (the time-of-day is the least useful field
+- [x] Show the category name in the secondary line (the time-of-day is the least useful field
       there — rows sit under a date header, and every recurring/imported row reads `12:00 PM`).
-- [ ] Use the existing `CategoryIcon` instead of the generic type arrow.
-- [ ] Render label chips (they already carry colors).
+- [x] Use the existing `CategoryIcon` instead of the generic type arrow.
+- [x] Render label chips (they already carry colors).
 
-### 18. No category or label filter on Transactions
+**Fix:** The secondary line now reads `{category or split title} · {account}` (or the transfer's
+`{account} → {toAccount}`) instead of `{account} · 12:00 PM`. The row icon is the transaction's own
+`CategoryIcon` (split keeps a `Split` glyph, transfer keeps the directional arrow) instead of a
+generic type arrow. Any labels the transaction carries render as small colored chips under the
+secondary line. Wired a new `labels` prop through from both call sites
+([`Transactions.tsx`](src/pages/Transactions.tsx),
+[`Dashboard.tsx`](src/pages/Dashboard.tsx)). Verified in the running app with seeded data: a
+"Shopping" row with no note shows the Shopping icon, "Shopping · Credit Card", and two label
+chips.
 
-- [ ] Filters are type / account / date only, so "all Food spending last month" requires free-text
+### 18. No category or label filter on Transactions — ✅ Fixed
+
+- [x] Filters are type / account / date only, so "all Food spending last month" requires free-text
       search. Add category and label selects to the filter panel in
       [`Transactions.tsx`](src/pages/Transactions.tsx).
-- [ ] While there: the account filter lists archived accounts.
+- [x] While there: the account filter lists archived accounts.
 
-### 19. Recent Transactions on the dashboard shows no date
+**Fix:** Added `categoryFilter`/`labelFilter` state and matching Selects to the filter panel,
+folded into the existing `filtered` memo — the category filter also matches inside `splits`, and
+the label filter checks `transaction.labels.includes(...)`. The account filter's option list now
+comes from `activeAccounts(accounts)` instead of the raw `accounts` array, so archived accounts no
+longer show up as a filter choice (the underlying transactions are still filterable by whichever
+account they're on, archived or not). Verified in the running app: filtering by category "Food"
+and by label "Investment" each correctly narrowed the list.
 
-- [ ] Rows show only the time, so you can't tell whether an entry is from today or last week.
+### 19. Recent Transactions on the dashboard shows no date — ✅ Fixed
 
-### 20. Nothing between 768px and 1024px
+- [x] Rows show only the time, so you can't tell whether an entry is from today or last week.
 
-- [ ] The sidebar appears at `lg`, so tablets and small laptops get the mobile layout stretched
+**Fix:** Added a `showDate` prop to `TransactionItem` — when set, it appends
+`formatDate(transaction.date)` ("Today" / "Yesterday" / "Sat, 1 Aug") to the secondary line.
+Dashboard's Recent Transactions list passes it; the Transactions page doesn't, since its rows
+already sit under a date-group header and a second date would be redundant. Verified in the
+running app: dashboard rows now read e.g. "Housing · Checking · Sat, 1 Aug".
+
+### 20. Nothing between 768px and 1024px — ✅ Fixed (Dashboard)
+
+- [x] The sidebar appears at `lg`, so tablets and small laptops get the mobile layout stretched
       full-width — single-column cards with ~750px-wide progress bars. Add an `md` treatment.
 
-### 21. Dashboard stays single-column on desktop
+**Fix:** The concrete symptom — full-width progress-bar/list cards stretched to ~750px — came from
+the Dashboard's card sections having no breakpoint between mobile and `lg` (1024px, when the
+sidebar appears). Fixed together with #21 below by pairing those cards at `md` (768px) instead of
+`lg`, which narrows them well before the sidebar-driven desktop layout kicks in. Deliberately left
+the Sidebar/Layout shell's own `lg` breakpoint alone: other pages
+([`Accounts.tsx`](src/pages/Accounts.tsx)'s `md:grid-cols-3`, in particular) already assume the
+current no-sidebar width is available up to 1024px, so moving that shell breakpoint would need
+those re-tuned too — a larger, separate change. Verified visually at 768px, 900px and 1440px: the
+Dashboard's cards pair up correctly at all three without the sidebar yet present at the first two.
 
-- [ ] Analytics correctly uses `lg:grid-cols-2`; [`Dashboard.tsx`](src/pages/Dashboard.tsx) does
+### 21. Dashboard stays single-column on desktop — ✅ Fixed
+
+- [x] Analytics correctly uses `lg:grid-cols-2`; [`Dashboard.tsx`](src/pages/Dashboard.tsx) does
       not, leaving a lot of dead horizontal space.
 
-### 22. Card Payments Due shows only the minimum
+**Fix:** Wrapped the Budget Alert / Monthly Budget / Savings Goals / Debts & Lending / Card
+Payments Due / Upcoming cards in an `md:grid md:grid-cols-2 md:gap-4` container. Using `md:`
+rather than `lg:` also resolves #20 above for these specific cards. Verified at 900px, 1024px and
+1440px: cards pair two-per-row instead of stacking full-width, and still stack singly below 768px.
 
-- [ ] `Min ₹1,867.25` is shown, but not the total outstanding — which is the number people
+### 22. Card Payments Due shows only the minimum — ✅ Fixed
+
+- [x] `Min ₹1,867.25` is shown, but not the total outstanding — which is the number people
       actually act on.
 
-### 23. No search debounce on Transactions
+**Fix:** `getCreditCardDueInfo()` already computed `outstanding` ([`calculations.ts:114`](src/utils/calculations.ts#L114)) —
+it just wasn't rendered. The dashboard's Card Payments Due row now shows the full outstanding
+amount as the primary figure, with "Min ₹925" as a smaller line underneath. Verified in the
+running app with a seeded ₹18,500 outstanding / ₹925 minimum.
 
-- [ ] [`Transactions.tsx:81-135`](src/pages/Transactions.tsx#L81) rebuilds the search index,
+### 23. No search debounce on Transactions — ✅ Fixed
+
+- [x] [`Transactions.tsx:81-135`](src/pages/Transactions.tsx#L81) rebuilds the search index,
       re-filters the full transaction list, then re-sorts and re-groups it on **every keystroke**.
       Fine at 343 rows, not at 10k. Debounce the query.
-- [ ] Hoist `buildSearchIndex` into its own memo keyed on `[categories, accounts, labels]` so it
+- [x] Hoist `buildSearchIndex` into its own memo keyed on `[categories, accounts, labels]` so it
       rebuilds per data change rather than per keystroke.
+
+**Fix:** The `<Input>` still updates `search` immediately for a responsive typing feel, but a new
+`debouncedSearch` state (200ms `setTimeout`, cleared on every keystroke) is what the `filtered`
+memo actually keys off, so filtering/sorting/grouping the full list runs once per pause in typing
+rather than once per keystroke. `buildSearchIndex(categories, accounts, labels)` moved out into its
+own `searchIndex` memo keyed on those three lists, instead of being rebuilt inside `filtered` on
+every dependency change. Verified in the running app: typing "rent" still correctly narrows the
+list to the Rent transaction.
 
 ---
 

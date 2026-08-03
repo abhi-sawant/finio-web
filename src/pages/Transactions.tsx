@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useCallback } from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Search, Filter, X, Download, Tag, Tags, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import {
+  activeAccounts,
   buildSearchIndex,
   groupTransactionsByDate,
   transactionMatchesQuery,
@@ -55,11 +56,28 @@ export default function Transactions() {
   const addTemplate = useFinanceStore((s) => s.addTemplate);
 
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [accountFilter, setAccountFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [labelFilter, setLabelFilter] = useState<string>('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  const filterableAccounts = useMemo(() => activeAccounts(accounts), [accounts]);
+
+  // Debounce the search query — filtering, sorting and grouping the full list on every
+  // keystroke is fine at hundreds of rows but not at thousands.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 200);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const searchIndex = useMemo(
+    () => buildSearchIndex(categories, accounts, labels),
+    [categories, accounts, labels],
+  );
 
   // Bulk selection mode, entered via a row's long-press menu.
   const [selectionMode, setSelectionMode] = useState(false);
@@ -79,8 +97,7 @@ export default function Transactions() {
   const scrollRef = useRef<HTMLElement>(null);
 
   const filtered = useMemo(() => {
-    const index = buildSearchIndex(categories, accounts, labels);
-    const q = search.trim();
+    const q = debouncedSearch.trim();
     const fromMs = fromDate ? new Date(fromDate + 'T00:00:00').getTime() : null;
     const toMs = toDate ? new Date(toDate + 'T23:59:59').getTime() : null;
 
@@ -92,21 +109,26 @@ export default function Transactions() {
         t.toAccountId !== accountFilter
       )
         return false;
+      if (categoryFilter !== 'all') {
+        const inSplits = t.splits?.some((s) => s.categoryId === categoryFilter);
+        if (t.categoryId !== categoryFilter && !inSplits) return false;
+      }
+      if (labelFilter !== 'all' && !t.labels.includes(labelFilter)) return false;
       if (fromMs !== null || toMs !== null) {
         const ts = new Date(t.date).getTime();
         if (fromMs !== null && ts < fromMs) return false;
         if (toMs !== null && ts > toMs) return false;
       }
-      return transactionMatchesQuery(t, q, index);
+      return transactionMatchesQuery(t, q, searchIndex);
     });
   }, [
     transactions,
-    search,
+    debouncedSearch,
     typeFilter,
     accountFilter,
-    categories,
-    accounts,
-    labels,
+    categoryFilter,
+    labelFilter,
+    searchIndex,
     fromDate,
     toDate,
   ]);
@@ -146,7 +168,12 @@ export default function Transactions() {
   });
 
   const hasActiveFilters =
-    typeFilter !== 'all' || accountFilter !== 'all' || !!fromDate || !!toDate;
+    typeFilter !== 'all' ||
+    accountFilter !== 'all' ||
+    categoryFilter !== 'all' ||
+    labelFilter !== 'all' ||
+    !!fromDate ||
+    !!toDate;
 
   const handleExportCsv = () => {
     if (filtered.length === 0) {
@@ -370,13 +397,55 @@ export default function Transactions() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Accounts</SelectItem>
-                  {accounts.map((a) => (
+                  {filterableAccounts.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+                  Category
+                </Label>
+                <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? 'all')}>
+                  <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                    <SelectValue>
+                      {categories.find((c) => c.id === categoryFilter)?.name || 'All Categories'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+                  Label
+                </Label>
+                <Select value={labelFilter} onValueChange={(v) => setLabelFilter(v ?? 'all')}>
+                  <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                    <SelectValue>
+                      {labels.find((l) => l.id === labelFilter)?.name || 'All Labels'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Labels</SelectItem>
+                    {labels.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -396,6 +465,8 @@ export default function Transactions() {
                 onClick={() => {
                   setTypeFilter('all');
                   setAccountFilter('all');
+                  setCategoryFilter('all');
+                  setLabelFilter('all');
                   setFromDate('');
                   setToDate('');
                 }}
@@ -434,6 +505,7 @@ export default function Transactions() {
                         transaction={row.tx}
                         categories={categories}
                         accounts={accounts}
+                        labels={labels}
                         selectionMode={selectionMode}
                         selected={selectedIds.has(row.tx.id)}
                         onLongPressAction={handleRowLongPressAction}
