@@ -100,6 +100,29 @@ export function recomputeAccountBalances(
   });
 }
 
+/** What an adjustment transaction would look like to close a statement-vs-app balance gap. */
+export interface ReconciliationAdjustment {
+  /** `income` brings the balance up, `expense` brings it down. `null` means no gap. */
+  type: 'income' | 'expense' | null;
+  /** Always positive — the transaction amount to post. */
+  amount: number;
+}
+
+/**
+ * Compare a bank/card statement balance the user typed in against the app's derived balance.
+ * A positive gap (statement is higher) needs an `income` adjustment; a negative gap needs an
+ * `expense`. Rounded to paise first so a float-noise difference of a fraction of a paisa doesn't
+ * read as a real drift.
+ */
+export function reconciliationAdjustment(
+  currentBalance: number,
+  statementBalance: number,
+): ReconciliationAdjustment {
+  const gap = roundMoney(statementBalance - currentBalance);
+  if (gap === 0) return { type: null, amount: 0 };
+  return { type: gap > 0 ? 'income' : 'expense', amount: Math.abs(gap) };
+}
+
 /** How many accounts a recompute would move, and by how much in total. */
 export function diffBalances(
   before: ImportedAccount[],

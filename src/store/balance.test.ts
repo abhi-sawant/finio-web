@@ -3,6 +3,7 @@ import {
   applyBalanceDelta,
   backfillOpeningBalances,
   diffBalances,
+  reconciliationAdjustment,
   recomputeAccountBalances,
   sumTransactionDeltas,
 } from './balance';
@@ -161,5 +162,27 @@ describe('diffBalances', () => {
     const before = [account('a', 800), account('b', 500)];
     const after = [account('a', 900), account('b', 450)];
     expect(diffBalances(before, after)).toEqual({ changed: 2, totalDrift: 50 });
+  });
+});
+
+describe('reconciliationAdjustment', () => {
+  it('reports no gap when the statement balance already matches', () => {
+    expect(reconciliationAdjustment(1000, 1000)).toEqual({ type: null, amount: 0 });
+  });
+
+  it('proposes an income adjustment when the statement balance is higher', () => {
+    expect(reconciliationAdjustment(1000, 1250)).toEqual({ type: 'income', amount: 250 });
+  });
+
+  it('proposes an expense adjustment when the statement balance is lower', () => {
+    expect(reconciliationAdjustment(1000, 940)).toEqual({ type: 'expense', amount: 60 });
+  });
+
+  it('ignores sub-paisa float noise', () => {
+    expect(reconciliationAdjustment(1000, 1000.001)).toEqual({ type: null, amount: 0 });
+  });
+
+  it('rounds the reported gap to paise', () => {
+    expect(reconciliationAdjustment(1000, 1000.006)).toEqual({ type: 'income', amount: 0.01 });
   });
 });

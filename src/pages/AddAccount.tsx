@@ -9,6 +9,7 @@ import {
   CreditCard,
   TrendingUp,
   Wallet,
+  Scale,
   type LucideIcon,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
@@ -17,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NumberPad } from '@/components/ui/number-pad';
 import { useConfirm } from '@/components/ui/use-confirm';
+import { ReconcileAccountDialog } from '@/components/accounts/ReconcileAccountDialog';
 import type { AccountType } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -96,6 +98,7 @@ export default function AddAccount() {
   const [minimumDuePercent, setMinimumDuePercent] = useState(
     existing?.minimumDuePercent?.toString() ?? '',
   );
+  const [showReconcile, setShowReconcile] = useState(false);
 
   const handleSubmit = () => {
     if (!name.trim()) return;
@@ -341,7 +344,26 @@ export default function AddAccount() {
         >
           {existing ? 'Update Account' : 'Add Account'}
         </Button>
+
+        {existing && (
+          <Button
+            variant="secondary"
+            onClick={() => setShowReconcile(true)}
+            className="bg-muted text-muted-foreground h-auto w-full gap-2 rounded-xl py-3 text-sm font-medium"
+          >
+            <Scale size={16} />
+            Reconcile Balance
+          </Button>
+        )}
       </Main>
+
+      {existing && (
+        <ReconcileAccountDialog
+          account={existing}
+          open={showReconcile}
+          onOpenChange={setShowReconcile}
+        />
+      )}
     </>
   );
 }

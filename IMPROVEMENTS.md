@@ -423,12 +423,6 @@ most likely place for a bug to hide.
       differently — icon, dynamic label, popover content — that folding it in would have made the
       map's body a worse read than leaving it hand-written).
 
-### 27. `vendor-charts` is 396KB (116KB gzip)
-
-- [ ] Roughly half the shipped JS, for a library used only on Analytics. Measure the cost of a
-      lighter charting library or hand-rolled SVG — `ChartDataTable` already provides the
-      accessible fallback, which removes the usual objection.
-
 ---
 
 ## P3 — New features
@@ -438,9 +432,20 @@ most likely place for a bug to hide.
 - [ ] **Loan / EMI tracking.** Very India-relevant and entirely missing. Principal, rate, tenure,
       amortization schedule, auto-generated recurring payment, prepayment impact.
       `RecurringTransaction` plus the credit-card lifecycle fields are most of the scaffolding.
-- [ ] **Account reconciliation.** `recomputeBalances()` exists but only as a manual repair tool.
-      Surface it as a flow: enter your statement balance → show the difference → offer an
-      adjustment transaction. Directly serves the derived-balance architecture.
+- [x] **Account reconciliation.** — ✅ Done
+
+  **Fix:** Added a "Reconcile Balance" action on the Edit Account page
+  ([AddAccount.tsx](src/pages/AddAccount.tsx)), opening
+  [`ReconcileAccountDialog`](src/components/accounts/ReconcileAccountDialog.tsx): enter your
+  statement balance (or statement due, for credit cards) → the dialog diffs it against the
+  account's derived balance via the new pure `reconciliationAdjustment()`
+  ([balance.ts](src/store/balance.ts)) → if there's a gap, it offers to post a Miscellaneous
+  income/expense adjustment transaction (via the existing `addTransaction`, with an Undo toast,
+  same pattern as Debts' Settle Up) that closes it. No gap just shows a confirmation. This is
+  additive to the existing `recomputeBalances()` drift-repair tool in Settings — that one trusts
+  the transaction history and rewrites `balance`/`openingBalance`; this one trusts a real-world
+  statement and writes a transaction instead, which is the correct direction when the *statement*
+  is ground truth.
 - [ ] **Merchant view.** The rules engine already pattern-matches notes. Normalize notes into
       merchants and you get "spending by merchant", "your 5 most frequent merchants", and much
       better rule suggestions — with no schema change.
