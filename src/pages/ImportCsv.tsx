@@ -4,6 +4,7 @@ import { ArrowLeft, AlertTriangle, FileUp, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MISC_CATEGORY_ID } from '@/data/defaultData';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { activeAccounts as getActiveAccounts } from '@/utils/calculations';
 import {
   DATE_FORMATS,
   buildTransactionsFromCsv,
@@ -50,7 +51,7 @@ export default function ImportCsv() {
   const rules = useFinanceStore((s) => s.rules);
   const bulkAddTransactions = useFinanceStore((s) => s.bulkAddTransactions);
 
-  const activeAccounts = useMemo(() => accounts.filter((a) => !a.archivedAt), [accounts]);
+  const activeAccounts = useMemo(() => getActiveAccounts(accounts), [accounts]);
 
   const [step, setStep] = useState<Step>('upload');
   const [fileName, setFileName] = useState('');

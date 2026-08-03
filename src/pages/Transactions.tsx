@@ -4,6 +4,7 @@ import { Search, Filter, X, Download, Tag, Tags, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { downloadBlob } from '@/services/download';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import {
   activeAccounts,
@@ -181,13 +182,11 @@ export default function Transactions() {
       return;
     }
     const csv = transactionsToCsv(filtered, categories, accounts);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `finio-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      `finio-transactions-${new Date().toISOString().slice(0, 10)}.csv`,
+      csv,
+      'text/csv;charset=utf-8',
+    );
     toast.success(`Exported ${filtered.length} transactions`);
   };
 

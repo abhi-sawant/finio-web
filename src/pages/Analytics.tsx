@@ -26,6 +26,14 @@ import { monthPeriodStart, normalizeMonthStartDay, yearPeriodStart } from '@/uti
 
 type FilterType = 'all' | 'month' | '3months' | '6months' | 'year' | 'custom';
 
+const FILTER_CHIPS: { value: Exclude<FilterType, 'custom'>; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'month', label: 'This Month' },
+  { value: '3months', label: 'Last 3 Months' },
+  { value: '6months', label: 'Last 6 Months' },
+  { value: 'year', label: 'This Year' },
+];
+
 export default function Analytics() {
   const navigate = useNavigate();
   const transactions = useFinanceStore((s) => s.transactions);
@@ -107,41 +115,16 @@ export default function Analytics() {
         ) : (
           <>
             <div className="scrollbar-hide flex items-center gap-2 overflow-x-auto py-2 lg:flex-wrap lg:overflow-x-visible">
-              <Button
-                variant={selectedFilter === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleFilterChange('all')}
-              >
-                All
-              </Button>
-              <Button
-                variant={selectedFilter === 'month' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleFilterChange('month')}
-              >
-                This Month
-              </Button>
-              <Button
-                variant={selectedFilter === '3months' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleFilterChange('3months')}
-              >
-                Last 3 Months
-              </Button>
-              <Button
-                variant={selectedFilter === '6months' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleFilterChange('6months')}
-              >
-                Last 6 Months
-              </Button>
-              <Button
-                variant={selectedFilter === 'year' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => handleFilterChange('year')}
-              >
-                This Year
-              </Button>
+              {FILTER_CHIPS.map((chip) => (
+                <Button
+                  key={chip.value}
+                  variant={selectedFilter === chip.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleFilterChange(chip.value)}
+                >
+                  {chip.label}
+                </Button>
+              ))}
               <Popover>
                 <PopoverTrigger
                   render={

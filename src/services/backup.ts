@@ -9,6 +9,7 @@ import {
   writeBackupAndRotate,
 } from './backupFolder';
 import { validateBackup } from '@/utils/importValidation';
+import { downloadBlob } from './download';
 import {
   createVerifier,
   decryptJson,
@@ -29,7 +30,7 @@ export class PassphraseRequiredError extends Error {
   }
 }
 
-type BackupPayload = Pick<
+export type BackupPayload = Pick<
   FinanceStore,
   | 'accounts'
   | 'transactions'
@@ -46,6 +47,47 @@ type BackupPayload = Pick<
   | 'netWorthSnapshots'
   | 'settings'
 >;
+
+/**
+ * Single source of truth for "what's in a backup". uploadBackup, autoLocalBackupIfNeeded and
+ * the manual JSON export in Settings all call this rather than each maintaining their own copy
+ * of the entity list — the return type annotation makes a key missing from the object literal
+ * a compile error, so a new FinanceStore collection can't silently drop out of every backup.
+ */
+export function collectBackupPayload(): BackupPayload {
+  const {
+    accounts,
+    transactions,
+    categories,
+    labels,
+    budgets,
+    recurring,
+    templates,
+    rules,
+    goals,
+    goalContributions,
+    people,
+    debtEntries,
+    netWorthSnapshots,
+    settings,
+  } = useFinanceStore.getState();
+  return {
+    accounts,
+    transactions,
+    categories,
+    labels,
+    budgets,
+    recurring,
+    templates,
+    rules,
+    goals,
+    goalContributions,
+    people,
+    debtEntries,
+    netWorthSnapshots,
+    settings,
+  };
+}
 
 let backupInProgress = false;
 const MAX_LOCAL_BACKUPS = 10;
@@ -68,13 +110,16 @@ export async function saveLocalBackup(
     }
   }
 
-  const blob = new Blob([contents], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(filename, contents, 'application/json');
+}
+
+/** Exports the current state as a local backup file, with today's date in the filename —
+ *  used both by the Data section's "Export Data" button and the app-lock PIN setup dialog's
+ *  "export a backup first" safety net. */
+export async function exportLocalBackup(): Promise<void> {
+  const data = collectBackupPayload();
+  const filename = `finio-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  await saveLocalBackup(filename, JSON.stringify(data, null, 2), { allowPrompt: true });
 }
 
 /** True when the cached session key can encrypt/decrypt for the currently configured salt. */
@@ -87,38 +132,7 @@ export async function uploadBackup(): Promise<string> {
   const { token } = useAuthStore.getState();
   if (!token) throw new Error('Not signed in');
 
-  const {
-    accounts,
-    transactions,
-    categories,
-    labels,
-    budgets,
-    recurring,
-    templates,
-    rules,
-    goals,
-    goalContributions,
-    people,
-    debtEntries,
-    netWorthSnapshots,
-    settings,
-  } = useFinanceStore.getState();
-  const payload: BackupPayload = {
-    accounts,
-    transactions,
-    categories,
-    labels,
-    budgets,
-    recurring,
-    templates,
-    rules,
-    goals,
-    goalContributions,
-    people,
-    debtEntries,
-    netWorthSnapshots,
-    settings,
-  };
+  const payload = collectBackupPayload();
 
   const { config } = useBackupCryptoStore.getState();
   if (config?.enabled) {
@@ -224,13 +238,8 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
     transactions,
     budgets,
     recurring,
-    templates,
-    rules,
     goals,
-    goalContributions,
     people,
-    debtEntries,
-    netWorthSnapshots,
     settings,
     lastLocalBackupAt,
     setLastLocalBackupAt,
@@ -252,23 +261,7 @@ export async function autoLocalBackupIfNeeded(): Promise<void> {
   if (lastLocalBackupAt === today) return;
 
   try {
-    const { categories, labels } = useFinanceStore.getState();
-    const data = {
-      accounts,
-      transactions,
-      categories,
-      labels,
-      budgets,
-      recurring,
-      templates,
-      rules,
-      goals,
-      goalContributions,
-      people,
-      debtEntries,
-      netWorthSnapshots,
-      settings,
-    };
+    const data = collectBackupPayload();
     // No user gesture here (runs from a mount effect), so never prompt for folder permission.
     await saveLocalBackup(`finio-backup-${today}.json`, JSON.stringify(data, null, 2), {
       allowPrompt: false,

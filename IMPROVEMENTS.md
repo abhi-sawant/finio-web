@@ -379,37 +379,49 @@ list to the Rent transaction.
 
 ## P3 — Maintainability
 
-### 24. `Settings.tsx` is 1,909 lines in one component with 40 `useState` hooks
+### 24. `Settings.tsx` is 1,909 lines in one component with 40 `useState` hooks — ✅ Fixed
 
 [`Settings.tsx`](src/pages/Settings.tsx) holds the profile editor, local and cloud backup, backup
 history, folder picker, restore preview, notification preferences, the app-lock PIN flow,
 biometrics, the backup-passphrase flow, password change, and account deletion. This is the single
 most likely place for a bug to hide.
 
-- [ ] Extract `ProfileSection`, `BackupSection`, `AppLockSection`, `NotificationsSection`,
-      `CloudAccountSection`.
-- [ ] The PIN dialog and the passphrase dialog are near-identical multi-phase state machines
-      (`'length' | 'current' | 'enter' | 'confirm'` vs `'current' | 'enter' | 'confirm'`) —
-      factor out one shared component.
+- [x] Extracted `ProfileSection`, `BackupSection`, `AppLockSection`, `NotificationsSection`,
+      `CloudAccountSection` into [`src/components/settings/`](src/components/settings), each
+      pulling its own store state directly rather than being prop-drilled — `Settings.tsx` is now
+      121 lines of composition plus the un-extracted "Manage" nav list, and no section file
+      carries more than 8 `useState` hooks.
+- [x] The PIN dialog and the passphrase dialogs share
+      [`SecretDialogShell`](src/components/settings/SecretDialogShell.tsx) for the
+      Dialog/Header/error-row chrome common to all three phase machines. The phase state and
+      verification logic stay separate (PIN's extra `'length'` phase and PinPad input vs. the
+      passphrase dialogs' text `Input`) rather than being forced into one generic state machine,
+      which would have risked subtle behavior changes in a security-critical flow.
 
-### 25. The backup entity list is maintained twice
+### 25. The backup entity list is maintained twice — ✅ Fixed
 
-- [ ] `uploadBackup` destructures 14 entities into `BackupPayload`, and
+- [x] `uploadBackup` destructures 14 entities into `BackupPayload`, and
       `autoLocalBackupIfNeeded` independently rebuilds the same object
       ([`backup.ts`](src/services/backup.ts)). CLAUDE.md's own checklist warns that a missed
       entity "silently drops out of every backup" — two hand-maintained lists is precisely how
-      that happens. Introduce one `collectBackupPayload()` used by both, typed so that adding a
-      `FinanceStore` key without wiring it up is a compile error.
+      that happens. Added one `collectBackupPayload()` used by both, typed so that adding a
+      `FinanceStore` key without wiring it up is a compile error. Settings' manual JSON export now
+      calls it too, which fixed a real instance of the bug: it was missing `netWorthSnapshots`.
 
-### 26. Small cleanups
+### 26. Small cleanups — ✅ Fixed
 
-- [ ] [`ImportCsv.tsx:57`](src/pages/ImportCsv.tsx#L57) re-implements `activeAccounts` as a local
-      `accounts.filter(a => !a.archivedAt)`, shadowing the shared helper's name.
-- [ ] Blob-download logic is duplicated in
+- [x] [`ImportCsv.tsx:57`](src/pages/ImportCsv.tsx#L57) re-implements `activeAccounts` as a local
+      `accounts.filter(a => !a.archivedAt)`, shadowing the shared helper's name. Now calls the
+      shared `activeAccounts()` from `calculations.ts`.
+- [x] Blob-download logic is duplicated in
       [`Transactions.tsx:154`](src/pages/Transactions.tsx#L154) and
-      [`backup.ts:72`](src/services/backup.ts#L72) — extract a `downloadBlob()` util.
-- [ ] The six filter chips in [`Analytics.tsx`](src/pages/Analytics.tsx) are hand-written
-      near-identical `<Button>` blocks; collapse to a `.map` over a config array.
+      [`backup.ts:72`](src/services/backup.ts#L72) — extracted a
+      [`downloadBlob()`](src/services/download.ts) util used by both.
+- [x] The six filter chips in [`Analytics.tsx`](src/pages/Analytics.tsx) are hand-written
+      near-identical `<Button>` blocks; collapsed the five plain-label chips to a `.map` over a
+      `FILTER_CHIPS` config array (the sixth, the custom date-range popover, renders enough
+      differently — icon, dynamic label, popover content — that folding it in would have made the
+      map's body a worse read than leaving it hand-written).
 
 ### 27. `vendor-charts` is 396KB (116KB gzip)
 
