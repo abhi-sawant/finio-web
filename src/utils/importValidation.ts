@@ -12,6 +12,8 @@ import type {
   ImportPayload,
   ImportedAccount,
   Label,
+  Loan,
+  LoanPrepayment,
   NetWorthSnapshot,
   Person,
   RecurringTransaction,
@@ -41,7 +43,9 @@ export type ImportEntity =
   | 'goalContributions'
   | 'people'
   | 'debtEntries'
-  | 'netWorthSnapshots';
+  | 'netWorthSnapshots'
+  | 'loans'
+  | 'loanPrepayments';
 
 export const IMPORT_ENTITIES: ImportEntity[] = [
   'accounts',
@@ -57,6 +61,8 @@ export const IMPORT_ENTITIES: ImportEntity[] = [
   'people',
   'debtEntries',
   'netWorthSnapshots',
+  'loans',
+  'loanPrepayments',
 ];
 
 export const ENTITY_LABELS: Record<ImportEntity, string> = {
@@ -73,6 +79,8 @@ export const ENTITY_LABELS: Record<ImportEntity, string> = {
   people: 'People',
   debtEntries: 'Debt entries',
   netWorthSnapshots: 'Net worth snapshots',
+  loans: 'Loans',
+  loanPrepayments: 'Loan prepayments',
 };
 
 export interface EntityReport {
@@ -495,6 +503,67 @@ const parseNetWorthSnapshot: RowParser<NetWorthSnapshot> = (row) => {
   };
 };
 
+const parseLoan: RowParser<Loan> = (row) => {
+  const id = asId(row.id);
+  if (!id) return 'missing id';
+  const name = asId(row.name);
+  if (!name) return 'missing name';
+  const principal = asFiniteNumber(row.principal);
+  if (principal === undefined || principal <= 0) return 'principal must be greater than zero';
+  const interestRate = asFiniteNumber(row.interestRate);
+  if (interestRate === undefined || interestRate < 0) return 'interestRate is not a number';
+  const tenureMonths = asFiniteNumber(row.tenureMonths);
+  if (tenureMonths === undefined || tenureMonths <= 0) {
+    return 'tenureMonths must be greater than zero';
+  }
+  const startDate = asIsoDate(row.startDate);
+  if (!startDate) return `unparseable startDate "${String(row.startDate)}"`;
+  const accountId = asId(row.accountId);
+  if (!accountId) return 'missing accountId';
+  const categoryId = asId(row.categoryId);
+  if (!categoryId) return 'missing categoryId';
+
+  const recurringId = asId(row.recurringId);
+  const closedAt = asIsoDate(row.closedAt);
+
+  return {
+    id,
+    name,
+    principal,
+    interestRate,
+    tenureMonths: Math.trunc(tenureMonths),
+    startDate,
+    accountId,
+    categoryId,
+    createdAt: asIsoDate(row.createdAt) ?? startDate,
+    ...(recurringId ? { recurringId } : {}),
+    ...(closedAt ? { closedAt } : {}),
+  };
+};
+
+const parseLoanPrepayment: RowParser<LoanPrepayment> = (row) => {
+  const id = asId(row.id);
+  if (!id) return 'missing id';
+  const loanId = asId(row.loanId);
+  if (!loanId) return 'missing loanId';
+  const amount = asFiniteNumber(row.amount);
+  if (amount === undefined || amount <= 0) return 'amount must be greater than zero';
+  const date = asIsoDate(row.date);
+  if (!date) return `unparseable date "${String(row.date)}"`;
+
+  const transactionId = asId(row.transactionId);
+
+  return {
+    id,
+    loanId,
+    amount,
+    date,
+    note: asString(row.note, ''),
+    createdAt: asIsoDate(row.createdAt) ?? date,
+    ...(transactionId ? { transactionId } : {}),
+  };
+};
+
 function parseSettings(value: unknown): Settings | undefined {
   if (!isRecord(value)) return undefined;
   // Pick only known keys — this is also what strips the legacy `currency` field.
@@ -615,6 +684,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     'netWorthSnapshots',
     parseNetWorthSnapshot,
   );
+  const loans = collect(raw.loans, 'loans', parseLoan);
+  const loanPrepayments = collect(raw.loanPrepayments, 'loanPrepayments', parseLoanPrepayment);
   const settings = parseSettings(raw.settings);
 
   const counts: Record<ImportEntity, EntityReport> = {
@@ -631,6 +702,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     people: people.report,
     debtEntries: debtEntries.report,
     netWorthSnapshots: netWorthSnapshots.report,
+    loans: loans.report,
+    loanPrepayments: loanPrepayments.report,
   };
 
   const anyPresent = IMPORT_ENTITIES.some((e) => counts[e].present) || settings !== undefined;
@@ -650,6 +723,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     ...people.issues,
     ...debtEntries.issues,
     ...netWorthSnapshots.issues,
+    ...loans.issues,
+    ...loanPrepayments.issues,
   ];
   const issues = allIssues.slice(0, MAX_REPORTED_ISSUES);
   if (allIssues.length > issues.length) {
@@ -743,6 +818,36 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     }
   }
 
+  if (accounts.rows && loans.rows) {
+    const ids = new Set(accounts.rows.map((a) => a.id));
+    const orphans = loans.rows.filter((l) => !ids.has(l.accountId)).length;
+    if (orphans > 0) {
+      warnings.push(
+        `${orphans} loan${orphans === 1 ? '' : 's'} reference an account that is not in this file`,
+      );
+    }
+  }
+
+  if (categories.rows && loans.rows) {
+    const ids = new Set(categories.rows.map((c) => c.id));
+    const orphans = loans.rows.filter((l) => !ids.has(l.categoryId)).length;
+    if (orphans > 0) {
+      warnings.push(
+        `${orphans} loan${orphans === 1 ? '' : 's'} reference a category that is not in this file`,
+      );
+    }
+  }
+
+  if (loans.rows && loanPrepayments.rows) {
+    const ids = new Set(loans.rows.map((l) => l.id));
+    const orphans = loanPrepayments.rows.filter((p) => !ids.has(p.loanId)).length;
+    if (orphans > 0) {
+      warnings.push(
+        `${orphans} loan prepayment${orphans === 1 ? '' : 's'} reference a loan that is not in this file`,
+      );
+    }
+  }
+
   return {
     data: {
       ...(accounts.rows ? { accounts: accounts.rows } : {}),
@@ -758,6 +863,8 @@ export function validateBackup(raw: unknown): ValidatedBackup {
       ...(people.rows ? { people: people.rows } : {}),
       ...(debtEntries.rows ? { debtEntries: debtEntries.rows } : {}),
       ...(netWorthSnapshots.rows ? { netWorthSnapshots: netWorthSnapshots.rows } : {}),
+      ...(loans.rows ? { loans: loans.rows } : {}),
+      ...(loanPrepayments.rows ? { loanPrepayments: loanPrepayments.rows } : {}),
       ...(settings ? { settings } : {}),
     },
     report: { counts, hasSettings: settings !== undefined, issues, warnings },

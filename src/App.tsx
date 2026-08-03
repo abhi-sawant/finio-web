@@ -30,6 +30,8 @@ const Budgets = lazy(() => import('@/pages/Budgets'));
 const Recurring = lazy(() => import('@/pages/Recurring'));
 const Goals = lazy(() => import('@/pages/Goals'));
 const Debts = lazy(() => import('@/pages/Debts'));
+const Loans = lazy(() => import('@/pages/Loans'));
+const AddLoan = lazy(() => import('@/pages/AddLoan'));
 const ImportCsv = lazy(() => import('@/pages/ImportCsv'));
 const CategoryRules = lazy(() => import('@/pages/CategoryRules'));
 const Merchants = lazy(() => import('@/pages/Merchants'));
@@ -89,6 +91,9 @@ function AppRoutes() {
       <Route path="recurring" element={<Recurring />} />
       <Route path="goals" element={<Goals />} />
       <Route path="debts" element={<Debts />} />
+      <Route path="loans" element={<Loans />} />
+      <Route path="add-loan" element={<AddLoan />} />
+      <Route path="edit-loan/:id" element={<AddLoan />} />
       <Route path="import-csv" element={<ImportCsv />} />
       <Route path="category-rules" element={<CategoryRules />} />
       <Route path="merchants" element={<Merchants />} />

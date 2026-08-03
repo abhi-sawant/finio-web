@@ -511,6 +511,107 @@ describe('validateBackup', () => {
     });
     expect(report.warnings.some((w) => /person that is not in this file/.test(w))).toBe(true);
   });
+
+  it('accepts a well-formed loan and rejects one with a non-positive principal', () => {
+    const validLoan = {
+      id: 'loan-1',
+      name: 'Home Loan',
+      principal: 500000,
+      interestRate: 8.5,
+      tenureMonths: 60,
+      startDate: '2026-01-05T00:00:00.000Z',
+      accountId: 'acc-1',
+      categoryId: 'cat-27',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    const { data, report } = validateBackup({
+      loans: [validLoan, { ...validLoan, id: 'loan-2', principal: 0 }],
+    });
+    expect(data.loans?.map((l) => l.id)).toEqual(['loan-1']);
+    expect(report.counts.loans).toEqual({ present: true, total: 2, accepted: 1, rejected: 1 });
+  });
+
+  it('warns about a loan pointing at an account the file does not contain', () => {
+    const { report } = validateBackup({
+      loans: [
+        {
+          id: 'loan-1',
+          name: 'Car Loan',
+          principal: 200000,
+          interestRate: 9,
+          tenureMonths: 36,
+          startDate: '2026-01-05T00:00:00.000Z',
+          accountId: 'ghost-account',
+          categoryId: 'cat-27',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      accounts: [
+        {
+          id: 'acc-1',
+          name: 'Checking',
+          type: 'checking',
+          color: '#6C63FF',
+          icon: 'landmark',
+          balance: 1000,
+          openingBalance: 1000,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(report.warnings.some((w) => /account that is not in this file/.test(w))).toBe(true);
+  });
+
+  it('accepts a well-formed loan prepayment and rejects one with a zero amount', () => {
+    const validPrepayment = {
+      id: 'prepay-1',
+      loanId: 'loan-1',
+      amount: 10000,
+      date: '2026-02-05T00:00:00.000Z',
+      note: 'Bonus prepayment',
+      createdAt: '2026-02-05T00:00:00.000Z',
+    };
+    const { data, report } = validateBackup({
+      loanPrepayments: [validPrepayment, { ...validPrepayment, id: 'prepay-2', amount: 0 }],
+    });
+    expect(data.loanPrepayments?.map((p) => p.id)).toEqual(['prepay-1']);
+    expect(report.counts.loanPrepayments).toEqual({
+      present: true,
+      total: 2,
+      accepted: 1,
+      rejected: 1,
+    });
+  });
+
+  it('warns about a loan prepayment pointing at a loan the file does not contain', () => {
+    const { report } = validateBackup({
+      loans: [
+        {
+          id: 'loan-1',
+          name: 'Car Loan',
+          principal: 200000,
+          interestRate: 9,
+          tenureMonths: 36,
+          startDate: '2026-01-05T00:00:00.000Z',
+          accountId: 'acc-1',
+          categoryId: 'cat-27',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      loanPrepayments: [
+        {
+          id: 'prepay-1',
+          loanId: 'ghost-loan',
+          amount: 5000,
+          date: '2026-02-05T00:00:00.000Z',
+          note: '',
+          createdAt: '2026-02-05T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(report.warnings.some((w) => /loan that is not in this file/.test(w))).toBe(true);
+  });
+
   it('keeps well-formed net worth snapshots and drops ones with an unusable period key', () => {
     const { data, report } = validateBackup({
       netWorthSnapshots: [

@@ -270,6 +270,50 @@ export interface DebtEntry {
 }
 
 /**
+ * A borrowed amount paid off in fixed monthly installments. The EMI itself is derived, never
+ * stored — `principal`/`interestRate`/`tenureMonths` are the source of truth, same spirit as an
+ * account's `openingBalance` — so it is always recomputable from `src/utils/loan.ts` and never
+ * drifts out of sync with the numbers that produced it. `recurringId` links to the
+ * auto-generated `RecurringTransaction` that posts the EMI each month; deleting the loan deletes
+ * that rule too, but never the EMI transactions it already posted.
+ */
+export interface Loan {
+  id: string;
+  name: string;
+  /** Original amount borrowed. */
+  principal: number;
+  /** Annual interest rate as a percent, e.g. 8.5 for 8.5%. */
+  interestRate: number;
+  /** Number of EMIs at origination. */
+  tenureMonths: number;
+  /** ISO date of the first EMI. */
+  startDate: string;
+  /** Account each EMI (and prepayment) is paid from. */
+  accountId: string;
+  categoryId: string;
+  /** The auto-generated recurring rule that posts the EMI, once created. */
+  recurringId?: string;
+  /** ISO timestamp of when the loan was marked paid off/closed, or absent while active. */
+  closedAt?: string;
+  createdAt: string;
+}
+
+/**
+ * An extra, one-off payment against a loan's principal, on top of its regular EMI — real money
+ * leaving an account, so it also creates a genuine `Transaction` (`transactionId`), the same way
+ * a debt settle-up does. Shortens the loan's remaining tenure; never changes the EMI itself.
+ */
+export interface LoanPrepayment {
+  id: string;
+  loanId: string;
+  amount: number;
+  date: string;
+  note: string;
+  transactionId?: string;
+  createdAt: string;
+}
+
+/**
  * "If the note contains 'Uber', file it under Transport and tag it Essential." Rules run on
  * manual add and on CSV import, and can be replayed over existing history. Order in the
  * `rules` array is priority — the first enabled rule that matches wins, and no rule ever
@@ -346,6 +390,8 @@ export interface ImportPayload {
   people?: Person[];
   debtEntries?: DebtEntry[];
   netWorthSnapshots?: NetWorthSnapshot[];
+  loans?: Loan[];
+  loanPrepayments?: LoanPrepayment[];
   settings?: Settings;
 }
 
@@ -365,6 +411,8 @@ export interface FinanceStore {
   people: Person[];
   debtEntries: DebtEntry[];
   netWorthSnapshots: NetWorthSnapshot[];
+  loans: Loan[];
+  loanPrepayments: LoanPrepayment[];
   settings: Settings;
   isHydrated: boolean;
   /** ISO date (YYYY-MM-DD) of the last automatic local backup download, or null. */
@@ -458,6 +506,30 @@ export interface FinanceStore {
   deleteDebtEntry: (id: string) => DebtEntry | null;
   /** Re-insert a previously deleted entry verbatim — same id, no double-undo. */
   restoreDebtEntry: (entry: DebtEntry) => void;
+
+  /** Also creates the recurring rule that posts its EMI every month, and links it via `recurringId`. */
+  addLoan: (loan: Omit<Loan, 'id' | 'createdAt' | 'recurringId'>) => string;
+  /**
+   * Editing any of `principal`/`interestRate`/`tenureMonths`/`startDate`/`accountId`/`categoryId`
+   * keeps the linked recurring rule's amount and destination in sync with the recalculated EMI.
+   */
+  updateLoan: (id: string, updates: Partial<Omit<Loan, 'id' | 'recurringId'>>) => void;
+  /** Marks the loan paid off (or reopens it) and pauses/resumes its EMI recurring rule to match. */
+  setLoanClosed: (id: string, closed: boolean) => void;
+  /** Removes the loan, every prepayment logged against it, and its linked recurring rule. */
+  deleteLoan: (id: string) => void;
+
+  /** Creates both the ledger row and a real expense transaction — a prepayment is real money. */
+  addLoanPrepayment: (
+    prepayment: Omit<LoanPrepayment, 'id' | 'createdAt' | 'transactionId'>,
+  ) => string;
+  /**
+   * Removes the ledger row only — same convention as a settled debt entry, the transaction it
+   * created stays in history. Returns the removed row so callers can undo.
+   */
+  deleteLoanPrepayment: (id: string) => LoanPrepayment | null;
+  /** Re-insert a previously deleted prepayment verbatim — same id, no double-undo. */
+  restoreLoanPrepayment: (prepayment: LoanPrepayment) => void;
 
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Omit<Category, 'id'>>) => void;

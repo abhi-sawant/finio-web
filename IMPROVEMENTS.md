@@ -429,9 +429,24 @@ most likely place for a bug to hide.
 
 ### High value for what already exists
 
-- [ ] **Loan / EMI tracking.** Very India-relevant and entirely missing. Principal, rate, tenure,
-      amortization schedule, auto-generated recurring payment, prepayment impact.
-      `RecurringTransaction` plus the credit-card lifecycle fields are most of the scaffolding.
+- [x] **Loan / EMI tracking.** — ✅ Done
+
+  **Fix:** Added a `Loan` entity (principal, rate, tenure, account, category) plus pure
+  amortization math in [`src/utils/loan.ts`](src/utils/loan.ts) — `calculateEmi()`,
+  `buildAmortizationSchedule()`, `loanStatus()` and `simulatePrepaymentImpact()`, all tested. The
+  EMI is never stored, only derived, same spirit as `Account.openingBalance`. Adding a loan
+  auto-creates a monthly `RecurringTransaction` for the EMI (capped at `tenureMonths` via
+  `maxOccurrences`, so it posts through the existing recurring engine and stops on schedule) and
+  links it via `loan.recurringId`; editing the loan keeps that rule's amount in sync, and marking
+  it paid off pauses the rule rather than deleting it — mirroring the account-archive convention.
+  A prepayment posts a real categorized transaction (like a debt settle-up) *and* shortens the
+  amortization schedule, and the "Add Prepayment" dialog shows the projected months/interest
+  saved live before it's committed — the "prepayment impact" this item asked for. New page
+  [Loans.tsx](src/pages/Loans.tsx) (list, progress, prepayment history) +
+  [AddLoan.tsx](src/pages/AddLoan.tsx) (form with a live EMI preview), linked from Settings →
+  Manage. Wired into the store (migration v15), `services/backup.ts`, and
+  `utils/importValidation.ts` per the "new entity" checklist in CLAUDE.md, so it round-trips
+  through every backup like every other collection.
 - [x] **Account reconciliation.** — ✅ Done
 
   **Fix:** Added a "Reconcile Balance" action on the Edit Account page

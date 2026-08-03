@@ -18,6 +18,7 @@ import {
 import { planRecurring } from './recurring';
 import { planRuleApplication } from '@/utils/autoCategorize';
 import { budgetScopeKey } from '@/utils/calculations';
+import { calculateEmi } from '@/utils/loan';
 import { planNetWorthSnapshots } from '@/utils/netWorth';
 import { normalizeMonthStartDay } from '@/utils/period';
 import type {
@@ -31,6 +32,8 @@ import type {
   GoalContribution,
   ImportedAccount,
   Label,
+  Loan,
+  LoanPrepayment,
   NetWorthSnapshot,
   Person,
   RecurringTransaction,
@@ -132,6 +135,8 @@ const defaultState = {
   people: [] as Person[],
   debtEntries: [] as DebtEntry[],
   netWorthSnapshots: [] as NetWorthSnapshot[],
+  loans: [] as Loan[],
+  loanPrepayments: [] as LoanPrepayment[],
   settings: defaultSettings,
   isHydrated: false,
   lastLocalBackupAt: null as string | null,
@@ -207,6 +212,12 @@ export const useFinanceStore = create<FinanceStore>()(
           let accounts = state.accounts;
           for (const tx of removed) accounts = applyBalanceDelta(accounts, tx, -1);
 
+          // A loan's EMI has nowhere to be paid from without this account — same fate as the
+          // recurring rule below, which it is paired with.
+          const orphanedLoanIds = new Set(
+            state.loans.filter((l) => l.accountId === id).map((l) => l.id),
+          );
+
           return {
             accounts: accounts.filter((a) => a.id !== id),
             transactions: state.transactions.filter(
@@ -214,6 +225,8 @@ export const useFinanceStore = create<FinanceStore>()(
             ),
             // A transfer rule pointing at the deleted account can never fire again either.
             recurring: state.recurring.filter((r) => r.accountId !== id && r.toAccountId !== id),
+            loans: state.loans.filter((l) => l.accountId !== id),
+            loanPrepayments: state.loanPrepayments.filter((p) => !orphanedLoanIds.has(p.loanId)),
             // The link is informational only — drop it rather than leave a goal pointing at
             // an account that no longer exists.
             goals: state.goals.map((g) => {
@@ -392,6 +405,9 @@ export const useFinanceStore = create<FinanceStore>()(
             ),
             recurring: state.recurring.map((r) =>
               r.categoryId === id ? { ...r, categoryId: fallbackId } : r,
+            ),
+            loans: state.loans.map((l) =>
+              l.categoryId === id ? { ...l, categoryId: fallbackId } : l,
             ),
             // A rule filing into a deleted category would keep firing and keep producing
             // "Unknown" rows — point it at the same catch-all everything else falls back to.
@@ -740,6 +756,161 @@ export const useFinanceStore = create<FinanceStore>()(
         });
       },
 
+      addLoan: (loanData) => {
+        const createdAt = new Date().toISOString();
+        const emi = calculateEmi(loanData.principal, loanData.interestRate, loanData.tenureMonths);
+        const recurring: RecurringTransaction = {
+          id: generateUUID(),
+          type: 'expense',
+          amount: emi,
+          accountId: loanData.accountId,
+          categoryId: loanData.categoryId,
+          note: `EMI — ${loanData.name}`,
+          labels: [],
+          frequency: 'monthly',
+          startDate: loanData.startDate,
+          // The term itself caps the EMI at origination; early payoff instead pauses it via
+          // `setLoanClosed`, since prepayments aren't something a recurring rule knows about.
+          maxOccurrences: loanData.tenureMonths,
+          occurrenceCount: 0,
+          lastRunDate: null,
+          createdAt,
+        };
+        const loan: Loan = {
+          ...loanData,
+          id: generateUUID(),
+          recurringId: recurring.id,
+          createdAt,
+        };
+        set((state) => ({
+          loans: [...state.loans, loan],
+          recurring: [...state.recurring, recurring],
+        }));
+        return loan.id;
+      },
+
+      updateLoan: (id, updates) => {
+        set((state) => {
+          const target = state.loans.find((l) => l.id === id);
+          if (!target) return state;
+          const next = { ...target, ...updates };
+
+          // The EMI is derived from principal/rate/tenure, never stored — keep the linked
+          // recurring rule's amount and destination in step with whatever changed.
+          const recurring = next.recurringId
+            ? state.recurring.map((r) =>
+                r.id === next.recurringId
+                  ? {
+                      ...r,
+                      amount: calculateEmi(next.principal, next.interestRate, next.tenureMonths),
+                      accountId: next.accountId,
+                      categoryId: next.categoryId,
+                      startDate: next.startDate,
+                      note: `EMI — ${next.name}`,
+                      maxOccurrences: next.tenureMonths,
+                    }
+                  : r,
+              )
+            : state.recurring;
+
+          return {
+            loans: state.loans.map((l) => (l.id === id ? next : l)),
+            recurring,
+          };
+        });
+      },
+
+      setLoanClosed: (id, closed) => {
+        set((state) => {
+          const target = state.loans.find((l) => l.id === id);
+          if (!target) return state;
+
+          const loans = state.loans.map((l) => {
+            if (l.id !== id) return l;
+            if (closed) return { ...l, closedAt: new Date().toISOString() };
+            if (!l.closedAt) return l;
+            const reopened = { ...l };
+            delete reopened.closedAt;
+            return reopened;
+          });
+
+          const recurring = target.recurringId
+            ? state.recurring.map((r) => {
+                if (r.id !== target.recurringId) return r;
+                if (closed) return { ...r, pausedAt: new Date().toISOString() };
+                if (!r.pausedAt) return r;
+                const resumed = { ...r };
+                delete resumed.pausedAt;
+                return resumed;
+              })
+            : state.recurring;
+
+          return { loans, recurring };
+        });
+      },
+
+      deleteLoan: (id) => {
+        set((state) => {
+          const target = state.loans.find((l) => l.id === id);
+          return {
+            loans: state.loans.filter((l) => l.id !== id),
+            loanPrepayments: state.loanPrepayments.filter((p) => p.loanId !== id),
+            recurring: target?.recurringId
+              ? state.recurring.filter((r) => r.id !== target.recurringId)
+              : state.recurring,
+          };
+        });
+      },
+
+      addLoanPrepayment: (prepaymentData) => {
+        // The loan is the source of the account, category and name — trusted internal input,
+        // like every other add* action assumes its foreign keys already resolve.
+        const loan = get().loans.find((l) => l.id === prepaymentData.loanId)!;
+        const createdAt = new Date().toISOString();
+        const transaction: Transaction = {
+          id: generateUUID(),
+          type: 'expense',
+          amount: prepaymentData.amount,
+          accountId: loan.accountId,
+          categoryId: loan.categoryId,
+          date: prepaymentData.date,
+          note: prepaymentData.note.trim() || `Prepayment — ${loan.name}`,
+          labels: [],
+          createdAt,
+        };
+        const prepayment: LoanPrepayment = {
+          ...prepaymentData,
+          id: generateUUID(),
+          transactionId: transaction.id,
+          createdAt,
+        };
+        set((state) => ({
+          transactions: [transaction, ...state.transactions],
+          accounts: applyBalanceDelta(state.accounts, transaction, 1),
+          loanPrepayments: [prepayment, ...state.loanPrepayments],
+        }));
+        return prepayment.id;
+      },
+
+      deleteLoanPrepayment: (id) => {
+        const prepayment = get().loanPrepayments.find((p) => p.id === id);
+        if (!prepayment) return null;
+        // Same convention as a settled debt entry: only the ledger row goes — the transaction
+        // it created is real money that already moved, and stays in history.
+        set((state) => ({
+          loanPrepayments: state.loanPrepayments.filter((p) => p.id !== id),
+        }));
+        return prepayment;
+      },
+
+      restoreLoanPrepayment: (prepayment) => {
+        set((state) => {
+          // Guard against a double undo re-inserting the same row twice.
+          if (state.loanPrepayments.some((p) => p.id === prepayment.id)) return state;
+          return { loanPrepayments: [prepayment, ...state.loanPrepayments] };
+        });
+      },
+
       updateSettings: (updates) => {
         set((state) => ({
           settings: { ...state.settings, ...updates },
@@ -763,6 +934,8 @@ export const useFinanceStore = create<FinanceStore>()(
           people: [],
           debtEntries: [],
           netWorthSnapshots: [],
+          loans: [],
+          loanPrepayments: [],
         });
       },
 
@@ -788,6 +961,8 @@ export const useFinanceStore = create<FinanceStore>()(
                   people: mergeById(state.people, data.people),
                   debtEntries: mergeById(state.debtEntries, data.debtEntries),
                   netWorthSnapshots: mergeById(state.netWorthSnapshots, data.netWorthSnapshots),
+                  loans: mergeById(state.loans, data.loans),
+                  loanPrepayments: mergeById(state.loanPrepayments, data.loanPrepayments),
                 }
               : {
                   accounts: (incomingAccounts ?? state.accounts) as ImportedAccount[],
@@ -803,6 +978,8 @@ export const useFinanceStore = create<FinanceStore>()(
                   people: data.people ?? state.people,
                   debtEntries: data.debtEntries ?? state.debtEntries,
                   netWorthSnapshots: data.netWorthSnapshots ?? state.netWorthSnapshots,
+                  loans: data.loans ?? state.loans,
+                  loanPrepayments: data.loanPrepayments ?? state.loanPrepayments,
                 };
 
           return {
@@ -826,7 +1003,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 14,
+      version: 15,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -1006,6 +1183,15 @@ export const useFinanceStore = create<FinanceStore>()(
           };
         }
 
+        if (version < 15) {
+          // Loan/EMI tracking is new.
+          s = {
+            ...s,
+            loans: Array.isArray(s.loans) ? s.loans : [],
+            loanPrepayments: Array.isArray(s.loanPrepayments) ? s.loanPrepayments : [],
+          };
+        }
+
         return s as FinanceStore;
       },
       onRehydrateStorage: () => (state) => {
@@ -1031,4 +1217,6 @@ export const useGoalContributions = () => useFinanceStore((s) => s.goalContribut
 export const usePeople = () => useFinanceStore((s) => s.people);
 export const useDebtEntries = () => useFinanceStore((s) => s.debtEntries);
 export const useNetWorthSnapshots = () => useFinanceStore((s) => s.netWorthSnapshots);
+export const useLoans = () => useFinanceStore((s) => s.loans);
+export const useLoanPrepayments = () => useFinanceStore((s) => s.loanPrepayments);
 export const useSettings = () => useFinanceStore((s) => s.settings);

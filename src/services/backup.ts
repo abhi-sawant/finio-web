@@ -45,6 +45,8 @@ export type BackupPayload = Pick<
   | 'people'
   | 'debtEntries'
   | 'netWorthSnapshots'
+  | 'loans'
+  | 'loanPrepayments'
   | 'settings'
 >;
 
@@ -69,6 +71,8 @@ export function collectBackupPayload(): BackupPayload {
     people,
     debtEntries,
     netWorthSnapshots,
+    loans,
+    loanPrepayments,
     settings,
   } = useFinanceStore.getState();
   return {
@@ -85,6 +89,8 @@ export function collectBackupPayload(): BackupPayload {
     people,
     debtEntries,
     netWorthSnapshots,
+    loans,
+    loanPrepayments,
     settings,
   };
 }
