@@ -364,6 +364,29 @@ describe('getDashboardStats', () => {
     expect(stats.monthOverMonthChange).toBeCloseTo(0.2);
   });
 
+  it('reports the savings rate change in percentage points against last month', () => {
+    const stats = getDashboardStats(
+      [tx({ type: 'income', amount: 1000 }), tx({ type: 'expense', amount: 400 })],
+      [
+        tx({ type: 'income', amount: 1000, id: 'prev-income' }),
+        tx({ type: 'expense', amount: 700, id: 'prev-expense' }),
+      ],
+      categories,
+    );
+    // This month: 60% saved. Last month: 30% saved. +30 points.
+    expect(stats.savingsRate).toBeCloseTo(0.6);
+    expect(stats.savingsRateChange).toBeCloseTo(0.3);
+  });
+
+  it('has no savings rate change to report when last month had no income', () => {
+    const stats = getDashboardStats(
+      [tx({ type: 'income', amount: 1000 }), tx({ type: 'expense', amount: 400 })],
+      [tx({ type: 'expense', amount: 700, id: 'prev-expense' })],
+      categories,
+    );
+    expect(stats.savingsRateChange).toBeNull();
+  });
+
   it('paces the daily average over the cycle, not the calendar month', () => {
     const spend = [tx({ type: 'expense', amount: 1000, date: on(2026, 7, 2) })];
     // 4 Jul: four days into the calendar month, but ten into a 25th-start cycle.

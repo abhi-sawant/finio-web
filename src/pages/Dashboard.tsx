@@ -17,7 +17,7 @@ import {
   HandCoins,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { formatCurrency, formatPercentChange } from '@/utils/formatters';
+import { formatCurrency, formatPercentChange, shouldCompactGroup } from '@/utils/formatters';
 import {
   activeAccounts,
   getTotalIncome,
@@ -85,6 +85,16 @@ export default function Dashboard() {
   const afterDues = totalBalance - creditOutstanding;
   const monthIncome = useMemo(() => getTotalIncome(monthTxns), [monthTxns]);
   const monthExpenses = useMemo(() => getTotalExpenses(monthTxns), [monthTxns]);
+  // Income and Expenses sit side by side and are meant to be compared at a glance, so they
+  // compact together rather than one flipping to "₹2.3L" while the other stays "₹90,010".
+  const heroCompact = useMemo(
+    () => shouldCompactGroup([monthIncome, monthExpenses]),
+    [monthIncome, monthExpenses],
+  );
+  const accountsCompact = useMemo(
+    () => shouldCompactGroup(openAccounts.map((a) => a.balance)),
+    [openAccounts],
+  );
   const recentTxns = useMemo(
     () => sortTransactionsDateDesc(transactions).slice(0, 5),
     [transactions],
@@ -101,9 +111,14 @@ export default function Dashboard() {
     () => allBudgetStatuses.find((s) => !s.budget.labelId && s.budget.categoryId === '') ?? null,
     [allBudgetStatuses],
   );
+  // The overall budget always gets its own "Monthly Budget" card below, so it's excluded here
+  // — otherwise a near-limit overall budget would state the same fact in both cards.
   const nearLimitBudgets = useMemo(
-    () => allBudgetStatuses.filter((s) => s.percent >= BUDGET_NEAR_LIMIT_PERCENT),
-    [allBudgetStatuses],
+    () =>
+      allBudgetStatuses.filter(
+        (s) => s.percent >= BUDGET_NEAR_LIMIT_PERCENT && s.budget.id !== overallBudget?.budget.id,
+      ),
+    [allBudgetStatuses, overallBudget],
   );
   const upcomingRecurring = useMemo(() => {
     const now = new Date();
@@ -118,6 +133,10 @@ export default function Dashboard() {
       .filter(({ daysUntil }) => daysUntil >= 0 && daysUntil <= 7)
       .sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime());
   }, [recurring]);
+  const upcomingRecurringCompact = useMemo(
+    () => shouldCompactGroup(upcomingRecurring.map(({ rule }) => rule.amount)),
+    [upcomingRecurring],
+  );
   // In-progress goals, closest to done first — completed ones have nothing left to track.
   const topGoals = useMemo(
     () =>
@@ -199,7 +218,7 @@ export default function Dashboard() {
                   <span className="text-[10px] tracking-wide uppercase">Income</span>
                 </div>
                 <p className="text-sm font-semibold">
-                  {formatCurrency(monthIncome, true, hideAmounts)}
+                  {formatCurrency(monthIncome, true, hideAmounts, { forceCompact: heroCompact })}
                 </p>
               </div>
               <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
@@ -208,7 +227,7 @@ export default function Dashboard() {
                   <span className="text-[10px] tracking-wide uppercase">Expenses</span>
                 </div>
                 <p className="text-sm font-semibold">
-                  {formatCurrency(monthExpenses, true, hideAmounts)}
+                  {formatCurrency(monthExpenses, true, hideAmounts, { forceCompact: heroCompact })}
                 </p>
               </div>
             </div>
@@ -226,10 +245,11 @@ export default function Dashboard() {
                 </span>
               </div>
               <p className="text-sm font-bold">
-                {formatCurrency(stats.dailyAverage, true, hideAmounts)}
+                {formatCurrency(stats.dailyAverage, true, hideAmounts, { precise: false })}
               </p>
               <p className="text-muted-foreground mt-0.5 text-[10px]">
-                Projected: {formatCurrency(stats.projectedMonth, true, hideAmounts)}
+                Projected:{' '}
+                {formatCurrency(stats.projectedMonth, true, hideAmounts, { precise: false })}
               </p>
             </div>
             <div className="card-elevated bg-grad-success-soft rounded-2xl p-3">
@@ -242,11 +262,11 @@ export default function Dashboard() {
               <p className={`text-sm font-bold ${stats.savingsRate < 0 ? 'text-rose-500' : ''}`}>
                 {Math.round(stats.savingsRate * 100)}%
               </p>
-              {prevMonthTxns.length > 0 && (
+              {stats.savingsRateChange !== null && (
                 <p
-                  className={`mt-0.5 text-[10px] ${stats.monthOverMonthChange > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
+                  className={`mt-0.5 text-[10px] ${stats.savingsRateChange >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
                 >
-                  Spend {formatPercentChange(stats.monthOverMonthChange)} vs last mo
+                  {formatPercentChange(stats.savingsRateChange)} vs last mo
                 </p>
               )}
             </div>
@@ -482,7 +502,8 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <p className="shrink-0 text-xs font-semibold text-rose-500">
-                      Min {formatCurrency(dueInfo.minimumDue, true, hideAmounts)}
+                      Min{' '}
+                      {formatCurrency(dueInfo.minimumDue, true, hideAmounts, { precise: false })}
                     </p>
                   </div>
                 );
@@ -501,7 +522,8 @@ export default function Dashboard() {
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15">
                 <Repeat size={13} className="text-blue-500" />
               </div>
-              <span className="text-sm font-semibold">Upcoming Bills</span>
+              {/* Not just "Bills" — a recurring rule can be income too. */}
+              <span className="text-sm font-semibold">Upcoming</span>
               <span className="ml-auto rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-500">
                 this week
               </span>
@@ -533,7 +555,9 @@ export default function Dashboard() {
                       className={`shrink-0 text-xs font-semibold ${rule.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}
                     >
                       {rule.type === 'income' ? '+' : '-'}
-                      {formatCurrency(rule.amount, true, hideAmounts)}
+                      {formatCurrency(rule.amount, true, hideAmounts, {
+                        forceCompact: upcomingRecurringCompact,
+                      })}
                     </p>
                   </div>
                 );
@@ -570,6 +594,7 @@ export default function Dashboard() {
                 <AccountCard
                   key={account.id}
                   account={account}
+                  forceCompact={accountsCompact}
                   onClick={() => navigate(`/edit-account/${account.id}`)}
                 />
               ))}

@@ -175,7 +175,7 @@ staleness risk. `npm run lint` is now clean (0 errors, 0 warnings); `npm test` (
 
 ## P2 — Formatting and copy
 
-### 10. `COMPACT_THRESHOLD` splits numbers meant to be compared
+### 10. `COMPACT_THRESHOLD` splits numbers meant to be compared — ✅ Fixed
 
 `COMPACT_THRESHOLD = 100_000` in [`formatters.ts`](src/utils/formatters.ts) is applied
 per-value, so groups of related numbers mix notations and become impossible to compare at a
@@ -186,45 +186,92 @@ glance. Observed:
 - Account cards: **₹9.9L** beside **₹10,241**
 - Upcoming Bills: **+₹1.9L**, **-₹14,999**
 
-- [ ] Add a group-aware helper — compact the whole set if *any* member crosses the threshold —
+- [x] Add a group-aware helper — compact the whole set if *any* member crosses the threshold —
       and use it for each of the four call sites above.
 
-### 11. Paise leak into every derived amount
+**Fix:** Added `shouldCompactGroup(amounts)` and a `formatCurrency` `forceCompact` option
+(`formatters.ts`) — `shouldCompactGroup` decides once, for the whole set, whether any member
+crosses the threshold; `forceCompact: true` then renders every member of that set compact
+regardless of its own individual magnitude, instead of each value gating itself. Wired into all
+four call sites: the Dashboard hero (Income/Expenses), the Analytics summary (Income/Expenses/
+Net), account balance cards (`AccountCard`'s new `forceCompact` prop, computed per rendered
+group in both `Dashboard.tsx` and `Accounts.tsx`), and the Upcoming card's recurring amounts.
+Verified in the running app: with a ₹2.6L savings balance beside a ₹42,350 checking balance,
+both now render compact (`₹2.6L` / `₹42.4K`) instead of mixing notations.
+
+### 11. Paise leak into every derived amount — ✅ Fixed
 
 `formatCurrency` uses `maximumFractionDigits: 2`, so averages and projections expose paise:
 
-- [ ] Dashboard: "DAILY AVG ₹3,214.64", "Projected: ₹99,653.93"
-- [ ] Dashboard: "Min ₹1,867.25" on Card Payments Due
-- [ ] Insights copy: "On pace for ₹6,972.79 this month, against ₹536.33 on average"
+- [x] Dashboard: "DAILY AVG ₹3,214.64", "Projected: ₹99,653.93"
+- [x] Dashboard: "Min ₹1,867.25" on Card Payments Due
+- [x] Insights copy: "On pace for ₹6,972.79 this month, against ₹536.33 on average"
 
 Round derived/projected values to whole rupees (a `precision` option on `formatCurrency`, or
 rounding at the producer in `insights.ts` / `getDashboardStats`).
 
-### 12. "Upcoming Bills" lists income
+**Fix:** Added a `{ precise: false }` option to `formatCurrency` that forces
+`maximumFractionDigits: 0` on the non-compact path. Applied it at the three cited call sites —
+Dashboard's Daily Avg/Projected and Card Payments Due Min, and the `formatAmount` callback
+`InsightsFeed` passes into `buildInsights()`, so every figure in insight copy rounds to whole
+rupees. Verified in the running app: a projected figure that would have read "₹72,333.33..." now
+reads "₹72,333", and a computed minimum due of ₹262.02 now reads "Min ₹262".
 
-- [ ] The dashboard card shows "Monthly salary · Due in 4 days · **+₹1.9L**". Salary is not a
+### 12. "Upcoming Bills" lists income — ✅ Fixed
+
+- [x] The dashboard card shows "Monthly salary · Due in 4 days · **+₹1.9L**". Salary is not a
       bill. Either retitle to "Upcoming" or separate income from bills.
 
-### 13. Budget Alert and Monthly Budget state the same fact twice
+**Fix:** Retitled the card from "Upcoming Bills" to "Upcoming" in
+[`Dashboard.tsx`](src/pages/Dashboard.tsx) — the list already mixes expense and income recurring
+rules (colored red/green with -/+ respectively), so the generic title matches what's actually
+shown without splitting it into two cards.
 
-- [ ] Stacked adjacent on the dashboard: "Overall Expenses · Near limit · 95%" then
+### 13. Budget Alert and Monthly Budget state the same fact twice — ✅ Fixed
+
+- [x] Stacked adjacent on the dashboard: "Overall Expenses · Near limit · 95%" then
       "Monthly Budget · Near limit · ₹90,010 / ₹95,000". Merge into one card.
 
-### 14. Mismatched label and sub-label
+**Fix:** The overall budget already gets its own "Monthly Budget" card unconditionally (whenever
+one exists), complete with a health badge and progress bar, so `nearLimitBudgets` in
+[`Dashboard.tsx`](src/pages/Dashboard.tsx) now excludes the overall budget's id — it no longer
+also appears in the "Budget Alert" list above. Category/label budgets near their limit still show
+there as before. Verified in the running app: with an overall budget at 96% and a category budget
+over its limit, "Budget Alert" lists only the category budget, and the overall budget's status
+appears once, in "Monthly Budget".
 
-- [ ] "SAVINGS RATE — 60%" carries the sub-line "Spend +17% vs last mo". The delta describes
+### 14. Mismatched label and sub-label — ✅ Fixed
+
+- [x] "SAVINGS RATE — 60%" carries the sub-line "Spend +17% vs last mo". The delta describes
       spend, not the savings rate.
 
-### 15. No cap on insight percentages
+**Fix:** Added `savingsRateChange` to `DashboardQuickStats` (`calculations.ts`) — the
+percentage-point difference between this month's and last month's savings rate, `null` when last
+month had no income to compare against. The Dashboard's sub-label now reads e.g. "-11% vs last
+mo" describing the savings rate's own movement, colored by whether it improved or worsened,
+instead of the previous month-over-month *spend* change under a "Savings rate" header.
 
-- [ ] `buildInsights()` produced "Food is **1200%** above your 3-month average". Past roughly
+### 15. No cap on insight percentages — ✅ Fixed
+
+- [x] `buildInsights()` produced "Food is **1200%** above your 3-month average". Past roughly
       200% the figure reads as a bug — clamp and switch to multiplier phrasing ("3× your average").
 
-### 16. `recurring.length` is labelled "active" but counts paused rules
+**Fix:** Added a `SPIKE_MULTIPLIER_CUTOFF` (200%) in [`insights.ts`](src/utils/insights.ts) —
+past it, the category-spike title switches from percentage to multiplier phrasing ("Food is 14×
+your 3-month average" instead of "1300% above"). Verified with a seeded spike: the feed now reads
+"Food is 72.3× your 3-month average" rather than a four-digit percentage.
 
-- [ ] [`Analytics.tsx`](src/pages/Analytics.tsx) tools list and the dashboard both do this. The
+### 16. `recurring.length` is labelled "active" but counts paused rules — ✅ Fixed
+
+- [x] [`Analytics.tsx`](src/pages/Analytics.tsx) tools list and the dashboard both do this. The
       dashboard's own `upcomingRecurring` memo already filters correctly with `isRulePaused` —
       reuse it. Same question for `budgets.length`.
+
+**Fix:** Analytics' Recurring Transactions row now counts `recurring.filter(rule =>
+!isRulePaused(rule))` instead of `recurring.length`. `budgets.length` is unchanged: `Budget` has
+no paused/archived state (unlike `RecurringTransaction`), so every budget in the store genuinely
+is active and the count was already correct. Verified in the running app: 3 seeded recurring
+rules (one paused) now shows "2 active".
 
 ---
 
@@ -324,15 +371,9 @@ most likely place for a bug to hide.
 
 ### High value for what already exists
 
-- [ ] **Receipt attachments.** Absent, and the highest-frequency ask for an expense tracker.
-      IndexedDB is already wired up for notifications — store compressed blobs there and include
-      them in the backup envelope.
 - [ ] **Loan / EMI tracking.** Very India-relevant and entirely missing. Principal, rate, tenure,
       amortization schedule, auto-generated recurring payment, prepayment impact.
       `RecurringTransaction` plus the credit-card lifecycle fields are most of the scaffolding.
-- [ ] **Split a bill with a person.** `TransactionSplit`, `Person`, `DebtEntry` and the atomic
-      "Settle up" flow all exist. Joining them — "₹2,400 dinner, Rahul owes ₹800" creating the
-      expense *and* the debt entry in one action — is a Splitwise-lite feature at low marginal cost.
 - [ ] **Account reconciliation.** `recomputeBalances()` exists but only as a manual repair tool.
       Surface it as a flow: enter your statement balance → show the difference → offer an
       adjustment transaction. Directly serves the derived-balance architecture.

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { Plus, CreditCard, Wallet, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, shouldCompactGroup } from '@/utils/formatters';
 import {
   activeAccounts,
   getTotalAccountBalance,
@@ -34,6 +34,13 @@ export default function Accounts() {
   const regularAccounts = useMemo(() => open.filter((a) => a.type !== 'credit'), [open]);
   const creditAccounts = useMemo(() => open.filter((a) => a.type === 'credit'), [open]);
   const archivedAccounts = useMemo(() => accounts.filter((a) => a.archivedAt), [accounts]);
+  // Open accounts are all visible on this page together, so their balances compact as one
+  // group; archived accounts are a separate, collapsed context.
+  const openCompact = useMemo(() => shouldCompactGroup(open.map((a) => a.balance)), [open]);
+  const archivedCompact = useMemo(
+    () => shouldCompactGroup(archivedAccounts.map((a) => a.balance)),
+    [archivedAccounts],
+  );
 
   const handleDelete = async (account: Account) => {
     const txCount = transactions.filter(
@@ -126,6 +133,7 @@ export default function Accounts() {
                   key={account.id}
                   account={account}
                   variant="grid"
+                  forceCompact={openCompact}
                   onClick={() => navigate(`/edit-account/${account.id}`)}
                   onDelete={() => handleDelete(account)}
                   onToggleArchive={() => handleToggleArchive(account)}
@@ -145,6 +153,7 @@ export default function Accounts() {
                   key={account.id}
                   account={account}
                   variant="grid"
+                  forceCompact={openCompact}
                   onClick={() => navigate(`/edit-account/${account.id}`)}
                   onDelete={() => handleDelete(account)}
                   onToggleArchive={() => handleToggleArchive(account)}
@@ -172,6 +181,7 @@ export default function Accounts() {
                     key={account.id}
                     account={account}
                     variant="grid"
+                    forceCompact={archivedCompact}
                     onClick={() => navigate(`/edit-account/${account.id}`)}
                     onDelete={() => handleDelete(account)}
                     onToggleArchive={() => handleToggleArchive(account)}

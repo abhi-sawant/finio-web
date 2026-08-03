@@ -408,6 +408,11 @@ export interface DashboardQuickStats {
   monthOverMonthChange: number; // -1..+inf, e.g. 0.12 = +12%
   /** (income - expense) / income. Negative when overspending; 0 when income == 0. */
   savingsRate: number;
+  /**
+   * Percentage-point change in savings rate vs the previous month. Null when the previous
+   * month had no income to divide by, so the two months aren't comparable.
+   */
+  savingsRateChange: number | null;
 }
 
 export function getDashboardStats(
@@ -455,6 +460,12 @@ export function getDashboardStats(
   // negative, not as a flat 0%.
   const savingsRate = income > 0 ? (income - expensesTotal) / income : 0;
 
+  const prevIncome = previousMonthTxns
+    .filter((t) => t.type === 'income')
+    .reduce((s, t) => s + t.amount, 0);
+  const prevSavingsRate = prevIncome > 0 ? (prevIncome - prevExpenses) / prevIncome : null;
+  const savingsRateChange = prevSavingsRate === null ? null : savingsRate - prevSavingsRate;
+
   return {
     dailyAverage,
     projectedMonth,
@@ -462,6 +473,7 @@ export function getDashboardStats(
     topCategory,
     monthOverMonthChange,
     savingsRate,
+    savingsRateChange,
   };
 }
 

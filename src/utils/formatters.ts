@@ -16,18 +16,41 @@ const CURRENCY_PREFIX =
     .formatToParts(0)
     .find((p) => p.type === 'currency')?.value ?? '₹';
 
-export function formatCurrency(amount: number, compact = false, hidden = false): string {
+export function formatCurrency(
+  amount: number,
+  compact = false,
+  hidden = false,
+  options: { precise?: boolean; forceCompact?: boolean } = {},
+): string {
   if (hidden) return `${amount < 0 ? '-' : ''}${CURRENCY_PREFIX}••••`;
 
-  const useCompact = compact && Math.abs(amount) >= COMPACT_THRESHOLD;
+  // `compact` alone is gated per-value by COMPACT_THRESHOLD (see above). `forceCompact: true`
+  // skips that gate — it's how a *group* of amounts (see `shouldCompactGroup`) renders every
+  // member compact once any one of them crosses the threshold, rather than each value deciding
+  // alone. `forceCompact: false`/absent falls through to the normal per-value gate.
+  const useCompact =
+    options.forceCompact === true || (compact && Math.abs(amount) >= COMPACT_THRESHOLD);
+  // Derived/projected figures (daily averages, forecasts, insight copy) are never exact to
+  // the rupee anyway, so paise there just add noise — pass { precise: false } to round them.
+  const precise = options.precise ?? true;
 
   return new Intl.NumberFormat(LOCALE, {
     style: 'currency',
     currency: CURRENCY,
     notation: useCompact ? 'compact' : 'standard',
     minimumFractionDigits: 0,
-    maximumFractionDigits: useCompact ? 1 : 2,
+    maximumFractionDigits: useCompact ? 1 : precise ? 2 : 0,
   }).format(amount);
+}
+
+/**
+ * Whether a *group* of related amounts should render compact. Compacting each value on its
+ * own splits sets meant to be compared at a glance — Income ₹2.3L beside Expenses ₹90,010 —
+ * so a group compacts together (pass the result as `forceCompact`) the moment any one member
+ * crosses the threshold.
+ */
+export function shouldCompactGroup(amounts: number[]): boolean {
+  return amounts.some((amount) => Math.abs(amount) >= COMPACT_THRESHOLD);
 }
 
 export function formatDate(dateStr: string): string {

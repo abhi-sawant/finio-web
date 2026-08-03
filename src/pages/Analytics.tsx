@@ -2,8 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Target, ChevronRight, Repeat, CalendarIcon } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, shouldCompactGroup } from '@/utils/formatters';
 import { getTotalIncome, getTotalExpenses } from '@/utils/calculations';
+import { isRulePaused } from '@/store/recurring';
 import { SpendingDonut } from '@/components/charts/SpendingDonut';
 import { IncomeExpenseBar } from '@/components/charts/IncomeExpenseBar';
 import { BalanceTrend } from '@/components/charts/BalanceTrend';
@@ -72,6 +73,14 @@ export default function Analytics() {
     [filteredTransactions],
   );
   const net = totalIncome - totalExpenses;
+  const summaryCompact = useMemo(
+    () => shouldCompactGroup([totalIncome, totalExpenses, net]),
+    [totalIncome, totalExpenses, net],
+  );
+  const activeRecurringCount = useMemo(
+    () => recurring.filter((rule) => !isRulePaused(rule)).length,
+    [recurring],
+  );
 
   const handleFilterChange = (filter: FilterType) => {
     setSelectedFilter(filter);
@@ -175,7 +184,9 @@ export default function Analytics() {
                     Income
                   </p>
                   <p className="text-sm font-semibold text-emerald-500">
-                    {formatCurrency(totalIncome, true, hideAmounts)}
+                    {formatCurrency(totalIncome, true, hideAmounts, {
+                      forceCompact: summaryCompact,
+                    })}
                   </p>
                 </div>
                 <div>
@@ -183,7 +194,9 @@ export default function Analytics() {
                     Expenses
                   </p>
                   <p className="text-sm font-semibold text-rose-500">
-                    {formatCurrency(totalExpenses, true, hideAmounts)}
+                    {formatCurrency(totalExpenses, true, hideAmounts, {
+                      forceCompact: summaryCompact,
+                    })}
                   </p>
                 </div>
                 <div>
@@ -191,7 +204,7 @@ export default function Analytics() {
                   <p
                     className={`text-sm font-semibold ${net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
                   >
-                    {formatCurrency(net, true, hideAmounts)}
+                    {formatCurrency(net, true, hideAmounts, { forceCompact: summaryCompact })}
                   </p>
                 </div>
               </div>
@@ -256,9 +269,9 @@ export default function Analytics() {
               <div className="text-left">
                 <p className="text-sm font-medium">Recurring Transactions</p>
                 <p className="text-muted-foreground text-xs">
-                  {recurring.length === 0
+                  {activeRecurringCount === 0
                     ? 'Automate repeating items'
-                    : `${recurring.length} active`}
+                    : `${activeRecurringCount} active`}
                 </p>
               </div>
             </div>

@@ -243,6 +243,22 @@ const MIN_NOTABLE_AMOUNT = 500;
 /** How far a category must move against its baseline to be worth saying out loud. */
 const NOTABLE_CHANGE = 0.25;
 
+/**
+ * Past this, "N% above your average" reads as a bug rather than a fact (a near-empty
+ * baseline can make a normal purchase look like a 1200% spike) — say it as a plain
+ * multiplier instead ("3× your average").
+ */
+const SPIKE_MULTIPLIER_CUTOFF = 2;
+
+/** "Food is 40% above your 3-month average" below the cutoff, "Food is 3× your ..." past it. */
+function formatSpikeTitle(categoryName: string, change: number, months: number): string {
+  if (change > SPIKE_MULTIPLIER_CUTOFF) {
+    const multiplier = Math.round((1 + change) * 10) / 10;
+    return `${categoryName} is ${multiplier}× your ${months}-month average`;
+  }
+  return `${categoryName} is ${Math.round(change * 100)}% above your ${months}-month average`;
+}
+
 const SEVERITY_ORDER: Record<InsightSeverity, number> = { warn: 0, info: 1, good: 2 };
 
 function categorySpend(rows: Transaction[]): Map<string, number> {
@@ -320,7 +336,7 @@ export function buildInsights(input: InsightInput, options: InsightOptions): Ins
         id: `spike:${move.categoryId}:${periodKey}`,
         kind: 'category-spike',
         severity: 'warn',
-        title: `${categoryName(move.categoryId)} is ${Math.round(move.change * 100)}% above your ${priorMonths.length}-month average`,
+        title: formatSpikeTitle(categoryName(move.categoryId), move.change, priorMonths.length),
         detail: `On pace for ${money(move.projected)} this month, against ${money(move.baseline)} on average.`,
       });
     }

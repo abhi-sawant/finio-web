@@ -56,6 +56,12 @@ interface AccountCardProps {
   onDelete?: () => void;
   /** Closes an open account, or reopens an archived one. */
   onToggleArchive?: () => void;
+  /**
+   * Forces the balance to render compact regardless of its own magnitude. Callers rendering a
+   * *group* of cards should compute this once for the whole group (see `shouldCompactGroup`) so
+   * balances shown side by side never mix notations — otherwise each balance decides alone.
+   */
+  forceCompact?: boolean;
 }
 
 export const AccountCard = memo(function AccountCard({
@@ -64,6 +70,7 @@ export const AccountCard = memo(function AccountCard({
   onClick,
   onDelete,
   onToggleArchive,
+  forceCompact = false,
 }: AccountCardProps) {
   const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
   const isCredit = account.type === 'credit';
@@ -127,7 +134,7 @@ export const AccountCard = memo(function AccountCard({
         </div>
         <p className="mb-1 truncate text-sm font-medium">{account.name}</p>
         <p className={`text-base font-bold ${account.balance < 0 ? 'text-rose-500' : ''}`}>
-          {formatCurrency(account.balance, true, hideAmounts)}
+          {formatCurrency(account.balance, true, hideAmounts, { forceCompact })}
         </p>
         {isCredit && account.creditLimit && (
           <div className="mt-2">
@@ -183,7 +190,7 @@ export const AccountCard = memo(function AccountCard({
       </div>
       <p className="truncate text-sm font-medium">{account.name}</p>
       <p className={`mt-0.5 text-base font-bold ${account.balance < 0 ? 'text-rose-500' : ''}`}>
-        {formatCurrency(account.balance, true, hideAmounts)}
+        {formatCurrency(account.balance, true, hideAmounts, { forceCompact })}
       </p>
       {isCredit && account.creditLimit && (
         <div className="mt-2">

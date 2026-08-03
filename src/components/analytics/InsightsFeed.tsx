@@ -45,7 +45,7 @@ export function InsightsFeed() {
     () =>
       buildInsights(
         { transactions, categories, labels, budgets, recurring, monthStartDay },
-        { formatAmount: (value) => formatCurrency(value, true, hideAmounts) },
+        { formatAmount: (value) => formatCurrency(value, true, hideAmounts, { precise: false }) },
       ),
     [transactions, categories, labels, budgets, recurring, monthStartDay, hideAmounts],
   );

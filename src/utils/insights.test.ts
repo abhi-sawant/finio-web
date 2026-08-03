@@ -150,6 +150,22 @@ describe('buildInsights', () => {
     expect(spike?.severity).toBe('warn');
   });
 
+  it('switches to multiplier phrasing once the swing is too big to read as a percentage', () => {
+    const history = [
+      tx({ type: 'expense', amount: 1000, date: '2026-03-10T00:00:00.000Z' }),
+      tx({ type: 'expense', amount: 1000, date: '2026-04-10T00:00:00.000Z' }),
+      tx({ type: 'expense', amount: 1000, date: '2026-05-10T00:00:00.000Z' }),
+      // Half of June gone with 7000 already spent → on pace for 14000, 14x the 1000 average.
+      tx({ type: 'expense', amount: 7000, date: '2026-06-10T00:00:00.000Z' }),
+    ];
+
+    const insights = buildInsights(baseInput(history), { formatAmount: money });
+    const spike = insights.find((i) => i.kind === 'category-spike');
+
+    expect(spike?.title).toBe('Food is 14× your 3-month average');
+    expect(spike?.title).not.toMatch(/%/);
+  });
+
   it('paces the current month rather than reading it as a collapse', () => {
     const steady = [
       tx({ type: 'expense', amount: 4000, date: '2026-04-10T00:00:00.000Z' }),
