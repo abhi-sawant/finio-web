@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { ArrowLeft, ChevronDown, ChevronUp, Pencil, Plus, Trash2, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategoryIcon } from '@/components/categories/CategoryIcon';
@@ -42,6 +42,7 @@ const SCOPES: { value: RuleScope; label: string }[] = [
 
 export default function CategoryRules() {
   const navigate = useNavigate();
+  const location = useLocation();
   const confirm = useConfirm();
   const rules = useFinanceStore((s) => s.rules);
   const categories = useFinanceStore((s) => s.categories);
@@ -54,11 +55,17 @@ export default function CategoryRules() {
   const applyRulesToExisting = useFinanceStore((s) => s.applyRulesToExisting);
   const restoreCategorization = useFinanceStore((s) => s.restoreCategorization);
 
-  const [open, setOpen] = useState(false);
+  // Arriving from a merchant's "Create a rule" button — prefill the pattern instead of making
+  // the user retype what they just saw. Read once as each field's initial value (like the OTP
+  // pages read a passed-in email) rather than via an effect, since this only matters on the
+  // render right after that navigation.
+  const rulePrefill = location.state as { pattern?: string; scope?: RuleScope } | null;
+
+  const [open, setOpen] = useState(!!rulePrefill?.pattern);
   const [editId, setEditId] = useState<string | null>(null);
-  const [pattern, setPattern] = useState('');
+  const [pattern, setPattern] = useState(rulePrefill?.pattern ?? '');
   const [matchType, setMatchType] = useState<RuleMatchType>('contains');
-  const [scope, setScope] = useState<RuleScope>('any');
+  const [scope, setScope] = useState<RuleScope>(rulePrefill?.scope ?? 'any');
   const [categoryId, setCategoryId] = useState('');
   const [labelIds, setLabelIds] = useState<string[]>([]);
   const [replayOpen, setReplayOpen] = useState(false);

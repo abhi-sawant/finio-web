@@ -7,6 +7,7 @@ import {
   Repeat,
   PiggyBank,
   HandCoins,
+  Store,
   Wand2,
 } from 'lucide-react';
 import { CloudAccountSection } from '@/components/settings/CloudAccountSection';
@@ -72,6 +73,16 @@ export default function Settings() {
             <div className="flex items-center gap-3">
               <HandCoins size={18} className="text-muted-foreground" />
               <span className="text-sm font-medium">Debts & Lending</span>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => navigate('/merchants')}
+            className="flex w-full items-center justify-between p-4"
+          >
+            <div className="flex items-center gap-3">
+              <Store size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">Merchants</span>
             </div>
             <ChevronRight size={16} className="text-muted-foreground" />
           </button>

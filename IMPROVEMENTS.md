@@ -446,9 +446,22 @@ most likely place for a bug to hide.
   the transaction history and rewrites `balance`/`openingBalance`; this one trusts a real-world
   statement and writes a transaction instead, which is the correct direction when the *statement*
   is ground truth.
-- [ ] **Merchant view.** The rules engine already pattern-matches notes. Normalize notes into
-      merchants and you get "spending by merchant", "your 5 most frequent merchants", and much
-      better rule suggestions — with no schema change.
+- [x] **Merchant view.** — ✅ Done
+
+  **Fix:** Added [`src/utils/merchants.ts`](src/utils/merchants.ts) — groups transactions into
+  merchants using the same `normalizeNote()` key subscription detection already groups on
+  ([insights.ts](src/utils/insights.ts)), no schema change. Surfaced three ways:
+  - A full [Merchants page](src/pages/Merchants.tsx) at `/merchants` (linked from Settings →
+    Manage): expense/income toggle, merchants sorted by total, each expandable to its
+    transaction list.
+  - A "Top Merchants" card ([TopMerchants.tsx](src/components/analytics/TopMerchants.tsx)) on the
+    Analytics page, next to Spending by Category, with a "See all" link to the full page.
+  - "Create a rule for X" on an expanded merchant, which opens Category Rules with the pattern
+    (and expense/income scope) pre-filled — the "better rule suggestions" this was framed around.
+  Grouping is a straight reuse of the existing normalizer, so it only collapses notes that differ
+  by digits/punctuation, not ones with different surrounding words (a hand-typed "Swiggy" and a
+  bank-statement "UPI/Swiggy/9921" land in separate buckets) — documented as a known limitation
+  in the module, not silently swept under the rug.
 
 ### Smaller, high-leverage
 

@@ -12,6 +12,7 @@ import { LabelSpendingBar } from '@/components/charts/LabelSpendingBar';
 import { InsightsFeed } from '@/components/analytics/InsightsFeed';
 import { PeriodComparison } from '@/components/analytics/PeriodComparison';
 import { SpendingHeatmap } from '@/components/analytics/SpendingHeatmap';
+import { TopMerchants } from '@/components/analytics/TopMerchants';
 import { CashFlowForecast } from '@/components/analytics/CashFlowForecast';
 import { NetWorthTrend } from '@/components/analytics/NetWorthTrend';
 import { HideAmountsToggle } from '@/components/HideAmountsToggle';
@@ -208,6 +209,9 @@ export default function Analytics() {
 
               {/* Label Spending */}
               <LabelSpendingBar transactions={filteredTransactions} />
+
+              {/* Top Merchants */}
+              <TopMerchants transactions={filteredTransactions} />
             </div>
 
             {/*

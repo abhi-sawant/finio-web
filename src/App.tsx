@@ -32,6 +32,7 @@ const Goals = lazy(() => import('@/pages/Goals'));
 const Debts = lazy(() => import('@/pages/Debts'));
 const ImportCsv = lazy(() => import('@/pages/ImportCsv'));
 const CategoryRules = lazy(() => import('@/pages/CategoryRules'));
+const Merchants = lazy(() => import('@/pages/Merchants'));
 const Login = lazy(() => import('@/pages/auth/Login'));
 const Register = lazy(() => import('@/pages/auth/Register'));
 const VerifyOtp = lazy(() => import('@/pages/auth/VerifyOtp'));
@@ -90,6 +91,7 @@ function AppRoutes() {
       <Route path="debts" element={<Debts />} />
       <Route path="import-csv" element={<ImportCsv />} />
       <Route path="category-rules" element={<CategoryRules />} />
+      <Route path="merchants" element={<Merchants />} />
       <Route path="login" element={<Login />} />
       <Route path="register" element={<Register />} />
       <Route path="verify-otp" element={<VerifyOtp />} />
