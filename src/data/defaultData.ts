@@ -34,6 +34,31 @@ export const defaultCategories: Category[] = [
   { id: 'cat-23', name: 'Interest', icon: 'dollar-sign', color: '#10b981', type: 'income' },
   { id: 'cat-13', name: 'Transfer', icon: 'repeat', color: '#3b82f6', type: 'both' },
   { id: 'cat-24', name: 'Miscellaneous', icon: 'circle-ellipsis', color: '#94a3b8', type: 'both' },
+  { id: 'cat-25', name: 'Groceries', icon: 'shopping-cart', color: '#22c55e', type: 'expense' },
+  { id: 'cat-26', name: 'Insurance', icon: 'umbrella', color: '#0ea5e9', type: 'expense' },
+  { id: 'cat-27', name: 'Loan / EMI', icon: 'banknote', color: '#f43f5e', type: 'expense' },
+  { id: 'cat-28', name: 'Rent', icon: 'building-2', color: '#78716c', type: 'expense' },
+  { id: 'cat-29', name: 'Fitness & Wellness', icon: 'dumbbell', color: '#14b8a6', type: 'expense' },
+  { id: 'cat-30', name: 'Pets', icon: 'paw-print', color: '#f59e0b', type: 'expense' },
+  { id: 'cat-31', name: 'Childcare', icon: 'baby', color: '#fb923c', type: 'expense' },
+  { id: 'cat-32', name: 'Home Maintenance', icon: 'wrench', color: '#6b7280', type: 'expense' },
+  { id: 'cat-33', name: 'Bonus', icon: 'sparkles', color: '#fbbf24', type: 'income' },
+  { id: 'cat-34', name: 'Dividends', icon: 'piggy-bank', color: '#10b981', type: 'income' },
+];
+
+/** Ids added after the original v1 category set — appended to existing installs by migration
+ * rather than shipped only to fresh ones. */
+export const NEW_DEFAULT_CATEGORY_IDS = [
+  'cat-25',
+  'cat-26',
+  'cat-27',
+  'cat-28',
+  'cat-29',
+  'cat-30',
+  'cat-31',
+  'cat-32',
+  'cat-33',
+  'cat-34',
 ];
 
 export const defaultLabels: Label[] = [

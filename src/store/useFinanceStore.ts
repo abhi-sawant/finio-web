@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import {
   MISC_CATEGORY_ID,
+  NEW_DEFAULT_CATEGORY_IDS,
   defaultCategories,
   defaultLabels,
   defaultSettings,
@@ -825,7 +826,7 @@ export const useFinanceStore = create<FinanceStore>()(
     }),
     {
       name: 'finio-storage',
-      version: 13,
+      version: 14,
       storage: createJSONStorage(() => localStorage),
       // Steps are cumulative: a v1 state falls through every branch in order.
       migrate: (persistedState, version) => {
@@ -985,6 +986,23 @@ export const useFinanceStore = create<FinanceStore>()(
               notifyCreditDue: settings.notifyCreditDue ?? true,
               notifyLeadDays: settings.notifyLeadDays ?? 2,
             },
+          };
+        }
+
+        if (version < 14) {
+          // Ten new default categories (Groceries, Insurance, Loan/EMI, Rent, Fitness &
+          // Wellness, Pets, Childcare, Home Maintenance, Bonus, Dividends) were added after
+          // the original set. Append the ones missing rather than reseeding the whole list,
+          // so a user who deleted a v1 default doesn't get it silently restored.
+          const existingIds = new Set(
+            Array.isArray(s.categories) ? s.categories.map((c) => c.id) : [],
+          );
+          const missing = defaultCategories.filter(
+            (c) => NEW_DEFAULT_CATEGORY_IDS.includes(c.id) && !existingIds.has(c.id),
+          );
+          s = {
+            ...s,
+            categories: Array.isArray(s.categories) ? [...s.categories, ...missing] : s.categories,
           };
         }
 

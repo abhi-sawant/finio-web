@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react';
-import { CategoryIcon } from '@/components/categories/CategoryIcon';
+import { CategoryIcon, CATEGORY_ICONS } from '@/components/categories/CategoryIcon';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useConfirm } from '@/components/ui/use-confirm';
 import type { CategoryType } from '@/types';
@@ -136,7 +137,7 @@ export default function ManageCategories() {
             if (!v) resetForm();
           }}
         >
-          <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-2xl">
+          <DialogContent className="bg-card mx-auto w-11/12 rounded-2xl">
             <DialogHeader>
               <DialogTitle>{editId ? 'Edit Category' : 'Add Category'}</DialogTitle>
             </DialogHeader>
@@ -162,6 +163,25 @@ export default function ManageCategories() {
                     {t}
                   </button>
                 ))}
+              </div>
+              <div>
+                <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+                  Icon
+                </Label>
+                <div className="grid grid-cols-6 gap-2 h-50 overflow-auto">
+                  {CATEGORY_ICONS.map((i) => (
+                    <button
+                      key={i}
+                      onClick={() => setIcon(i)}
+                      className={`flex h-9 items-center justify-center rounded-lg border transition-colors ${
+                        icon === i ? 'border-primary bg-primary/10' : 'border-border bg-card'
+                      }`}
+                      aria-label={i}
+                    >
+                      <CategoryIcon icon={i} size={16} />
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {categoryColors.map((c) => (
