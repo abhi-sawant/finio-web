@@ -6,6 +6,7 @@ import {
   transactionCategoryAmounts,
   transactionsInPeriod,
 } from './calculations';
+import { netWorthAt } from './netWorth';
 import {
   DEFAULT_MONTH_START_DAY,
   WEEK_STARTS_ON,
@@ -17,7 +18,7 @@ import {
   type PeriodRange,
   type PeriodType,
 } from './period';
-import type { Transaction } from '@/types';
+import type { Account, Transaction } from '@/types';
 
 /**
  * Period-over-period comparison and the daily spending calendar — the two "look at the same
@@ -267,5 +268,108 @@ export function buildSpendingCalendar(
     daysWithSpend: active.length,
     averagePerActiveDay: active.length > 0 ? roundMoney(total / active.length) : 0,
     busiest: busiest ?? null,
+  };
+}
+
+export interface MonthTotal {
+  /** `yyyy-MM` of the financial month's start. */
+  key: string;
+  label: string;
+  income: number;
+  expenses: number;
+}
+
+export interface YearInReview {
+  range: PeriodRange;
+  label: string;
+  current: PeriodSummary;
+  previous: PeriodSummary;
+  /** This year's biggest expense categories, most first. */
+  topCategories: CategoryTotal[];
+  /** Categories that moved most against last year. */
+  movers: CategoryMovement[];
+  /** One entry per financial month in the year, in order. */
+  monthlyBreakdown: MonthTotal[];
+  /** The month with the most spending, or null for a year with none at all. */
+  busiestMonth: MonthTotal | null;
+  netWorthStart: number;
+  netWorthEnd: number;
+  netWorthChange: number;
+  /** The single biggest expense of the year, or null if there wasn't one. */
+  biggestExpense: Transaction | null;
+}
+
+export interface YearInReviewInput {
+  transactions: Transaction[];
+  accounts: Account[];
+  now?: Date;
+  monthStartDay?: number;
+  /** 0 = the financial year in progress, negative = that many years back. */
+  yearOffset?: number;
+}
+
+/**
+ * A one-screen annual summary, built entirely from period math and net-worth reconstruction the
+ * app already has — nothing here is persisted, so it's always as current as the ledger.
+ */
+export function buildYearInReview(input: YearInReviewInput): YearInReview {
+  const now = input.now ?? new Date();
+  const monthStartDay = input.monthStartDay ?? DEFAULT_MONTH_START_DAY;
+  const yearOffset = input.yearOffset ?? 0;
+
+  const thisYear = periodRange('yearly', now, monthStartDay);
+  const range = yearOffset === 0 ? thisYear : shiftPeriod(thisYear, yearOffset);
+  const previousRange = shiftPeriod(range, -1);
+
+  const current = summarizePeriod(input.transactions, range, { now, monthStartDay });
+  const previous = summarizePeriod(input.transactions, previousRange, { now, monthStartDay });
+  const movers = categoryMovements(current, previous, 5);
+
+  const firstMonth = periodRange('monthly', range.start, monthStartDay);
+  const monthlyBreakdown: MonthTotal[] = Array.from({ length: 12 }, (_, i) => {
+    const monthRange = shiftPeriod(firstMonth, i);
+    const summary = summarizePeriod(input.transactions, monthRange, { now, monthStartDay });
+    return {
+      key: format(monthRange.start, 'yyyy-MM'),
+      label: format(monthRange.start, 'MMM'),
+      income: summary.income,
+      expenses: summary.expenses,
+    };
+  });
+
+  // Zero everywhere shouldn't crown January "busiest" — that's just an empty year.
+  const busiestMonth = monthlyBreakdown.reduce<MonthTotal | null>(
+    (best, month) => (month.expenses > 0 && (!best || month.expenses > best.expenses) ? month : best),
+    null,
+  );
+
+  // Net worth "at the start of the year" is the instant before its first day; a year still in
+  // progress reads its end value as of now rather than a period end that hasn't arrived yet.
+  const asOfEnd = range.end.getTime() < now.getTime() ? range.end : now;
+  const netWorthStart = netWorthAt(
+    input.accounts,
+    input.transactions,
+    new Date(range.start.getTime() - 1),
+  ).netWorth;
+  const netWorthEnd = netWorthAt(input.accounts, input.transactions, asOfEnd).netWorth;
+
+  const biggestExpense =
+    transactionsInPeriod(input.transactions, range)
+      .filter((t) => t.type === 'expense')
+      .sort((a, b) => b.amount - a.amount)[0] ?? null;
+
+  return {
+    range,
+    label: periodLabel(range, monthStartDay),
+    current,
+    previous,
+    topCategories: current.categoryTotals.slice(0, 5),
+    movers,
+    monthlyBreakdown,
+    busiestMonth,
+    netWorthStart,
+    netWorthEnd,
+    netWorthChange: roundMoney(netWorthEnd - netWorthStart),
+    biggestExpense,
   };
 }

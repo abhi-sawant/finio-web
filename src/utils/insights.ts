@@ -1,6 +1,7 @@
 import { addDays, addMonths, addWeeks, addYears, format, parseISO } from 'date-fns';
 import { roundMoney } from '@/store/balance';
 import {
+  activeAccounts,
   budgetScopeKey,
   computeBudgetStatuses,
   getTotalExpenses,
@@ -17,6 +18,7 @@ import {
   type PeriodRange,
 } from './period';
 import type {
+  Account,
   Budget,
   Category,
   Label,
@@ -42,7 +44,8 @@ export type InsightKind =
   | 'budget-over'
   | 'budget-pace'
   | 'savings-rate'
-  | 'category-share';
+  | 'category-share'
+  | 'negative-balance';
 
 export type InsightSeverity = 'warn' | 'info' | 'good';
 
@@ -220,6 +223,8 @@ export interface InsightInput {
   labels: Label[];
   budgets: Budget[];
   recurring: RecurringTransaction[];
+  /** Optional — only needed for the negative-balance check below. */
+  accounts?: Account[];
   now?: Date;
   monthStartDay?: number;
   /** Maximum insights returned. */
@@ -297,6 +302,26 @@ export function buildInsights(input: InsightInput, options: InsightOptions): Ins
 
   const categoryName = (id: string) =>
     input.categories.find((c) => c.id === id)?.name ?? 'Uncategorized';
+
+  // ── Impossible balances ───────────────────────────────────────────────────
+  // A cash/checking/savings/investment/wallet account going negative is almost always a
+  // data-entry error — unlike `credit`, none of these types represent a line of credit, so
+  // there's no legitimate way to owe money on one. Sorted worst-first, most urgent kept first
+  // among `warn` insights below (the overall sort is stable).
+  const negativeAccounts = activeAccounts(input.accounts ?? [])
+    .filter((a) => a.type !== 'credit' && a.balance < 0)
+    .sort((a, b) => a.balance - b.balance);
+
+  for (const account of negativeAccounts.slice(0, 2)) {
+    insights.push({
+      id: `negative-balance:${account.id}`,
+      kind: 'negative-balance',
+      severity: 'warn',
+      title: `${account.name} is negative`,
+      detail: `${money(Math.abs(account.balance))} in the red — check for a missing transaction or a data-entry error.`,
+      action: { type: 'navigate', to: `/edit-account/${account.id}`, label: 'Review account' },
+    });
+  }
 
   // ── Categories against their own recent average ──────────────────────────
   const priorMonths = Array.from({ length: BASELINE_MONTHS }, (_, i) =>

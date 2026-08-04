@@ -161,6 +161,7 @@ export const useFinanceStore = create<FinanceStore>()(
           createdAt: new Date().toISOString(),
         };
         set((state) => ({ accounts: [...state.accounts, account] }));
+        return account.id;
       },
 
       updateAccount: (id, updates) => {
@@ -520,7 +521,7 @@ export const useFinanceStore = create<FinanceStore>()(
           state.accounts.map((a) => a.id),
           new Date(),
         );
-        if (plan.occurrences.length === 0) return 0;
+        if (plan.occurrences.length === 0) return [];
 
         const createdAt = new Date().toISOString();
         const newTxns: Transaction[] = plan.occurrences.map(({ rule, date }) => ({
@@ -542,14 +543,34 @@ export const useFinanceStore = create<FinanceStore>()(
         set((s) => {
           let accounts = s.accounts;
           for (const tx of newTxns) accounts = applyBalanceDelta(accounts, tx, 1);
+
+          // Auto-funding: a rule linked to a goal posts a matching contribution alongside its
+          // transaction, so the goal's own ledger stays current without a manual entry each
+          // time. Skipped if the goal has since been deleted — `deleteGoal` clears the link,
+          // but a stale one from a backup restore must not resurrect a contribution to nothing.
+          const goalIds = new Set(s.goals.map((g) => g.id));
+          const newContributions: GoalContribution[] = plan.occurrences
+            .filter(({ rule }) => rule.goalId && goalIds.has(rule.goalId))
+            .map(({ rule, date }) => ({
+              id: generateUUID(),
+              goalId: rule.goalId as string,
+              amount: rule.amount,
+              date: date.toISOString(),
+              note: rule.note,
+              createdAt,
+            }));
+
           return {
             transactions: [...newTxns, ...s.transactions],
             accounts,
             recurring: plan.rules,
+            ...(newContributions.length > 0
+              ? { goalContributions: [...newContributions, ...s.goalContributions] }
+              : {}),
           };
         });
 
-        return newTxns.length;
+        return newTxns;
       },
 
       addTemplate: (templateData) => {
@@ -654,6 +675,14 @@ export const useFinanceStore = create<FinanceStore>()(
         set((state) => ({
           goals: state.goals.filter((g) => g.id !== id),
           goalContributions: state.goalContributions.filter((c) => c.goalId !== id),
+          // The rule itself is still useful without the goal — drop the link rather than the
+          // rule, same convention as clearing `Goal.linkedAccountId` when an account is deleted.
+          recurring: state.recurring.map((r) => {
+            if (r.goalId !== id) return r;
+            const next = { ...r };
+            delete next.goalId;
+            return next;
+          }),
         }));
       },
 

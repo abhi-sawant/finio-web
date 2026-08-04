@@ -128,6 +128,13 @@ export interface RecurringTransaction {
   /** ISO date of the most recent auto-generated occurrence, or null. */
   lastRunDate: string | null;
   createdAt: string;
+  /**
+   * When set, every occurrence this rule generates also posts a matching `GoalContribution` to
+   * this goal — auto-funding, so the goal's ledger tracks itself instead of a manual entry each
+   * time. The rule stays a normal transaction otherwise; the contribution is a side effect, not
+   * a different kind of rule.
+   */
+  goalId?: string;
 }
 
 export interface Settings {
@@ -419,7 +426,7 @@ export interface FinanceStore {
   lastLocalBackupAt: string | null;
   setLastLocalBackupAt: (date: string) => void;
 
-  addAccount: (account: Omit<Account, 'id' | 'createdAt' | 'openingBalance'>) => void;
+  addAccount: (account: Omit<Account, 'id' | 'createdAt' | 'openingBalance'>) => string;
   updateAccount: (id: string, updates: Partial<Omit<Account, 'id'>>) => void;
   /**
    * Close or reopen an account. Unlike `deleteAccount` this is non-destructive: transactions,
@@ -558,8 +565,11 @@ export interface FinanceStore {
   /** Pause or resume a rule without losing its schedule or history. */
   setRecurringPaused: (id: string, paused: boolean) => void;
   deleteRecurring: (id: string) => void;
-  /** Generate any due transactions from recurring rules. Returns count generated. */
-  processRecurring: () => number;
+  /**
+   * Generate any due transactions from recurring rules. Returns the generated rows (empty if
+   * none were due) so a caller can offer an undo via `bulkDeleteTransactions`.
+   */
+  processRecurring: () => Transaction[];
 
   updateSettings: (updates: Partial<Settings>) => void;
 

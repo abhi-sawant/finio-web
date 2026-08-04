@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPeriodComparison,
   buildSpendingCalendar,
+  buildYearInReview,
   categoryMovements,
   summarizePeriod,
 } from './analytics';
 import { periodRange } from './period';
-import type { Transaction } from '@/types';
+import type { Account, Transaction } from '@/types';
 
 function tx(
   partial: Partial<Transaction> & Pick<Transaction, 'type' | 'amount' | 'date'>,
@@ -189,5 +190,82 @@ describe('buildSpendingCalendar', () => {
     expect(days.find((d) => d.key === '2026-06-14')?.isFuture).toBe(false);
     expect(days.find((d) => d.key === '2026-06-15')?.isToday).toBe(true);
     expect(days.find((d) => d.key === '2026-06-16')?.isFuture).toBe(true);
+  });
+});
+
+describe('buildYearInReview', () => {
+  const account: Account = {
+    id: 'acc-1',
+    name: 'Checking',
+    type: 'checking',
+    color: '#000',
+    icon: 'landmark',
+    balance: 5000,
+    openingBalance: 0,
+    createdAt: '2025-01-01T00:00:00.000Z',
+  };
+
+  it('summarizes the financial year, its top categories and its busiest month', () => {
+    const review = buildYearInReview({
+      transactions: [
+        tx({ type: 'income', amount: 10000, date: '2026-01-10T00:00:00.000Z' }),
+        tx({ type: 'expense', amount: 3000, date: '2026-01-10T00:00:00.000Z', categoryId: 'food' }),
+        tx({ type: 'expense', amount: 500, date: '2026-03-05T00:00:00.000Z', categoryId: 'fun' }),
+        // Outside the year — must not leak into any total.
+        tx({ type: 'expense', amount: 9999, date: '2025-01-10T00:00:00.000Z', categoryId: 'food' }),
+      ],
+      accounts: [account],
+      now: JUNE,
+    });
+
+    expect(review.current.income).toBe(10000);
+    expect(review.current.expenses).toBe(3500);
+    expect(review.topCategories[0]).toEqual({ categoryId: 'food', amount: 3000 });
+    expect(review.busiestMonth?.label).toBe('Jan');
+    expect(review.biggestExpense?.amount).toBe(3000);
+    expect(review.monthlyBreakdown).toHaveLength(12);
+  });
+
+  it('has no busiest month, and no biggest expense, for a year with no spending', () => {
+    const review = buildYearInReview({ transactions: [], accounts: [account], now: JUNE });
+
+    expect(review.busiestMonth).toBeNull();
+    expect(review.biggestExpense).toBeNull();
+  });
+
+  it('walks back a year at a time via yearOffset', () => {
+    const rows = [
+      tx({ type: 'expense', amount: 1000, date: '2026-02-01T00:00:00.000Z' }),
+      tx({ type: 'expense', amount: 400, date: '2025-02-01T00:00:00.000Z' }),
+    ];
+
+    const thisYear = buildYearInReview({ transactions: rows, accounts: [account], now: JUNE });
+    const lastYear = buildYearInReview({
+      transactions: rows,
+      accounts: [account],
+      now: JUNE,
+      yearOffset: -1,
+    });
+
+    expect(thisYear.current.expenses).toBe(1000);
+    expect(lastYear.current.expenses).toBe(400);
+    // Last year's "previous" column lands one year further back still, with nothing in it.
+    expect(lastYear.previous.expenses).toBe(0);
+  });
+
+  it('reconstructs net worth at the edges of the year from today\'s accounts and ledger', () => {
+    const review = buildYearInReview({
+      transactions: [
+        // Starting balance is 5000 today; this income happened mid-year, so net worth was
+        // lower before it and is the full 5000 by the end of the (still in progress) year.
+        tx({ type: 'income', amount: 2000, date: '2026-03-01T00:00:00.000Z' }),
+      ],
+      accounts: [account],
+      now: JUNE,
+    });
+
+    expect(review.netWorthEnd).toBe(5000);
+    expect(review.netWorthStart).toBe(3000);
+    expect(review.netWorthChange).toBe(2000);
   });
 });

@@ -10,6 +10,7 @@ import {
   Landmark,
   Store,
   Wand2,
+  PartyPopper,
 } from 'lucide-react';
 import { CloudAccountSection } from '@/components/settings/CloudAccountSection';
 import { ProfileSection } from '@/components/settings/ProfileSection';
@@ -94,6 +95,16 @@ export default function Settings() {
             <div className="flex items-center gap-3">
               <Store size={18} className="text-muted-foreground" />
               <span className="text-sm font-medium">Merchants</span>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => navigate('/year-in-review')}
+            className="flex w-full items-center justify-between p-4"
+          >
+            <div className="flex items-center gap-3">
+              <PartyPopper size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">Year in Review</span>
             </div>
             <ChevronRight size={16} className="text-muted-foreground" />
           </button>

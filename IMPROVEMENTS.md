@@ -480,19 +480,75 @@ most likely place for a bug to hide.
 
 ### Smaller, high-leverage
 
-- [ ] **"Load sample data" in onboarding.** A fixture had to be hand-written to see the app do
-      anything; a new user faces the same empty state. Doubles as a manual-QA fixture.
-- [ ] **Cash-flow calendar.** A month grid of known future inflows/outflows from recurring rules
-      and card dues. `forecast.ts` and `SpendingHeatmap` already have the pieces.
-- [ ] **Recurring inbox.** `processRecurring()` posts silently on launch. An optional
-      "3 transactions were generated — review" step catches wrong amounts before they reach
-      balances.
-- [ ] **Year in review.** One-screen annual summary — cheap on top of `analytics.ts` +
-      `netWorth.ts`, and highly shareable.
-- [ ] **Goal auto-funding.** Link a recurring transfer to a `Goal` so contributions post
-      themselves instead of needing manual logging.
-- [ ] **Impossible-balance warning.** A cash or debit account going negative is almost always a
-      data-entry error worth flagging.
+Verified against the current code on 2026-08-04 (all six were still open — no prior partial
+work existed) and implemented:
+
+- [x] **"Load sample data" in onboarding.** — ✅ Done
+
+  **Fix:** Added [`src/data/sampleData.ts`](src/data/sampleData.ts) — a deterministic,
+  fully-tested generator (`generateSampleData()`) producing ~3 months of accounts, transactions,
+  budgets, recurring rules, goals and a debt entry as plain cross-referenced specs, plus
+  `loadSampleData()`, a thin applier that resolves those specs through the store's own actions
+  (same code path as manual entry, so balances/budgets/recurring end up exactly as consistent).
+  Wired into [`Onboarding.tsx`](src/components/onboarding/Onboarding.tsx) as "Explore with sample
+  data instead" on the account step. Verified in the running app: one click populates 3 accounts,
+  ~55 transactions, 3 budgets, 2 recurring rules (one goal-linked), 2 goals and a debt entry, and
+  lands straight on a populated Dashboard/Analytics — which also exercises the subscription
+  insight, the recurring inbox and goal auto-funding below.
+
+- [x] **Cash-flow calendar.** — ✅ Done
+
+  **Fix:** Added `buildCashFlowCalendarMonth()` to [`forecast.ts`](src/utils/forecast.ts) — same
+  grid-squaring shape as `buildSpendingCalendar`, but netting `ScheduledFlow` occurrences per day
+  instead of historical spend. New
+  [`CashFlowCalendar.tsx`](src/components/analytics/CashFlowCalendar.tsx) renders it (green/red
+  day tinting for money in/out, a credit-card glyph on statement due dates from
+  `getCreditCardDueInfo`, and a `ChartDataTable` a11y fallback), navigable up to 2 months ahead —
+  added to the Analytics page next to the existing line-chart forecast. Verified in the running
+  app with sample data: the goal-funding transfer and rent rule both show as tinted, correctly
+  netted days in the following months' grids.
+
+- [x] **Recurring inbox.** — ✅ Done
+
+  **Fix:** `processRecurring()` now returns the generated `Transaction[]` (previously just a
+  count), so every call site — the silent hydration pass in
+  [`Layout.tsx`](src/components/layout/Layout.tsx), and the two explicit ones in
+  [`Recurring.tsx`](src/pages/Recurring.tsx) — can attach an `Undo` action to its toast that
+  reverses exactly those rows via the existing `bulkDeleteTransactions`. Lighter than a blocking
+  review dialog (nothing delays app start), but still catches a wrong amount or a stale rule
+  before it's noticed elsewhere. Verified in the running app: creating a backdated rule shows
+  "Added 1 recurring transaction" with a working Undo.
+
+- [x] **Year in review.** — ✅ Done
+
+  **Fix:** Added `buildYearInReview()` to [`analytics.ts`](src/utils/analytics.ts) — composes
+  `summarizePeriod`/`categoryMovements` (this year vs last) with a 12-month breakdown and
+  `netWorthAt` reconstruction for the year's start/end, all pure and tested. New
+  [`YearInReview.tsx`](src/pages/YearInReview.tsx) at `/year-in-review` (linked from Settings →
+  Manage) renders it: income/expenses/net vs last year, net worth start→end, a monthly spend bar
+  strip with the busiest month called out, top categories, biggest movers, and the single biggest
+  expense. Verified in the running app with sample data.
+
+- [x] **Goal auto-funding.** — ✅ Done
+
+  **Fix:** Added optional `goalId` to `RecurringTransaction`. When `processRecurring()` generates
+  an occurrence for a rule with `goalId` set, it also posts a matching `GoalContribution` in the
+  same state update — skipped if the goal has since been deleted (`deleteGoal` clears the link
+  from any rule funding it, mirroring how `deleteAccount` clears `Goal.linkedAccountId`).
+  [`Recurring.tsx`](src/pages/Recurring.tsx) gained a "Fund a goal (optional)" picker on the rule
+  form and a "Funds "X"" badge on linked rules. Wired into `importValidation.ts` (parses the new
+  field, warns on an orphaned reference) since it's a new field on an existing entity, not a new
+  collection. Verified in the running app: a monthly transfer rule linked to "Vacation Fund"
+  posted a real contribution the moment it was saved.
+
+- [x] **Impossible-balance warning.** — ✅ Done
+
+  **Fix:** Added a `negative-balance` insight to `buildInsights()` in
+  [`insights.ts`](src/utils/insights.ts) — flags any non-archived, non-credit account (checking/
+  savings/cash/investment/wallet) with a negative balance, worst first, with a "Review account"
+  link to that account's edit page. Credit accounts are excluded by design — a negative balance
+  there is money owed, not an error. Verified in the running app: an overdrawn checking account
+  surfaced "Checking is negative" at the top of the Insights feed.
 
 ### Larger
 

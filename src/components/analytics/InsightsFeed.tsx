@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { Lightbulb, TrendingUp, ThumbsUp, Repeat, AlertTriangle, ChevronRight } from 'lucide-react';
+import {
+  Lightbulb,
+  TrendingUp,
+  ThumbsUp,
+  Repeat,
+  AlertTriangle,
+  CircleAlert,
+  ChevronRight,
+} from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency, formatFullDate } from '@/utils/formatters';
 import { buildInsights, type Insight, type SubscriptionCandidate } from '@/utils/insights';
@@ -16,6 +24,7 @@ const KIND_ICON = {
   'budget-pace': AlertTriangle,
   'savings-rate': Lightbulb,
   'category-share': Lightbulb,
+  'negative-balance': CircleAlert,
 } as const;
 
 const SEVERITY_STYLE = {
@@ -31,6 +40,7 @@ export function InsightsFeed() {
   const labels = useFinanceStore((s) => s.labels);
   const budgets = useFinanceStore((s) => s.budgets);
   const recurring = useFinanceStore((s) => s.recurring);
+  const accounts = useFinanceStore((s) => s.accounts);
   const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
   const monthStartDay = normalizeMonthStartDay(useFinanceStore((s) => s.settings.monthStartDay));
   const addRecurring = useFinanceStore((s) => s.addRecurring);
@@ -44,10 +54,10 @@ export function InsightsFeed() {
   const insights = useMemo(
     () =>
       buildInsights(
-        { transactions, categories, labels, budgets, recurring, monthStartDay },
+        { transactions, categories, labels, budgets, recurring, accounts, monthStartDay },
         { formatAmount: (value) => formatCurrency(value, true, hideAmounts, { precise: false }) },
       ),
-    [transactions, categories, labels, budgets, recurring, monthStartDay, hideAmounts],
+    [transactions, categories, labels, budgets, recurring, accounts, monthStartDay, hideAmounts],
   );
 
   const visible = insights.filter((i) => !dismissed.includes(i.id));

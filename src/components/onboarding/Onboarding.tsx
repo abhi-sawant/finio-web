@@ -6,11 +6,13 @@ import {
   CreditCard,
   Landmark,
   PiggyBank,
+  Sparkles,
   TrendingUp,
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { loadSampleData } from '@/data/sampleData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,11 +39,20 @@ const STEPS: Step[] = ['name', 'account', 'balance'];
  *
  * Rendered instead of the app when `settings.onboardedAt` is unset. Every step past the name
  * is skippable so someone reinstalling can get straight to Settings and restore a backup
- * rather than being forced to invent an account first.
+ * rather than being forced to invent an account first. The account step also offers
+ * `loadSampleData()` — a few months of realistic accounts/transactions/budgets/goals, for a
+ * first look that isn't an empty dashboard.
  */
 export function Onboarding() {
   const addAccount = useFinanceStore((s) => s.addAccount);
   const updateSettings = useFinanceStore((s) => s.updateSettings);
+  const addGoal = useFinanceStore((s) => s.addGoal);
+  const addPerson = useFinanceStore((s) => s.addPerson);
+  const addBudget = useFinanceStore((s) => s.addBudget);
+  const addRecurring = useFinanceStore((s) => s.addRecurring);
+  const addContribution = useFinanceStore((s) => s.addContribution);
+  const addDebtEntry = useFinanceStore((s) => s.addDebtEntry);
+  const bulkAddTransactions = useFinanceStore((s) => s.bulkAddTransactions);
 
   const [step, setStep] = useState<Step>('name');
   const [name, setName] = useState('');
@@ -67,6 +78,23 @@ export function Onboarding() {
         balance: accountType === 'credit' ? -Math.abs(opening) : opening,
       });
     }
+    updateSettings({ userName: trimmedName || 'there', onboardedAt: new Date().toISOString() });
+  };
+
+  // Populates a few months of realistic-looking accounts, transactions, budgets, recurring
+  // rules and goals — so a first look at Finio shows the app doing something, not an empty
+  // dashboard, and completes onboarding the same way `finish(true)` does.
+  const loadSample = () => {
+    loadSampleData({
+      addAccount,
+      addGoal,
+      addPerson,
+      addBudget,
+      addRecurring,
+      addContribution,
+      addDebtEntry,
+      bulkAddTransactions,
+    });
     updateSettings({ userName: trimmedName || 'there', onboardedAt: new Date().toISOString() });
   };
 
@@ -199,6 +227,14 @@ export function Onboarding() {
                   Skip for now
                 </Button>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary w-full"
+                onClick={loadSample}
+              >
+                <Sparkles size={14} /> Explore with sample data instead
+              </Button>
             </div>
           </div>
         )}

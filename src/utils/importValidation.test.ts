@@ -200,6 +200,40 @@ describe('validateBackup', () => {
     expect(report.counts.recurring.rejected).toBe(1);
   });
 
+  it('carries a recurring rule\'s goal link through, and warns when the goal is missing', () => {
+    const base = {
+      id: 'r-1',
+      type: 'expense',
+      amount: 500,
+      accountId: 'acc-1',
+      categoryId: 'cat-1',
+      note: '',
+      labels: [],
+      frequency: 'monthly',
+      startDate: '2026-01-01T00:00:00.000Z',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    const { data } = validateBackup({
+      goals: [
+        {
+          id: 'goal-1',
+          name: 'Emergency Fund',
+          targetAmount: 10000,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      recurring: [{ ...base, goalId: 'goal-1' }],
+    });
+    expect(data.recurring?.[0].goalId).toBe('goal-1');
+
+    const { report } = validateBackup({
+      goals: [],
+      recurring: [{ ...base, goalId: 'missing-goal' }],
+    });
+    expect(report.warnings).toContainEqual(expect.stringContaining('link to a goal'));
+  });
+
   it('keeps only known settings keys, dropping the legacy currency field', () => {
     const { data } = validateBackup({
       settings: { theme: 'dark', userName: 'Abhishek', autoLocalBackup: true, currency: 'USD' },

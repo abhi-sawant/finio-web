@@ -302,6 +302,7 @@ const parseRecurring: RowParser<RecurringTransaction> = (row) => {
   const maxOccurrences = maxRaw !== undefined && maxRaw >= 1 ? Math.trunc(maxRaw) : undefined;
   const occurrenceRaw = asFiniteNumber(row.occurrenceCount);
   const pausedAt = asIsoDate(row.pausedAt);
+  const goalId = asId(row.goalId);
 
   return {
     id,
@@ -322,6 +323,7 @@ const parseRecurring: RowParser<RecurringTransaction> = (row) => {
     ...(endDate ? { endDate } : {}),
     ...(maxOccurrences !== undefined ? { maxOccurrences } : {}),
     ...(pausedAt ? { pausedAt } : {}),
+    ...(goalId ? { goalId } : {}),
   };
 };
 
@@ -804,6 +806,16 @@ export function validateBackup(raw: unknown): ValidatedBackup {
     if (orphans > 0) {
       warnings.push(
         `${orphans} goal contribution${orphans === 1 ? '' : 's'} reference a goal that is not in this file`,
+      );
+    }
+  }
+
+  if (goals.rows && recurring.rows) {
+    const ids = new Set(goals.rows.map((g) => g.id));
+    const orphans = recurring.rows.filter((r) => r.goalId && !ids.has(r.goalId)).length;
+    if (orphans > 0) {
+      warnings.push(
+        `${orphans} recurring rule${orphans === 1 ? '' : 's'} link to a goal that is not in this file — they will stop auto-funding it`,
       );
     }
   }

@@ -1,7 +1,17 @@
-import { addDays, differenceInCalendarDays, format, parseISO, startOfDay } from 'date-fns';
+import {
+  addDays,
+  differenceInCalendarDays,
+  endOfWeek,
+  format,
+  isSameDay,
+  parseISO,
+  startOfDay,
+  startOfWeek,
+} from 'date-fns';
 import { roundMoney } from '@/store/balance';
 import { futureOccurrences } from '@/store/recurring';
 import { activeAccounts, transactionCategoryAmounts } from './calculations';
+import { WEEK_STARTS_ON, type PeriodRange } from './period';
 import type { Account, RecurringTransaction, Transaction, TransactionType } from '@/types';
 
 /**
@@ -259,4 +269,72 @@ export function buildCashFlowForecast(input: ForecastInput): CashFlowForecast {
     shortfallDate,
     isEmpty: liquid.size === 0 || (scheduled.length === 0 && dailyEstimate === 0),
   };
+}
+
+export interface CashFlowCalendarDay {
+  date: Date;
+  /** `yyyy-MM-dd` — stable key for grid cells. */
+  key: string;
+  /** Net scheduled effect on liquid cash this day — positive is money in. */
+  netFlow: number;
+  /** The individual scheduled occurrences landing on this day, chronological. */
+  flows: ScheduledFlow[];
+  /** False for the leading/trailing days that only exist to square off the week rows. */
+  inRange: boolean;
+  isToday: boolean;
+}
+
+export interface CashFlowCalendarMonth {
+  /** Week rows, each exactly 7 days, Monday first. */
+  weeks: CashFlowCalendarDay[][];
+}
+
+/**
+ * A month grid of `scheduled` cash flow, the forward-looking counterpart to
+ * `buildSpendingCalendar` — same grid shape, but each cell nets the day's *known future*
+ * recurring occurrences instead of historical spend. Days outside `monthRange` are padded in
+ * (and flagged `inRange: false`) so every row is a full week.
+ */
+export function buildCashFlowCalendarMonth(
+  scheduled: ScheduledFlow[],
+  monthRange: PeriodRange,
+  now = new Date(),
+): CashFlowCalendarMonth {
+  const byDay = new Map<string, ScheduledFlow[]>();
+  for (const flow of scheduled) {
+    const key = format(flow.date, 'yyyy-MM-dd');
+    const bucket = byDay.get(key);
+    if (bucket) bucket.push(flow);
+    else byDay.set(key, [flow]);
+  }
+
+  const today = startOfDay(now);
+  const gridStart = startOfWeek(monthRange.start, { weekStartsOn: WEEK_STARTS_ON });
+  const gridEnd = endOfWeek(monthRange.end, { weekStartsOn: WEEK_STARTS_ON });
+
+  const weeks: CashFlowCalendarDay[][] = [];
+  let week: CashFlowCalendarDay[] = [];
+
+  for (let day = gridStart; day <= gridEnd; day = addDays(day, 1)) {
+    const key = format(day, 'yyyy-MM-dd');
+    const inRange = day >= monthRange.start && day <= monthRange.end;
+    const flows = inRange ? (byDay.get(key) ?? []) : [];
+
+    week.push({
+      date: day,
+      key,
+      netFlow: roundMoney(flows.reduce((sum, f) => sum + f.delta, 0)),
+      flows,
+      inRange,
+      isToday: isSameDay(day, today),
+    });
+
+    if (week.length === 7) {
+      weeks.push(week);
+      week = [];
+    }
+  }
+  if (week.length > 0) weeks.push(week);
+
+  return { weeks };
 }

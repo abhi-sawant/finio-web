@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { format } from 'date-fns';
-import { ArrowLeft, Pause, Pencil, Play, Plus, Repeat, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pause, Pencil, Play, PiggyBank, Plus, Repeat, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import {
@@ -67,6 +67,7 @@ export default function Recurring() {
   const recurring = useFinanceStore((s) => s.recurring);
   const allAccounts = useFinanceStore((s) => s.accounts);
   const categories = useFinanceStore((s) => s.categories);
+  const goals = useFinanceStore((s) => s.goals);
   const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
   // A closed account cannot take new charges, so it must not back a new rule. Existing rules
   // still resolve their account name from the full list below.
@@ -76,6 +77,7 @@ export default function Recurring() {
   const setRecurringPaused = useFinanceStore((s) => s.setRecurringPaused);
   const deleteRecurring = useFinanceStore((s) => s.deleteRecurring);
   const processRecurring = useFinanceStore((s) => s.processRecurring);
+  const bulkDeleteTransactions = useFinanceStore((s) => s.bulkDeleteTransactions);
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export default function Recurring() {
   const [endMode, setEndMode] = useState<EndMode>('never');
   const [endDate, setEndDate] = useState('');
   const [maxOccurrences, setMaxOccurrences] = useState('');
+  const [goalId, setGoalId] = useState('');
   const [pending, setPending] = useState<PendingRule | null>(null);
 
   const filteredCategories = useMemo(
@@ -114,6 +117,7 @@ export default function Recurring() {
     setEndMode('never');
     setEndDate('');
     setMaxOccurrences('');
+    setGoalId('');
   };
 
   const startCreate = () => {
@@ -134,6 +138,7 @@ export default function Recurring() {
     setEndMode(rule.endDate ? 'on' : rule.maxOccurrences !== undefined ? 'after' : 'never');
     setEndDate(rule.endDate ? rule.endDate.slice(0, 10) : '');
     setMaxOccurrences(rule.maxOccurrences !== undefined ? String(rule.maxOccurrences) : '');
+    setGoalId(rule.goalId ?? '');
     setShowForm(true);
   };
 
@@ -188,6 +193,7 @@ export default function Recurring() {
       ...(resolvedEndDate ? { endDate: resolvedEndDate } : {}),
       ...(resolvedMax !== undefined ? { maxOccurrences: resolvedMax } : {}),
       ...(existing?.pausedAt ? { pausedAt: existing.pausedAt } : {}),
+      ...(goalId ? { goalId } : {}),
     };
   };
 
@@ -213,6 +219,7 @@ export default function Recurring() {
       endDate: rule.endDate,
       maxOccurrences: rule.maxOccurrences,
       lastRunDate,
+      goalId: rule.goalId,
     };
 
     if (ruleEditingId) {
@@ -224,8 +231,18 @@ export default function Recurring() {
     const generated = processRecurring();
     toast.success(
       `${ruleEditingId ? 'Rule updated' : 'Recurring rule created'}${
-        generated > 0 ? ` · added ${generated} transaction${generated === 1 ? '' : 's'}` : ''
+        generated.length > 0
+          ? ` · added ${generated.length} transaction${generated.length === 1 ? '' : 's'}`
+          : ''
       }`,
+      generated.length > 0
+        ? {
+            action: {
+              label: 'Undo',
+              onClick: () => bulkDeleteTransactions(generated.map((t) => t.id)),
+            },
+          }
+        : undefined,
     );
     setPending(null);
     resetForm();
@@ -452,6 +469,35 @@ export default function Recurring() {
               )}
             </div>
 
+            {goals.length > 0 && (
+              <div>
+                <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+                  Fund a goal (optional)
+                </Label>
+                <Select
+                  value={goalId || 'none'}
+                  onValueChange={(v) => setGoalId(v === 'none' ? '' : (v ?? ''))}
+                >
+                  <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                    <SelectValue>
+                      {goalId ? goals.find((g) => g.id === goalId)?.name : 'None'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {goals.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-muted-foreground mt-1 text-[11px]">
+                  Each occurrence also logs a contribution to this goal, automatically.
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button
                 onClick={handleSubmit}
@@ -491,6 +537,7 @@ export default function Recurring() {
             const color = r.type === 'transfer' ? '#3b82f6' : (cat?.color ?? '#94a3b8');
             const paused = isRulePaused(r);
             const nextDue = nextDueDate(r);
+            const fundedGoal = r.goalId ? goals.find((g) => g.id === r.goalId) : undefined;
 
             const schedule = paused
               ? 'Paused'
@@ -538,6 +585,13 @@ export default function Recurring() {
                   </p>
                 </div>
 
+                {fundedGoal && (
+                  <p className="text-muted-foreground mt-1.5 flex items-center gap-1 text-[11px]">
+                    <PiggyBank size={11} />
+                    Funds &ldquo;{fundedGoal.name}&rdquo;
+                  </p>
+                )}
+
                 <div className="border-border mt-2 flex items-center justify-between gap-2 border-t pt-2">
                   <p className="text-muted-foreground min-w-0 truncate text-[11px]">
                     {schedule}
@@ -553,7 +607,16 @@ export default function Recurring() {
                         else {
                           const generated = processRecurring();
                           toast.success(
-                            `Rule resumed${generated > 0 ? ` · added ${generated} due transaction${generated === 1 ? '' : 's'}` : ''}`,
+                            `Rule resumed${generated.length > 0 ? ` · added ${generated.length} due transaction${generated.length === 1 ? '' : 's'}` : ''}`,
+                            generated.length > 0
+                              ? {
+                                  action: {
+                                    label: 'Undo',
+                                    onClick: () =>
+                                      bulkDeleteTransactions(generated.map((t) => t.id)),
+                                  },
+                                }
+                              : undefined,
                           );
                         }
                       }}

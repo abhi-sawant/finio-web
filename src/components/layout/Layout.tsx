@@ -24,6 +24,7 @@ export function Layout() {
   const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
   const addTransaction = useFinanceStore((s) => s.addTransaction);
   const deleteTransaction = useFinanceStore((s) => s.deleteTransaction);
+  const bulkDeleteTransactions = useFinanceStore((s) => s.bulkDeleteTransactions);
 
   const fabRef = useRef<HTMLButtonElement>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
@@ -59,14 +60,20 @@ export function Layout() {
     });
   };
 
-  // Process recurring rules once on hydration.
+  // Process recurring rules once on hydration. Posts silently, so the toast doubles as the
+  // "recurring inbox" — a lightweight review step that lets a wrong amount or a stale rule be
+  // undone before it's noticed anywhere else, without blocking app start on a confirmation.
   useEffect(() => {
     if (!isHydrated) return;
     const generated = processRecurring();
-    if (generated > 0) {
-      toast.success(`Added ${generated} recurring transaction${generated === 1 ? '' : 's'}`);
+    if (generated.length > 0) {
+      const ids = generated.map((t) => t.id);
+      toast.success(
+        `Added ${generated.length} recurring transaction${generated.length === 1 ? '' : 's'}`,
+        { action: { label: 'Undo', onClick: () => bulkDeleteTransactions(ids) } },
+      );
     }
-  }, [isHydrated, processRecurring]);
+  }, [isHydrated, processRecurring, bulkDeleteTransactions]);
 
   // Freeze the net worth of any financial month that has closed since the last visit. Silent
   // by design — it records history rather than changing anything the user did. It runs after

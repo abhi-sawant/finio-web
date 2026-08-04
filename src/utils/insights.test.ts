@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildInsights, detectSubscriptions, normalizeNote } from './insights';
-import type { Budget, Category, RecurringTransaction, Transaction } from '@/types';
+import type { Account, Budget, Category, RecurringTransaction, Transaction } from '@/types';
 
 const NOW = new Date('2026-06-15T12:00:00.000Z');
 
@@ -278,5 +278,69 @@ describe('buildInsights', () => {
 
   it('says nothing at all about an empty ledger', () => {
     expect(buildInsights(baseInput([]), { formatAmount: money })).toEqual([]);
+  });
+
+  it('flags a non-credit account that has gone negative', () => {
+    const accounts: Account[] = [
+      {
+        id: 'acc-checking',
+        name: 'Checking',
+        type: 'checking',
+        color: '#000',
+        icon: 'landmark',
+        balance: -500,
+        openingBalance: 0,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'acc-credit',
+        name: 'Credit Card',
+        type: 'credit',
+        color: '#000',
+        icon: 'credit-card',
+        balance: -2000,
+        openingBalance: 0,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+
+    const insights = buildInsights(
+      { ...baseInput([]), accounts },
+      { formatAmount: money },
+    );
+    const negative = insights.filter((i) => i.kind === 'negative-balance');
+
+    expect(negative).toHaveLength(1);
+    expect(negative[0].title).toBe('Checking is negative');
+    expect(negative[0].severity).toBe('warn');
+  });
+
+  it('ignores an archived account gone negative and never flags a credit account', () => {
+    const accounts: Account[] = [
+      {
+        id: 'acc-archived',
+        name: 'Old Wallet',
+        type: 'wallet',
+        color: '#000',
+        icon: 'wallet',
+        balance: -100,
+        openingBalance: 0,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        archivedAt: '2026-02-01T00:00:00.000Z',
+      },
+      {
+        id: 'acc-credit',
+        name: 'Credit Card',
+        type: 'credit',
+        color: '#000',
+        icon: 'credit-card',
+        balance: -2000,
+        openingBalance: 0,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+
+    const insights = buildInsights({ ...baseInput([]), accounts }, { formatAmount: money });
+    expect(insights.some((i) => i.kind === 'negative-balance')).toBe(false);
   });
 });

@@ -651,6 +651,32 @@ describe('addGoal / updateGoal / deleteGoal', () => {
     expect(state.goalContributions.map((c) => c.goalId)).toEqual([otherId]);
   });
 
+  it('deleting a goal drops the link from any recurring rule funding it, not the rule itself', () => {
+    const id = useFinanceStore.getState().addGoal({
+      name: 'Emergency Fund',
+      icon: 'target',
+      color: '#6C63FF',
+      targetAmount: 10000,
+    });
+    const ruleId = useFinanceStore.getState().addRecurring({
+      type: 'expense',
+      amount: 500,
+      accountId: 'a',
+      categoryId: 'cat-1',
+      note: '',
+      labels: [],
+      frequency: 'monthly',
+      startDate: '2026-01-01T00:00:00.000Z',
+      goalId: id,
+    });
+
+    useFinanceStore.getState().deleteGoal(id);
+
+    const rule = useFinanceStore.getState().recurring.find((r) => r.id === ruleId);
+    expect(rule).toBeDefined();
+    expect(rule?.goalId).toBeUndefined();
+  });
+
   it('is cleared by resetToDefaults, same as every other finance collection', () => {
     const id = useFinanceStore.getState().addGoal({
       name: 'Emergency Fund',
@@ -1014,7 +1040,7 @@ describe('recurring rules', () => {
       recurring: [recurringRule({ type: 'transfer', toAccountId: 'b' })],
     });
 
-    expect(useFinanceStore.getState().processRecurring()).toBe(1);
+    expect(useFinanceStore.getState().processRecurring()).toHaveLength(1);
 
     const state = useFinanceStore.getState();
     expect(state.transactions[0].toAccountId).toBe('b');
@@ -1022,7 +1048,7 @@ describe('recurring rules', () => {
     expect(state.accounts.find((a) => a.id === 'b')?.balance).toBe(800);
     expect(state.recurring[0].occurrenceCount).toBe(1);
     // And the rule is spent — a second pass adds nothing.
-    expect(useFinanceStore.getState().processRecurring()).toBe(0);
+    expect(useFinanceStore.getState().processRecurring()).toHaveLength(0);
   });
 
   it('skips a transfer rule whose destination account is gone', () => {
@@ -1031,7 +1057,7 @@ describe('recurring rules', () => {
       recurring: [recurringRule({ type: 'transfer', toAccountId: 'missing' })],
     });
 
-    expect(useFinanceStore.getState().processRecurring()).toBe(0);
+    expect(useFinanceStore.getState().processRecurring()).toHaveLength(0);
     expect(useFinanceStore.getState().accounts[0].balance).toBe(1000);
   });
 
@@ -1040,11 +1066,24 @@ describe('recurring rules', () => {
     useFinanceStore.setState({ recurring: [recurringRule()] });
 
     useFinanceStore.getState().setRecurringPaused('r1', true);
-    expect(useFinanceStore.getState().processRecurring()).toBe(0);
+    expect(useFinanceStore.getState().processRecurring()).toHaveLength(0);
 
     useFinanceStore.getState().setRecurringPaused('r1', false);
     expect('pausedAt' in useFinanceStore.getState().recurring[0]).toBe(false);
-    expect(useFinanceStore.getState().processRecurring()).toBe(1);
+    expect(useFinanceStore.getState().processRecurring()).toHaveLength(1);
+  });
+
+  it('returns the generated rows so a caller can undo them via bulkDeleteTransactions', () => {
+    seed([account('a', 1000)]);
+    useFinanceStore.setState({ recurring: [recurringRule()] });
+
+    const generated = useFinanceStore.getState().processRecurring();
+    expect(generated).toHaveLength(1);
+    expect(generated[0].recurringId).toBe('r1');
+
+    useFinanceStore.getState().bulkDeleteTransactions(generated.map((t) => t.id));
+    expect(useFinanceStore.getState().transactions).toHaveLength(0);
+    expect(useFinanceStore.getState().accounts[0].balance).toBe(1000);
   });
 
   it('drops transfer rules that pointed at a deleted account', () => {
@@ -1055,6 +1094,32 @@ describe('recurring rules', () => {
 
     useFinanceStore.getState().deleteAccount('b');
     expect(useFinanceStore.getState().recurring).toEqual([]);
+  });
+
+  it('auto-funds a linked goal with a matching contribution on each occurrence', () => {
+    seed([account('a', 1000)]);
+    const goalId = useFinanceStore.getState().addGoal({
+      name: 'Emergency Fund',
+      icon: 'target',
+      color: '#6C63FF',
+      targetAmount: 10000,
+    });
+    useFinanceStore.setState({ recurring: [recurringRule({ goalId })] });
+
+    useFinanceStore.getState().processRecurring();
+
+    const { goalContributions } = useFinanceStore.getState();
+    expect(goalContributions).toHaveLength(1);
+    expect(goalContributions[0]).toMatchObject({ goalId, amount: 300 });
+  });
+
+  it('never resurrects a contribution for a goal that no longer exists', () => {
+    seed([account('a', 1000)]);
+    useFinanceStore.setState({ recurring: [recurringRule({ goalId: 'deleted-goal' })] });
+
+    useFinanceStore.getState().processRecurring();
+
+    expect(useFinanceStore.getState().goalContributions).toEqual([]);
   });
 });
 

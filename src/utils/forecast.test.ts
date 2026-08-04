@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildCashFlowForecast, categoryDailyAverages, liquidDelta } from './forecast';
+import {
+  buildCashFlowCalendarMonth,
+  buildCashFlowForecast,
+  categoryDailyAverages,
+  liquidDelta,
+} from './forecast';
+import { periodRange } from './period';
 import type { Account, RecurringTransaction, Transaction } from '@/types';
 
 const NOW = new Date('2026-06-15T12:00:00.000Z');
@@ -257,5 +263,63 @@ describe('buildCashFlowForecast', () => {
         now: NOW,
       }).isEmpty,
     ).toBe(true);
+  });
+});
+
+describe('buildCashFlowCalendarMonth', () => {
+  const juneRange = periodRange('monthly', NOW);
+
+  it('squares every row off to a full week, and flags the padding', () => {
+    const calendar = buildCashFlowCalendarMonth([], juneRange, NOW);
+
+    expect(calendar.weeks.every((week) => week.length === 7)).toBe(true);
+    expect(calendar.weeks.flat().filter((d) => !d.inRange).length).toBeGreaterThan(0);
+  });
+
+  it('nets same-day flows into one cell and leaves other days alone', () => {
+    const forecast = buildCashFlowForecast({
+      accounts: [account({ id: 'checking', balance: 10000 })],
+      transactions: [],
+      recurring: [
+        rule({ id: 'rule-rent', amount: 2000, startDate: '2026-06-20T00:00:00.000Z' }),
+        rule({
+          id: 'rule-salary',
+          amount: 50000,
+          type: 'income',
+          note: 'Salary',
+          startDate: '2026-06-20T00:00:00.000Z',
+        }),
+      ],
+      now: NOW,
+      days: 30,
+    });
+
+    const calendar = buildCashFlowCalendarMonth(forecast.scheduled, juneRange, NOW);
+    const day20 = calendar.weeks.flat().find((d) => d.key === '2026-06-20');
+    const day21 = calendar.weeks.flat().find((d) => d.key === '2026-06-21');
+
+    expect(day20?.netFlow).toBe(48000);
+    expect(day20?.flows).toHaveLength(2);
+    expect(day21?.netFlow).toBe(0);
+    expect(day21?.flows).toHaveLength(0);
+  });
+
+  it('marks today and excludes flows padded outside the month', () => {
+    const forecast = buildCashFlowForecast({
+      accounts: [account({ id: 'checking', balance: 10000 })],
+      transactions: [],
+      recurring: [rule({ id: 'rule-rent', amount: 2000, startDate: '2026-07-03T00:00:00.000Z' })],
+      now: NOW,
+      days: 60,
+    });
+
+    const calendar = buildCashFlowCalendarMonth(forecast.scheduled, juneRange, NOW);
+    const today = calendar.weeks.flat().find((d) => d.key === '2026-06-15');
+    // 3 July falls inside the padded trailing week of June's grid, but outside the month itself.
+    const paddedJulyDay = calendar.weeks.flat().find((d) => d.key === '2026-07-03');
+
+    expect(today?.isToday).toBe(true);
+    expect(paddedJulyDay?.inRange).toBe(false);
+    expect(paddedJulyDay?.flows).toHaveLength(0);
   });
 });
