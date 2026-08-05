@@ -8,6 +8,7 @@ import {
 } from '@/utils/calculations';
 import { formatCurrency } from '@/utils/formatters';
 import {
+  DAILY_LOG_HOUR,
   NOTIFICATION_HORIZON_DAYS,
   NOTIFY_HOUR,
   type NotificationPrefs,
@@ -184,6 +185,37 @@ function buildCreditEntries(
   return entries;
 }
 
+/**
+ * A once-daily evening nudge to log the day's transactions, skipped when one is already logged
+ * today — the point is to catch a day that would otherwise go unrecorded, not to nag on top of
+ * it.
+ */
+function buildDailyLogEntries(
+  input: NotificationScheduleInput,
+  now: Date,
+): ScheduledNotification[] {
+  const { prefs, transactions } = input;
+  if (!prefs.notifyDailyLog) return [];
+
+  const today = dayKey(now);
+  const alreadyLogged = transactions.some((t) => dayKey(new Date(t.createdAt)) === today);
+  if (alreadyLogged) return [];
+
+  return [
+    {
+      id: `daily:log:${today}`,
+      kind: 'daily',
+      // Clamped forward to now, same as a bill's lead time: opening the app after 9pm should
+      // show the nudge right away rather than wait for a target time already in the past.
+      fireAt: Math.max(now.getTime(), setHours(startOfDay(now), DAILY_LOG_HOUR).getTime()),
+      expiresAt: startOfDay(addDays(now, 1)).getTime(),
+      title: "Log today's transactions",
+      body: 'A quick add keeps your balances accurate.',
+      url: '/add-transaction',
+    },
+  ];
+}
+
 export function buildNotificationSchedule(
   input: NotificationScheduleInput,
   now: Date,
@@ -194,5 +226,6 @@ export function buildNotificationSchedule(
     ...buildBillEntries(input, now),
     ...buildBudgetEntries(input, now),
     ...buildCreditEntries(input, now),
+    ...buildDailyLogEntries(input, now),
   ];
 }

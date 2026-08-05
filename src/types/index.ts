@@ -168,6 +168,8 @@ export interface Settings {
   notifyCreditDue: boolean;
   /** Days before a due date to send a bill or card reminder (0–`MAX_NOTIFY_LEAD_DAYS`). */
   notifyLeadDays: number;
+  /** Evening nudge to log the day's transactions, skipped once one is already logged that day. */
+  notifyDailyLog: boolean;
 }
 
 /**

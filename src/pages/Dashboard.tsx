@@ -304,7 +304,7 @@ export default function Dashboard() {
         {nearLimitBudgets.length > 0 && (
           <button
             onClick={() => navigate('/budgets')}
-            className="card-elevated w-full rounded-2xl p-4 pr-16 text-left lg:pr-4"
+            className="card-elevated w-full rounded-2xl p-4 text-left lg:pr-4"
           >
             <div className="mb-3 flex items-center gap-2">
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15">
@@ -356,7 +356,7 @@ export default function Dashboard() {
         {overallBudget && (
           <button
             onClick={() => navigate('/budgets')}
-            className="card-elevated w-full rounded-2xl p-4 pr-16 text-left lg:pr-4"
+            className="card-elevated w-full rounded-2xl p-4 text-left lg:pr-4"
           >
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -391,7 +391,7 @@ export default function Dashboard() {
         {topGoals.length > 0 && (
           <button
             onClick={() => navigate('/goals')}
-            className="card-elevated w-full rounded-2xl p-4 pr-16 text-left lg:pr-4"
+            className="card-elevated w-full rounded-2xl p-4 text-left lg:pr-4"
           >
             <div className="mb-3 flex items-center gap-2">
               <div className="bg-grad-success-soft flex h-6 w-6 items-center justify-center rounded-full">
@@ -431,7 +431,7 @@ export default function Dashboard() {
         {topDebts.length > 0 && (
           <button
             onClick={() => navigate('/debts')}
-            className="card-elevated w-full rounded-2xl p-4 pr-16 text-left lg:pr-4"
+            className="card-elevated w-full rounded-2xl p-4 text-left lg:pr-4"
           >
             <div className="mb-3 flex items-center gap-2">
               <div className="bg-grad-primary-soft flex h-6 w-6 items-center justify-center rounded-full">
@@ -467,7 +467,7 @@ export default function Dashboard() {
         {creditDues.length > 0 && (
           <button
             onClick={() => navigate('/accounts')}
-            className="card-elevated w-full rounded-2xl p-4 pr-16 text-left lg:pr-4"
+            className="card-elevated w-full rounded-2xl p-4 text-left lg:pr-4"
           >
             <div className="mb-3 flex items-center gap-2">
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-500/15">
@@ -529,7 +529,7 @@ export default function Dashboard() {
         {upcomingRecurring.length > 0 && (
           <button
             onClick={() => navigate('/recurring')}
-            className="card-elevated w-full rounded-2xl p-4 pr-16 text-left lg:pr-4"
+            className="card-elevated w-full rounded-2xl p-4 text-left lg:pr-4"
           >
             <div className="mb-3 flex items-center gap-2">
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/15">

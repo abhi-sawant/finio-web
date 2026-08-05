@@ -35,7 +35,6 @@ export const TransactionItem = memo(function TransactionItem({
   transaction,
   categories,
   accounts,
-  labels = [],
   showDate = false,
   onClick,
   onLongPressAction,
@@ -70,9 +69,6 @@ export const TransactionItem = memo(function TransactionItem({
   const toAccount = transaction.toAccountId
     ? accounts.find((a) => a.id === transaction.toAccountId)
     : undefined;
-  const txLabels = transaction.labels
-    .map((id) => labels.find((l) => l.id === id))
-    .filter((l): l is Label => !!l);
 
   const amountColor =
     transaction.type === 'income'
@@ -146,19 +142,6 @@ export const TransactionItem = memo(function TransactionItem({
             {secondaryLine}
             {showDate && <span className="opacity-60"> · {formatDate(transaction.date)}</span>}
           </p>
-          {txLabels.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {txLabels.map((l) => (
-                <span
-                  key={l.id}
-                  className="rounded-full px-1.5 py-0.5 text-[9px] font-medium"
-                  style={{ backgroundColor: `${l.color}26`, color: l.color }}
-                >
-                  {l.name}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
         <p className={`text-sm font-semibold ${amountColor}`}>
           <span className="sr-only">{typeLabel}: </span>

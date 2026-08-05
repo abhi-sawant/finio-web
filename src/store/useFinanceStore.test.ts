@@ -1535,6 +1535,7 @@ describe('v13 migration', () => {
     expect(settings.notifyBudgets).toBe(true);
     expect(settings.notifyCreditDue).toBe(true);
     expect(settings.notifyLeadDays).toBe(2);
+    expect(settings.notifyDailyLog).toBe(true);
   });
 
   it('preserves settings the user already chose', async () => {

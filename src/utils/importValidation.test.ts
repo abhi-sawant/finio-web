@@ -249,6 +249,7 @@ describe('validateBackup', () => {
       notifyBudgets: true,
       notifyCreditDue: true,
       notifyLeadDays: 2,
+      notifyDailyLog: true,
     });
   });
 

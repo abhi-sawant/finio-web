@@ -602,6 +602,10 @@ function parseSettings(value: unknown): Settings | undefined {
       typeof value.notifyLeadDays === 'number' && Number.isFinite(value.notifyLeadDays)
         ? Math.min(MAX_NOTIFY_LEAD_DAYS, Math.max(0, Math.trunc(value.notifyLeadDays)))
         : defaultSettings.notifyLeadDays,
+    notifyDailyLog:
+      typeof value.notifyDailyLog === 'boolean'
+        ? value.notifyDailyLog
+        : defaultSettings.notifyDailyLog,
   };
 }
 

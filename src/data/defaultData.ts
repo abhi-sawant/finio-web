@@ -88,4 +88,5 @@ export const defaultSettings: Settings = {
   notifyBudgets: true,
   notifyCreditDue: true,
   notifyLeadDays: 2,
+  notifyDailyLog: true,
 };

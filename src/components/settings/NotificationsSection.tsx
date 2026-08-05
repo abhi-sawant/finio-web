@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellRing, Repeat, Target, CreditCard, CalendarClock } from 'lucide-react';
+import { Bell, BellRing, Repeat, Target, CreditCard, CalendarClock, NotebookPen } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import {
@@ -139,6 +139,17 @@ export function NotificationsSection() {
             checked={settings.notifyCreditDue}
             onCheckedChange={(notifyCreditDue) => {
               updateSettings({ notifyCreditDue });
+              refreshNotificationSchedule();
+            }}
+          />
+          <SwitchField
+            className="p-4"
+            icon={<NotebookPen size={18} className="text-muted-foreground shrink-0" />}
+            title="Daily reminder"
+            description="An evening nudge to log today's transactions"
+            checked={settings.notifyDailyLog}
+            onCheckedChange={(notifyDailyLog) => {
+              updateSettings({ notifyDailyLog });
               refreshNotificationSchedule();
             }}
           />

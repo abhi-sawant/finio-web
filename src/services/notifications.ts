@@ -112,6 +112,7 @@ function currentPrefs(): NotificationPrefs {
     notifyBudgets: settings.notifyBudgets,
     notifyCreditDue: settings.notifyCreditDue,
     notifyLeadDays: settings.notifyLeadDays,
+    notifyDailyLog: settings.notifyDailyLog,
     hideAmounts: settings.hideAmounts,
   };
 }

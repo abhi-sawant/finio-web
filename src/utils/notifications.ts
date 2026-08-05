@@ -21,13 +21,16 @@ export const MAX_NOTIFY_LEAD_DAYS = 7;
  */
 export const NOTIFY_HOUR = 9;
 
+/** Local hour of day the daily transaction-logging nudge lands at — evening, once the day is done. */
+export const DAILY_LOG_HOUR = 21;
+
 /**
  * Never show more than this in one pass. Someone returning after a month away should get a
  * useful nudge, not twenty stacked banners; the rest expire quietly.
  */
 export const MAX_NOTIFICATIONS_PER_RUN = 3;
 
-export type NotificationKind = 'bill' | 'budget' | 'credit';
+export type NotificationKind = 'bill' | 'budget' | 'credit' | 'daily';
 
 export interface ScheduledNotification {
   /**
@@ -54,6 +57,7 @@ export interface NotificationPrefs {
   notifyBudgets: boolean;
   notifyCreditDue: boolean;
   notifyLeadDays: number;
+  notifyDailyLog: boolean;
   /** Mirrors `Settings.hideAmounts` — a lock-screen preview is exactly what it exists for. */
   hideAmounts: boolean;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildNotificationSchedule, type NotificationScheduleInput } from './notificationSchedule';
-import { NOTIFY_HOUR, type NotificationPrefs } from './notifications';
+import { DAILY_LOG_HOUR, NOTIFY_HOUR, type NotificationPrefs } from './notifications';
 import type {
   Account,
   Budget,
@@ -31,6 +31,7 @@ function prefs(partial: Partial<NotificationPrefs> = {}): NotificationPrefs {
     notifyBudgets: true,
     notifyCreditDue: true,
     notifyLeadDays: 2,
+    notifyDailyLog: true,
     hideAmounts: false,
     ...partial,
   };
@@ -395,6 +396,49 @@ describe('buildNotificationSchedule', () => {
         NOW,
       );
       expect(schedule.filter((e) => e.kind === 'credit')).toEqual([]);
+    });
+  });
+
+  describe('daily transaction-log reminder', () => {
+    it('fires at DAILY_LOG_HOUR when nothing has been logged today', () => {
+      const schedule = buildNotificationSchedule(input(), NOW);
+      const daily = schedule.find((e) => e.kind === 'daily');
+      expect(daily).toBeDefined();
+      expect(daily!.id).toBe(`daily:log:${dayFromNow(0)}`);
+      expect(new Date(daily!.fireAt).getHours()).toBe(DAILY_LOG_HOUR);
+    });
+
+    it('clamps forward to now when opened after DAILY_LOG_HOUR', () => {
+      const late = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate(), 22, 0, 0);
+      const schedule = buildNotificationSchedule(input(), late);
+      const daily = schedule.find((e) => e.kind === 'daily');
+      expect(daily?.fireAt).toBe(late.getTime());
+    });
+
+    it('says nothing once a transaction has already been logged today', () => {
+      const schedule = buildNotificationSchedule(
+        input({ transactions: [tx({ amount: 200, date: isoFromNow(0) })] }),
+        NOW,
+      );
+      expect(schedule.filter((e) => e.kind === 'daily')).toEqual([]);
+    });
+
+    it('says nothing when the switch is off', () => {
+      const schedule = buildNotificationSchedule(
+        input({ prefs: prefs({ notifyDailyLog: false }) }),
+        NOW,
+      );
+      expect(schedule.filter((e) => e.kind === 'daily')).toEqual([]);
+    });
+
+    it('expires at the start of the next day', () => {
+      const schedule = buildNotificationSchedule(input(), NOW);
+      const daily = schedule.find((e) => e.kind === 'daily')!;
+      const expires = new Date(daily.expiresAt);
+      expect(expires.getDate()).toBe(
+        new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() + 1).getDate(),
+      );
+      expect(expires.getHours()).toBe(0);
     });
   });
 
