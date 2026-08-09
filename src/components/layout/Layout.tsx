@@ -51,6 +51,7 @@ export function Layout() {
       categoryId: template.categoryId,
       date: new Date().toISOString(),
       note: template.note,
+      ...(template.merchant ? { merchant: template.merchant } : {}),
       labels: template.labels,
       ...(template.splits ? { splits: template.splits } : {}),
     });

@@ -230,6 +230,7 @@ export default function Transactions() {
         categoryId: tx.categoryId,
         date: new Date().toISOString(),
         note: tx.note,
+        ...(tx.merchant ? { merchant: tx.merchant } : {}),
         labels: tx.labels,
         ...(tx.splits ? { splits: tx.splits } : {}),
       });
@@ -261,6 +262,7 @@ export default function Transactions() {
       ...(templateTx.toAccountId ? { toAccountId: templateTx.toAccountId } : {}),
       categoryId: templateTx.categoryId,
       note: templateTx.note,
+      ...(templateTx.merchant ? { merchant: templateTx.merchant } : {}),
       labels: templateTx.labels,
       ...(templateTx.splits ? { splits: templateTx.splits } : {}),
     });

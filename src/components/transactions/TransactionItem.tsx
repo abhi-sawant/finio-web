@@ -108,6 +108,12 @@ export const TransactionItem = memo(function TransactionItem({
     <CategoryIcon icon={category?.icon ?? 'circle-ellipsis'} size={16} color={tint} />
   );
 
+  const primaryText = transaction.merchant
+    ? transaction.note
+      ? `${transaction.merchant} - ${transaction.note}`
+      : transaction.merchant
+    : transaction.note || splitTitle || category?.name || 'Transaction';
+
   const secondaryLine =
     isTransfer && toAccount
       ? `${account?.name ?? '?'} → ${toAccount.name}`
@@ -133,7 +139,7 @@ export const TransactionItem = memo(function TransactionItem({
         </div>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 truncate text-sm font-medium">
-            {transaction.note || splitTitle || category?.name || 'Transaction'}
+            {primaryText}
             {transaction.recurringId && (
               <Repeat size={12} className="text-muted-foreground" aria-label="Recurring" />
             )}

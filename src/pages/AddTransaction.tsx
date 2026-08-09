@@ -85,6 +85,7 @@ export default function AddTransaction() {
       : toLocalDateTimeInputValue(new Date()),
   );
   const [note, setNote] = useState(existing?.note ?? shared?.note ?? '');
+  const [merchant, setMerchant] = useState(existing?.merchant ?? '');
   const [selectedLabels, setSelectedLabels] = useState<string[]>(
     existing?.labels ?? mergeLabels([], sharedRule?.labelIds ?? []),
   );
@@ -181,6 +182,13 @@ export default function AddTransaction() {
     const seen = new Set<string>();
     return transactions
       .map((t) => t.note?.trim())
+      .filter((n): n is string => !!n && !seen.has(n) && seen.add(n) !== undefined);
+  }, [transactions]);
+
+  const merchantSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    return transactions
+      .map((t) => t.merchant?.trim())
       .filter((n): n is string => !!n && !seen.has(n) && seen.add(n) !== undefined);
   }, [transactions]);
 
@@ -296,6 +304,7 @@ export default function AddTransaction() {
             : categoryId,
       date: new Date(date).toISOString(),
       note,
+      merchant: merchant.trim() || undefined,
       labels: selectedLabels,
       splits: useSplits
         ? splitRows.map((r) => ({
@@ -594,6 +603,26 @@ export default function AddTransaction() {
             Date & Time
           </Label>
           <DateTimePicker value={date} onChange={setDate} />
+        </div>
+
+        {/* Merchant */}
+        <div>
+          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
+            Merchant
+          </Label>
+          <Input
+            type="text"
+            placeholder="Add a merchant..."
+            value={merchant}
+            onChange={(e) => setMerchant(e.target.value)}
+            className="bg-card h-auto rounded-xl px-4 py-3"
+            list="merchant-suggestions"
+          />
+          <datalist id="merchant-suggestions">
+            {merchantSuggestions.map((m) => (
+              <option key={m} value={m} />
+            ))}
+          </datalist>
         </div>
 
         {/* Note */}
