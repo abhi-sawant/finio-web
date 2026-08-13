@@ -86,17 +86,21 @@ class AuthController
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
-        if (!$user) {
-            json_error('No account found with this email.', 404);
-        }
-        if ($user['is_verified']) {
+        if ($user && $user['is_verified']) {
             json_error('This account is already verified. Please log in.');
         }
-        if (empty($user['otp_hash']) || strtotime($user['otp_expires']) < time()) {
-            json_error('OTP has expired. Please request a new one.', 410);
-        }
-        if (!hash_equals($user['otp_hash'], hash('sha256', $otp))) {
-            json_error('Invalid OTP.', 401);
+
+        // A missing account and a wrong/expired OTP must be indistinguishable to the caller,
+        // or the response leaks exactly what forgotPassword() deliberately hides.
+        $otpHash    = $user['otp_hash'] ?? '';
+        $otpExpires = $user['otp_expires'] ?? '1970-01-01 00:00:00';
+
+        if (
+            empty($otpHash)
+            || strtotime($otpExpires) < time()
+            || !hash_equals($otpHash, hash('sha256', $otp))
+        ) {
+            json_error('Invalid or expired OTP.', 401);
         }
 
         $pdo->prepare(
@@ -131,24 +135,25 @@ class AuthController
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
-        if (!$user) {
-            json_error('No account found with this email.', 404);
-        }
-        if ($user['is_verified']) {
+        if ($user && $user['is_verified']) {
             json_error('This account is already verified. Please log in.');
         }
 
-        $otp     = $this->generateOtp();
-        $otpHash = hash('sha256', $otp);
-        $expires = date('Y-m-d H:i:s', time() + 900);
+        // Only send when an unverified account actually exists, but respond the same way
+        // either way — a 404 here would leak exactly what forgotPassword() hides.
+        if ($user) {
+            $otp     = $this->generateOtp();
+            $otpHash = hash('sha256', $otp);
+            $expires = date('Y-m-d H:i:s', time() + 900);
 
-        $pdo->prepare(
-            'UPDATE users SET otp_hash = ?, otp_expires = ? WHERE id = ?'
-        )->execute([$otpHash, $expires, $user['id']]);
+            $pdo->prepare(
+                'UPDATE users SET otp_hash = ?, otp_expires = ? WHERE id = ?'
+            )->execute([$otpHash, $expires, $user['id']]);
 
-        $this->sendOtpEmail($email, $user['name'], $otp, 'verify');
+            $this->sendOtpEmail($email, $user['name'], $otp, 'verify');
+        }
 
-        json_ok(['message' => 'A new OTP has been sent to your email.']);
+        json_ok(['message' => 'If an account with that email exists, a new OTP has been sent.']);
     }
 
     // ── POST /auth/login ──────────────────────────────────────────────────────

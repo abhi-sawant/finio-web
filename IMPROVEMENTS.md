@@ -183,13 +183,22 @@ brute force that stays under the per-IP thresholds.
 oversized body is never fully buffered, and re-checks `strlen($raw)` afterwards to cover missing
 or spoofed `Content-Length` — all three return `413`.
 
-### 8. Email-enumeration inconsistency
+### 8. Email-enumeration inconsistency — ✅ Fixed
 
-- [ ] `forgotPassword` deliberately always returns success — correct, keep it. But `verifyOtp`
+- [x] `forgotPassword` deliberately always returns success — correct, keep it. But `verifyOtp`
       ([`:90`](backend/src/controllers/AuthController.php#L90)) and `resendOtp`
       ([`:135`](backend/src/controllers/AuthController.php#L135)) both return
       `404 "No account found with this email."`, leaking exactly what the other endpoint
       protects. Make the responses uniform.
+
+**Fix:** [`AuthController.php`](backend/src/controllers/AuthController.php) — `resendOtp()` no
+longer 404s on a missing account; it always returns the same generic
+`"If an account with that email exists, a new OTP has been sent."` and only actually writes/sends
+an OTP when an unverified account is found, mirroring `forgotPassword()`. `verifyOtp()` collapses
+"no account", "no OTP set", "OTP expired" and "wrong OTP" into one identical
+`401 "Invalid or expired OTP."` so a missing account can't be told apart from a real account with
+a bad code. The "already verified, please log in" branch is left as-is in both — that leak already
+exists via `register`'s `409` and isn't part of this finding.
 
 ### 9. Optional: JWT has no revocation path
 
