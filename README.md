@@ -26,7 +26,7 @@ takes the opposite approach: it is a plain web app that keeps a ledger for you, 
 |  | What it means |
 |---|---|
 | **Offline-first** | All data lives in your browser's local storage. Turn off the internet and the app still works completely. |
-| **No account required** | You can use every feature — accounts, budgets, goals, analytics, reminders — without ever signing up. |
+| **No account required** | You can use every feature — accounts, budgets, goals, loans, analytics, reminders — without ever signing up. |
 | **Zero tracking** | No analytics, no telemetry, no third-party scripts. |
 | **Installable** | Add it to your home screen on Android or iOS, or install it on desktop. It opens like a native app, no browser bars. |
 | **Optional encrypted backup** | If you want your data on more than one device, turn on cloud backup — and optionally encrypt it with a passphrase only you know. |
@@ -38,12 +38,15 @@ takes the opposite approach: it is a plain web app that keeps a ledger for you, 
 
 The first time you open Finio, a short wizard asks for your name, your first account, and its
 current balance. You can skip past the account step — handy if you're reinstalling and want to go
-straight to Settings and restore a backup.
+straight to Settings and restore a backup. If you'd rather look around before entering real
+numbers, the wizard also offers to load a **sample dataset** — a small, realistic set of accounts,
+transactions, budgets and goals you can explore or delete at any time.
 
 After that:
 
 1. **Add a transaction** — tap the **+** button. Pick Expense, Income, or Transfer, punch in the
-   amount on the number pad, choose the account and category, add a note, and save.
+   amount on the number pad, choose the account and category, add a note (and optionally who it
+   went to or came from), and save.
 2. **Set a budget** — Settings → Budgets → **+**. Pick a category (or "Overall"), a limit, and
    whether it resets weekly, monthly, or yearly.
 3. **Automate the regulars** — Settings → Recurring → **+** for rent, salary, subscriptions. Finio
@@ -95,6 +98,11 @@ Credit cards get a full lifecycle: a credit limit with a utilization reading, pl
 statement cycle (close day, days until payment is due, minimum-due percentage). Set it once and
 Finio tracks the due date and warns you before it arrives.
 
+Balance drifted from your real bank or card statement? Open the account and tap **Reconcile
+Balance** — enter the statement figure and Finio posts a single adjustment transaction to close
+the gap, with a note you can edit. (There's also a global, non-destructive **Reconcile Balances**
+in Settings that just recomputes every cached balance from history — see below.)
+
 Closed an account? **Archive** it rather than deleting. Archived accounts keep every transaction
 and drop out of your totals and pickers, and you can restore them any time. Deleting is still
 available, and the confirmation tells you exactly how many transactions would go with it.
@@ -103,8 +111,10 @@ available, and the confirmation tells you exactly how many transactions would go
 
 The full ledger, grouped by date and virtualized so it stays fast with tens of thousands of rows.
 
-- **Search** across notes, categories, both sides of a transfer, labels, and amounts — typing
-  `₹1,200` finds `1200`.
+- **Merchant field** — record who the money went to or came from separately from your note; it
+  shows alongside it as "merchant – note" and feeds the Merchants view below.
+- **Search** across notes, merchants, categories, both sides of a transfer, labels, and amounts —
+  typing `₹1,200` finds `1200`.
 - **Filter** by type, account, and date range.
 - **Split one expense across categories** — a ₹3,000 supermarket run can be ₹2,200 Food and ₹800
   Household, and both budgets see their share.
@@ -127,7 +137,8 @@ history so you can see whether you actually hit it last month.
 
 Set a target amount and an optional deadline, then log contributions and withdrawals against the
 goal. Finio shows the percentage complete, what's left, and — once it has enough history — a
-projected completion date based on your actual pace.
+projected completion date based on your actual pace. You can also point a recurring rule at a
+goal so every occurrence auto-logs a contribution, instead of remembering to do it by hand.
 
 Goal contributions are their own ledger, deliberately separate from your accounts, so tracking a
 goal can never accidentally move a real balance.
@@ -139,6 +150,26 @@ and see each person's running balance.
 
 **Settle up** is the one moment real money moves: enter the amount and the account, and Finio
 creates a genuine income or expense transaction *and* balances the person's ledger in one step.
+
+### Loans & EMI
+
+Add a loan with its principal, annual interest rate, and tenure, and Finio computes the EMI and
+creates a recurring rule that posts it automatically every month — no manual entry, no risk of
+the EMI drifting out of sync with the numbers that produced it. Each loan's card shows the full
+amortization picture: outstanding balance, interest paid so far, next due date, and payoff date.
+
+Made an extra payment? Log a **prepayment** and Finio shows exactly how many months and how much
+interest it saves, before you confirm — prepayments are real money leaving an account, so they
+post a genuine expense transaction alongside the ledger entry. Mark a loan paid off (or reopen it)
+any time; closing pauses its EMI rule without touching what it already posted.
+
+### Merchants
+
+A grouped view of where your money actually goes — and comes from — built entirely from your
+existing notes, no setup required. Finio recognizes that "Swiggy 449" and "Swiggy/9921" are the
+same merchant and rolls them into one card with a running total, transaction count, and every
+transaction underneath. A **Top Merchants** card on the Analytics page surfaces the five biggest
+at a glance.
 
 ### Recurring Transactions
 
@@ -161,14 +192,21 @@ Filter by this month, last 3 or 6 months, this year, all time, or a custom range
 | **Net worth over time** | A trend line that freezes each month as it closes, so editing old history doesn't silently rewrite your past. |
 | **Compare periods** | This period vs. the last one vs. the same one a year ago, with the biggest category swings ranked. An in-progress period is labelled as such and shows what it's on pace for. |
 | **Spending heatmap** | A calendar of your spending, month by month, with the busiest day called out. |
+| **Top Merchants** | Your five biggest merchants by spend, linking through to the full Merchants view. |
 | **Charts** | Spending by category, income vs. expenses, balance trend, and spending by label. |
 
 Every chart has a **View data table** toggle — the same numbers as plain text, for screen readers
 or for anyone who'd rather read the figures than the picture.
 
+### Year in Review
+
+An annual look back, one financial year at a time: total income and expenses, the categories that
+moved the most versus last year, and the headline numbers you'd want at year-end. Step backwards
+through past years or stay on the one in progress, which is labelled and paced accordingly.
+
 ### Categories, Labels, and Rules
 
-**23 built-in categories** and **9 built-in labels** ship with the app, and you can add, edit, or
+**32 built-in categories** and **9 built-in labels** ship with the app, and you can add, edit, or
 delete any of them. Categories have an icon, a colour, and a type (expense, income, or both);
 labels are free-form tags you can stack on any transaction.
 
@@ -187,8 +225,9 @@ already in your ledger before anything is added.
 
 ### Reminders
 
-Optional local notifications for bills coming due, budgets crossing their limit, and credit card
-payments — with your own lead time of up to 7 days. Nothing is on until you turn it on.
+Optional local notifications for bills coming due, budgets crossing their limit, credit card
+payments — with your own lead time of up to 7 days — and an evening nudge to log the day's
+transactions if you haven't yet. Nothing is on until you turn it on.
 
 On Android these can arrive while the app is closed. On iOS and Firefox they arrive the next time
 you open the app, and the Settings screen says so plainly rather than pretending otherwise.
@@ -224,11 +263,15 @@ Finio gives you four ways to not lose your data, and you can use any combination
 Everything above is configured from one screen: display name, theme (light / dark / follow
 system), **hide amounts** (masks every figure app-wide behind dots when you're in public), the day
 your financial month starts (1–28, so a 25th-of-the-month salary cycle really runs 25 Jun – 24
-Jul), reminders, app lock, cloud account and password, encryption, backups, CSV import, and
-category / label / rule management.
+Jul), reminders, app lock, cloud account and password, encryption, backups, CSV import, category /
+label / rule management, and quick links out to Loans, Merchants, and Year in Review.
 
-There's also **Reconcile Balances**, which rebuilds every account balance from its opening balance
-and its transactions and reports what it corrected — a safety net you'll probably never need.
+There's also a global **Reconcile Balances**, which rebuilds every account balance from its
+opening balance and its transactions and reports what it corrected — a safety net you'll probably
+never need day-to-day (see Accounts, above, for reconciling a single account against a real
+statement instead).
+
+The footer links to Finio's **Privacy Policy** and **Terms of Service**.
 
 ---
 
@@ -277,7 +320,8 @@ only adds user accounts and cloud backup storage.
 | Tests | Vitest (node environment) |
 | PWA | vite-plugin-pwa with `injectManifest` + a hand-written Workbox service worker |
 | Backend | PHP 8 + Composer |
-| Auth | firebase/php-jwt (30-day tokens) |
+| Auth | firebase/php-jwt (30-day tokens, revocable via a `token_version` counter) |
+| Rate limiting | Custom file-based fixed-window limiter (no Redis/APCu dependency) |
 | Email | PHPMailer over SMTP |
 | Database | MySQL |
 
@@ -310,11 +354,12 @@ npm run format:check # Check formatting without writing
 
 ### Tests
 
-463 tests across 22 files, living next to their subjects as `*.test.ts`. They cover the pure money
+534 tests across 26 files, living next to their subjects as `*.test.ts`. They cover the pure money
 logic — balance deltas and reconciliation, the recurring planner, budget status and rollover,
 period math, backup validation, CSV parsing, the categorization engine, forecasting, net worth,
-insights, the notification schedule, PIN and backup crypto — plus the finance, app-lock, and
-backup-crypto stores.
+insights, loan amortization, merchant grouping, the notification schedule, PIN and backup crypto —
+plus the finance, app-lock, and backup-crypto stores, and the deterministic onboarding sample
+dataset.
 
 `vitest.config.ts` is deliberately separate from `vite.config.ts` and runs in the **node**
 environment: no jsdom, no setup file, and `include` matches `.test.ts` only. That's a real
@@ -328,6 +373,13 @@ Read [CLAUDE.md](CLAUDE.md) for the full set. The short version:
 
 - **Balances are derived.** `Account.openingBalance` is the source of truth; `balance` is a cache
   of `openingBalance + Σ(deltas)`. Bulk mutations must apply deltas or call `recomputeBalances()`.
+- **There are two different "reconcile" flows.** Settings' global `recomputeBalances()` just
+  recomputes the cache; the per-account `ReconcileAccountDialog` posts a real adjustment
+  transaction against a bank/card statement. They are not interchangeable.
+- **A loan's EMI is derived, never stored** — `src/utils/loan.ts` recomputes it from
+  principal/rate/tenure every time, the same way an account's balance is a cache, not a source.
+- **Merchants are a computed view, not a schema entity.** `src/utils/merchants.ts` groups
+  transactions by a normalized note; there's no `Merchant` id anywhere.
 - **"This month" is a financial month.** Never call `startOfMonth`/`endOfMonth` in feature code —
   go through `src/utils/period.ts`, which honours `Settings.monthStartDay`.
 - **The PWA doesn't run under `vite dev`.** Use `npm run build && npm run preview`.
@@ -339,6 +391,8 @@ Read [CLAUDE.md](CLAUDE.md) for the full set. The short version:
   hash and backup-encryption config live in their own stores for exactly this reason.
 - **New entity?** Wire it into `services/backup.ts` and `utils/importValidation.ts` too, or it
   silently drops out of every backup.
+- **New backend route?** Register it in `backend/public/index.php` with a rate-limit bucket
+  (`$rl(...)`) — nothing applies a limit automatically.
 
 ### Project Layout
 
@@ -346,14 +400,14 @@ Read [CLAUDE.md](CLAUDE.md) for the full set. The short version:
 finio-web/
 ├── src/
 │   ├── App.tsx              # Router + the hydration / lock / onboarding gates
-│   ├── pages/               # One file per route, all lazy-loaded
+│   ├── pages/               # One file per route, all lazy-loaded (incl. legal/, auth/)
 │   ├── components/          # ui/ charts/ analytics/ applock/ onboarding/ layout/ …
 │   ├── sw/sw.ts             # Hand-written service worker (its own TS project)
 │   ├── store/               # Zustand stores + pure balance/recurring modules
-│   ├── services/            # API client, backup, notifications, app lock
+│   ├── services/            # API client, backup, notifications, app lock, downloads
 │   ├── utils/               # All the pure logic (and all the tests)
 │   ├── types/index.ts       # Every domain interface
-│   └── data/defaultData.ts  # Default categories, labels, settings
+│   └── data/                # Default categories/labels/settings + onboarding sample data
 ├── backend/                 # Optional PHP API (see below)
 ├── public/                  # PWA icons, .htaccess
 ├── vite.config.ts           # Vite + PWA manifest + chunk splitting
@@ -383,8 +437,8 @@ their equivalent.
 > encrypted blob, so self-hosting isn't the only way to keep the operator out of your data.
 
 The backend is a single-entry-point PHP app designed for **cPanel shared hosting** (MilesWeb,
-Hostinger, SiteGround, and similar). It provides JWT auth, email OTP verification, and JSON backup
-storage. No prior PHP or server experience is required.
+Hostinger, SiteGround, and similar). It provides JWT auth, email OTP verification, per-route rate
+limiting, and JSON backup storage. No prior PHP or server experience is required.
 
 **Estimated time: ~45 minutes.** `backend/SETUP_GUIDE.txt` has the same steps in plain text.
 
@@ -412,10 +466,12 @@ storage. No prior PHP or server experience is required.
 
 ```sql
 users   — id, name, email, password_hash, is_verified, otp_hash, otp_expires,
-          reset_token_hash, reset_token_expires, created_at
+          reset_token_hash, reset_token_expires, token_version, created_at
 backups — id, user_id, backup_date, file_size, created_at
           (unique constraint: one backup per user per day)
 ```
+
+`token_version` is what makes a JWT revocable — see "JWT sessions" in the API Reference below.
 
 ### Step 3 — Create the API subdomain
 
@@ -443,15 +499,19 @@ Copy the 64-character output. This signs your tokens — keep it private.
 
 This address sends OTP verification and password-reset emails.
 
-### Step 6 — Create the config file and backup folder
+### Step 6 — Create the config file and data folders
 
 In cPanel Terminal:
 
 ```bash
-mkdir -p ~/finio-backups && chmod 750 ~/finio-backups && mkdir -p ~/finio-config
+mkdir -p ~/finio-backups && chmod 750 ~/finio-backups
+mkdir -p ~/finio-ratelimit && chmod 750 ~/finio-ratelimit
+mkdir -p ~/finio-config
 ```
 
-The backup folder lives **outside** `public_html` so it is never web-accessible.
+Both folders live **outside** `public_html` so they are never web-accessible. `finio-ratelimit`
+holds the small per-client JSON counters the rate limiter uses — safe to empty at any time, it
+just resets everyone's limits.
 
 Then, in **File Manager**, create `~/finio-config/config.php` and paste in the entire contents of
 `backend/config.example.php`. Replace every placeholder:
@@ -465,7 +525,7 @@ Then, in **File Manager**, create `~/finio-config/config.php` and paste in the e
 | `mail.yourdomain.com` | Your mail host |
 | `noreply@yourdomain.com` | Your noreply address from Step 5 |
 | `YOUR_EMAIL_PASSWORD` | The email password from Step 5 |
-| `CPANEL_USER` (in `backup_dir`) | Your cPanel username (e.g. `johndoe`) |
+| `CPANEL_USER` (in `backup_dir` and `rate_limit_dir`) | Your cPanel username (e.g. `johndoe`) |
 | `https://api.yourdomain.com` | Your API subdomain URL |
 
 Then set `allowed_origins` to the frontends allowed to call the API — CORS is enforced against
@@ -476,6 +536,13 @@ this list:
     'https://finio.yourdomain.com',  // your frontend
     'http://localhost:5173',         // Vite dev server (remove in production)
 ],
+```
+
+Two more knobs worth knowing about, both with sane defaults:
+
+```php
+'backup_retention_days' => 30,   // daily backups older than this are purged automatically
+'backup_max_size_mb'    => 10,   // uploads larger than this are rejected with 413
 ```
 
 ### Step 7 — Upload the backend
@@ -498,7 +565,7 @@ public_html/api/
     .htaccess
     index.php
   src/
-    Config.php  Database.php  Router.php  helpers.php
+    Config.php  Database.php  Router.php  RateLimiter.php  helpers.php
     controllers/  middleware/
   composer.json
   schema.sql
@@ -565,7 +632,9 @@ curl https://api.yourdomain.com/backup/latest -H "Authorization: Bearer YOUR_TOK
 ```
 
 Expected, in order: the "check your email" message, then `{"token":"eyJ...","user":{...}}` twice,
-then `{"message":"Backup saved"}`, then the payload you uploaded.
+then `{"message":"Backup uploaded successfully.",...}`, then the payload you uploaded. Hammering
+any of these repeatedly in a short window should eventually get you a `429` with a `Retry-After`
+header — that's the rate limiter working, not a bug.
 
 ### Step 11 — Point the frontend at your API
 
@@ -586,26 +655,37 @@ origin is in the backend's `allowed_origins`.
 
 ### API Reference
 
-| Method + path | Auth | Purpose |
-|---|---|---|
-| `POST /auth/register` | — | Create account, email an OTP |
-| `POST /auth/verify-otp` | — | → `{ token, user }` |
-| `POST /auth/resend-otp` | — | Re-send the verification OTP |
-| `POST /auth/login` | — | → `{ token, user }` |
-| `POST /auth/forgot-password` | — | Email a reset OTP |
-| `POST /auth/reset-password` | — | Set a new password with the OTP |
-| `POST /backup/upload` | JWT | Store a backup (one per user per day) |
-| `GET /backup/latest` | JWT | Most recent backup |
-| `GET /backup/list` | JWT | Every backup's date and size |
-| `GET /backup/{date}` | JWT | One specific backup |
-| `DELETE /backup/{date}` | JWT | Delete one backup |
-| `GET /user/me` | JWT | Profile |
-| `PUT /user/me` | JWT | Change password → returns a fresh token |
-| `DELETE /user/me` | JWT | Delete the account and all its backups |
+| Method + path | Auth | Rate limit (per IP unless noted) | Purpose |
+|---|---|---|---|
+| `POST /auth/register` | — | 5 / hour | Create account, email an OTP |
+| `POST /auth/verify-otp` | — | 10 / 15 min | → `{ token, user }` |
+| `POST /auth/resend-otp` | — | 3 / 15 min | Re-send the verification OTP |
+| `POST /auth/login` | — | 10 / 15 min | → `{ token, user }` |
+| `POST /auth/forgot-password` | — | 5 / hour | Email a reset OTP |
+| `POST /auth/reset-password` | — | 10 / 15 min | Set a new password with the OTP |
+| `POST /backup/upload` | JWT | 30 / min, per user | Store a backup (one per user per day, capped at `backup_max_size_mb`) |
+| `GET /backup/latest` | JWT | 60 / min, per user | Most recent backup |
+| `GET /backup/list` | JWT | 60 / min, per user | Every backup's date and size |
+| `GET /backup/{date}` | JWT | 60 / min, per user | One specific backup |
+| `DELETE /backup/{date}` | JWT | 30 / min, per user | Delete one backup |
+| `GET /user/me` | JWT | 60 / min, per user | Profile |
+| `PUT /user/me` | JWT | 10 / min, per user | Change password → returns a fresh token |
+| `DELETE /user/me` | JWT | 5 / min, per user | Delete the account and all its backups |
 
 The backup body is opaque to the server. With encryption enabled the client uploads an
 `{v, enc, kdf, iterations, salt, iv, ciphertext}` envelope instead of the finance payload — no
 backend change was needed, and older plaintext backups remain restorable.
+
+**JWT sessions.** Access tokens are valid for 30 days, but a stateless JWT can't be revoked on its
+own — so every token also carries a `tv` (token version) claim, checked against the user's
+`token_version` column on every authenticated request. Changing your password (via `PUT /user/me`)
+or completing a password reset bumps that column, which instantly invalidates every session issued
+before it, independent of the 30-day expiry.
+
+**Rate limiting.** Every route above enforces a fixed-window limit via a small file-based counter
+(no Redis/APCu required, which matters on shared hosting) — exceeding it returns `429` with a
+`Retry-After` header. Limits fail *open*, not closed: if the counter storage itself has a problem,
+requests are allowed through rather than the API going down.
 
 ---
 
