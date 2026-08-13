@@ -6,6 +6,8 @@ import { getErrorMessage } from '@/utils/errors';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,6 +27,10 @@ export default function Register() {
     }
     if (password.length < 8) {
       toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (!agreed) {
+      toast.error('Please confirm your age and agree to the Terms of Service and Privacy Policy');
       return;
     }
 
@@ -93,9 +100,28 @@ export default function Register() {
             </Button>
           </div>
 
+          <Label htmlFor="agree-terms" className="items-start gap-2 font-normal">
+            <Checkbox
+              id="agree-terms"
+              checked={agreed}
+              onCheckedChange={(checked) => setAgreed(checked === true)}
+              className="mt-0.5"
+            />
+            <span className="text-muted-foreground text-sm">
+              I confirm I am at least 16 years old and agree to the{' '}
+              <Link to="/terms" target="_blank" className="text-primary hover:underline">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" target="_blank" className="text-primary hover:underline">
+                Privacy Policy
+              </Link>
+            </span>
+          </Label>
+
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !agreed}
             className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3 font-semibold text-white disabled:opacity-50"
           >
             {loading ? 'Creating account...' : 'Sign Up'}

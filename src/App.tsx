@@ -41,6 +41,8 @@ const Register = lazy(() => import('@/pages/auth/Register'));
 const VerifyOtp = lazy(() => import('@/pages/auth/VerifyOtp'));
 const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
+const PrivacyPolicy = lazy(() => import('@/pages/legal/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('@/pages/legal/TermsOfService'));
 
 function PageLoader() {
   return (
@@ -104,6 +106,8 @@ function AppRoutes() {
       <Route path="verify-otp" element={<VerifyOtp />} />
       <Route path="forgot-password" element={<ForgotPassword />} />
       <Route path="reset-password" element={<ResetPassword />} />
+      <Route path="privacy" element={<PrivacyPolicy />} />
+      <Route path="terms" element={<TermsOfService />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

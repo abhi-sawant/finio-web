@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router';
+import { useNavigate, Link } from 'react-router';
 import {
   ChevronRight,
   Tag,
@@ -146,8 +146,15 @@ export default function Settings() {
         </div>
 
         <p className="text-muted-foreground pt-2 text-center text-[11px]">
-          Finio · Personal Finance
+          <Link to="/privacy" className="hover:text-foreground hover:underline">
+            Privacy Policy
+          </Link>
+          {' · '}
+          <Link to="/terms" className="hover:text-foreground hover:underline">
+            Terms of Service
+          </Link>
         </p>
+        <p className="text-muted-foreground text-center text-[11px]">Finio · Personal Finance</p>
       </Main>
     </>
   );
