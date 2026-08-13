@@ -200,11 +200,22 @@ an OTP when an unverified account is found, mirroring `forgotPassword()`. `verif
 a bad code. The "already verified, please log in" branch is left as-is in both — that leak already
 exists via `register`'s `409` and isn't part of this finding.
 
-### 9. Optional: JWT has no revocation path
+### 9. Optional: JWT has no revocation path — ✅ Fixed
 
-- [ ] A token stays valid until `exp` even after the cloud account is deleted via
+- [x] A token stays valid until `exp` even after the cloud account is deleted via
       `DELETE /user/me`. Low severity given the threat model (the account's backups are gone
       anyway), but worth a token-version column if cloud accounts grow in importance.
+
+**Fix:** Added a `token_version` column to `users` ([`schema.sql`](backend/schema.sql), with an
+`ALTER TABLE` note for existing installs). `jwt_create()` embeds it as a `tv` claim, and
+[`AuthMiddleware`](backend/src/middleware/AuthMiddleware.php) now does one `SELECT token_version`
+per request and rejects with 401 if it doesn't match the token's `tv` — a missing row (deleted
+account) fails the same way. `PUT /user/me` and `POST /auth/reset-password` both bump
+`token_version` on a successful password change, which is the case that actually matters: it
+invalidates every other token for that account, including one that was already stolen. `tv`
+defaults to `0` on both the column and a missing claim, so tokens issued before this change keep
+working. This does reintroduce one DB read per authenticated request — acceptable here since
+every backup/user route already hits MySQL anyway.
 
 ---
 
@@ -585,8 +596,3 @@ work existed) and implemented:
   there is money owed, not an error. Verified in the running app: an overdrawn checking account
   surfaced "Checking is negative" at the top of the Insights feed.
 
-### Larger
-
-- [ ] **Investment holdings.** The `investment` account type tracks a single balance only.
-      Quantity + cost basis + manual price refresh would make it real portfolio tracking. Biggest
-      lift on this list.

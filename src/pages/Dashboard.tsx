@@ -271,7 +271,7 @@ export default function Dashboard() {
               )}
             </div>
             {stats.topCategory && (
-              <div className="card-elevated col-span-2 flex items-center gap-3 rounded-2xl p-3 pr-16 lg:col-span-2 lg:pr-3">
+              <div className="card-elevated col-span-2 flex items-center gap-3 rounded-2xl p-3 lg:col-span-2">
                 <div
                   className="flex h-10 w-10 items-center justify-center rounded-full"
                   style={{

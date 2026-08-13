@@ -40,7 +40,7 @@ function request_body(): array
 
 // ── JWT helpers ───────────────────────────────────────────────────────────────
 
-function jwt_create(int $userId, string $email, string $name): string
+function jwt_create(int $userId, string $email, string $name, int $tokenVersion = 0): string
 {
     $secret  = Config::get('jwt')['secret'];
     $expiry  = Config::get('jwt')['access_expiry'];
@@ -50,6 +50,7 @@ function jwt_create(int $userId, string $email, string $name): string
         'sub'   => $userId,
         'email' => $email,
         'name'  => $name,
+        'tv'    => $tokenVersion,
         'iat'   => time(),
         'exp'   => time() + $expiry,
     ];

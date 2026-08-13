@@ -81,7 +81,7 @@ class AuthController
 
         $pdo  = Database::connect();
         $stmt = $pdo->prepare(
-            'SELECT id, name, email, otp_hash, otp_expires, is_verified FROM users WHERE email = ?'
+            'SELECT id, name, email, otp_hash, otp_expires, is_verified, token_version FROM users WHERE email = ?'
         );
         $stmt->execute([$email]);
         $user = $stmt->fetch();
@@ -107,7 +107,7 @@ class AuthController
             'UPDATE users SET is_verified = 1, otp_hash = NULL, otp_expires = NULL WHERE id = ?'
         )->execute([$user['id']]);
 
-        $token = jwt_create((int)$user['id'], $user['email'], $user['name']);
+        $token = jwt_create((int)$user['id'], $user['email'], $user['name'], (int)$user['token_version']);
 
         json_ok([
             'message' => 'Email verified successfully.',
@@ -182,7 +182,7 @@ class AuthController
             json_error('Please verify your email before logging in. Check your inbox for the OTP.', 403);
         }
 
-        $token = jwt_create((int)$user['id'], $user['email'], $user['name']);
+        $token = jwt_create((int)$user['id'], $user['email'], $user['name'], (int)$user['token_version']);
 
         json_ok([
             'token' => $token,
@@ -262,9 +262,12 @@ class AuthController
 
         $newHash = password_hash($newPass, PASSWORD_BCRYPT, ['cost' => 12]);
 
+        // Bump token_version so any token issued before this reset stops passing AuthMiddleware
+        // — a password reset is exactly the moment an old session might be a stolen one.
         $pdo->prepare(
             'UPDATE users
-             SET password_hash = ?, reset_token_hash = NULL, reset_token_expires = NULL
+             SET password_hash = ?, reset_token_hash = NULL, reset_token_expires = NULL,
+                 token_version = token_version + 1
              WHERE id = ?'
         )->execute([$newHash, $user['id']]);
 

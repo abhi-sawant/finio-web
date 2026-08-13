@@ -69,6 +69,8 @@ class UserController
             }
             $updates[]  = 'password_hash = ?';
             $bindings[] = password_hash($body['new_password'], PASSWORD_BCRYPT, ['cost' => 12]);
+            // Invalidate every token issued before this change — see AuthMiddleware.
+            $updates[]  = 'token_version = token_version + 1';
         }
 
         if (empty($updates)) {
@@ -81,11 +83,16 @@ class UserController
         )->execute($bindings);
 
         // Fetch updated user to return a fresh JWT
-        $stmt = $pdo->prepare('SELECT id, name, email FROM users WHERE id = ?');
+        $stmt = $pdo->prepare('SELECT id, name, email, token_version FROM users WHERE id = ?');
         $stmt->execute([$userId]);
         $updated = $stmt->fetch();
 
-        $token = jwt_create((int)$updated['id'], $updated['email'], $updated['name']);
+        $token = jwt_create(
+            (int)$updated['id'],
+            $updated['email'],
+            $updated['name'],
+            (int)$updated['token_version']
+        );
 
         json_ok([
             'message' => 'Profile updated.',

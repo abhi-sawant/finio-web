@@ -11,10 +11,14 @@ CREATE TABLE IF NOT EXISTS `users` (
     `otp_expires`         DATETIME     NULL DEFAULT NULL,
     `reset_token_hash`    VARCHAR(255) NULL DEFAULT NULL,
     `reset_token_expires` DATETIME     NULL DEFAULT NULL,
+    `token_version`       INT          NOT NULL DEFAULT 0,
     `created_at`          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Migrating an existing install? Run this once:
+--   ALTER TABLE users ADD COLUMN token_version INT NOT NULL DEFAULT 0 AFTER reset_token_expires;
 
 CREATE TABLE IF NOT EXISTS `backups` (
     `id`          INT  NOT NULL AUTO_INCREMENT,
