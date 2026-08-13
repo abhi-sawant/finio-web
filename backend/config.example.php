@@ -46,6 +46,10 @@ return [
     // Replace CPANEL_USER with your actual cPanel username.
     'backup_dir' => '/home/CPANEL_USER/finio-backups',
 
+    // Absolute path to where rate-limit counter files are stored.
+    // Same rules as backup_dir: must be OUTSIDE public_html, writable by PHP.
+    'rate_limit_dir' => '/home/CPANEL_USER/finio-ratelimit',
+
     // The public URL of your API subdomain (no trailing slash).
     'app_url'    => 'https://api.yourdomain.com',
 
@@ -60,4 +64,7 @@ return [
 
     // How many daily backup files to keep per user before deleting oldest.
     'backup_retention_days' => 30,
+
+    // Maximum size (in MB) of a single backup upload. Requests over this are rejected with 413.
+    'backup_max_size_mb' => 10,
 ];

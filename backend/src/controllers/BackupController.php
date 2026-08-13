@@ -18,13 +18,25 @@ class BackupController
      */
     public function upload(array $params): void
     {
-        $userId = $params['auth_user_id'];
-        $today  = date('Y-m-d');
+        $userId  = $params['auth_user_id'];
+        $today   = date('Y-m-d');
+        $maxSize = (int)Config::get('backup_max_size_mb', 10) * 1024 * 1024;
+
+        // Reject oversized requests before reading the body, when the client sent Content-Length
+        $contentLength = $_SERVER['CONTENT_LENGTH'] ?? null;
+        if ($contentLength !== null && (int)$contentLength > $maxSize) {
+            json_error('Backup exceeds the maximum allowed size of ' . Config::get('backup_max_size_mb', 10) . ' MB.', 413);
+        }
 
         // Raw body — could be large; avoid decoding/re-encoding to preserve fidelity
-        $raw = file_get_contents('php://input');
+        $raw = file_get_contents('php://input', false, null, 0, $maxSize + 1);
         if (empty($raw)) {
             json_error('Request body is empty.');
+        }
+
+        // Belt-and-suspenders check in case Content-Length was absent, wrong, or chunked
+        if (strlen($raw) > $maxSize) {
+            json_error('Backup exceeds the maximum allowed size of ' . Config::get('backup_max_size_mb', 10) . ' MB.', 413);
         }
 
         // Quick sanity-check that it is valid JSON

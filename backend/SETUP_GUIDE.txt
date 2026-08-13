@@ -130,26 +130,31 @@ TIME NEEDED: ~45 minutes
      mkdir -p ~/finio-backups
      chmod 750 ~/finio-backups
 
-3. Create the config folder:
+3. Create the rate-limit storage folder (also OUTSIDE public_html):
+     mkdir -p ~/finio-ratelimit
+     chmod 750 ~/finio-ratelimit
+
+4. Create the config folder:
      mkdir -p ~/finio-config
 
-4. Open the built-in File Manager in cPanel (search "File Manager" in cPanel).
+5. Open the built-in File Manager in cPanel (search "File Manager" in cPanel).
 
-5. In File Manager, click the "Go Up" button (or navigate) until you see your
+6. In File Manager, click the "Go Up" button (or navigate) until you see your
    home directory. You should see folders like: public_html, mail, logs, etc.
-   You should now also see: finio-backups and finio-config (you just created them).
+   You should now also see: finio-backups, finio-ratelimit and finio-config
+   (you just created them).
 
-6. Click into the "finio-config" folder.
+7. Click into the "finio-config" folder.
 
-7. Click "New File" in the toolbar. Name it:  config.php
+8. Click "New File" in the toolbar. Name it:  config.php
 
-8. Right-click the newly created config.php → "Edit".
+9. Right-click the newly created config.php → "Edit".
    A text editor will open.
 
-9. Copy the ENTIRE contents of:  fina/backend/config.example.php
-   Paste it into the editor.
+10. Copy the ENTIRE contents of:  fina/backend/config.example.php
+    Paste it into the editor.
 
-10. Now REPLACE all the placeholder values:
+11. Now REPLACE all the placeholder values:
 
     'CPANEL_USER_finio'      →  johndoe_finio   (your actual DB name from Step 1)
     'CPANEL_USER_finiouser'  →  johndoe_finiouser
@@ -158,10 +163,11 @@ TIME NEEDED: ~45 minutes
     'mail.yourdomain.com'    →  mail.yourdomain.com  (replace yourdomain)
     'noreply@yourdomain.com' →  your actual noreply email
     'YOUR_EMAIL_PASSWORD'    →  the email password from Step 5
-    'CPANEL_USER'            →  johndoe  (just your cPanel username, no underscore)
+    'CPANEL_USER'            →  johndoe  (just your cPanel username, no underscore —
+                                used for BOTH backup_dir and rate_limit_dir)
     'https://api.yourdomain.com' → your actual subdomain URL
 
-11. Click "Save Changes".
+12. Click "Save Changes".
 
 ================================================================================
   STEP 7 — Upload the backend files
@@ -204,6 +210,7 @@ METHOD A: Using cPanel File Manager (easiest, no software needed)
          Config.php
          Database.php
          Router.php
+         RateLimiter.php
          helpers.php
          controllers/
            AuthController.php
@@ -211,6 +218,7 @@ METHOD A: Using cPanel File Manager (easiest, no software needed)
            UserController.php
          middleware/
            AuthMiddleware.php
+           RateLimitMiddleware.php
        composer.json
        schema.sql
        config.example.php
@@ -355,6 +363,16 @@ SOLUTION: You may need to specify the PHP version:
             /usr/local/php83/bin/php composer.phar install --no-dev
           Run "php -v" to see which version is active.
 
+PROBLEM: Every request gets {"error":"Too many requests. Please try again
+         later."} (HTTP 429), even for a single legitimate user
+SOLUTION: This is the rate limiter — check that ~/finio-ratelimit exists and
+          is writable by PHP (chmod 750, owned by your cPanel user). If the
+          folder is missing or not writable, fopen() fails and the limiter
+          fails OPEN (allows the request), so a 429 here means the folder
+          exists but the counters are being hit — likely a shared IP (office
+          NAT/VPN) or a client retrying too aggressively. See the $rl(...)
+          calls in public/index.php to raise a specific bucket's limit.
+
 ================================================================================
   FILE STRUCTURE SUMMARY (on the server)
 ================================================================================
@@ -368,6 +386,8 @@ SOLUTION: You may need to specify the PHP version:
       2026-02-27.json
     2/
       2026-02-28.json              ← User ID 2's backup
+  finio-ratelimit/
+    auth_login_3f9a...json         ← one small counter file per bucket+client
   api.finio.slowatcoding.com/      ← MilesWeb creates subdomain folders HERE
     .htaccess                      ← forwards requests into public/
     public/
@@ -377,6 +397,7 @@ SOLUTION: You may need to specify the PHP version:
       Config.php
       Database.php
       Router.php
+      RateLimiter.php
       helpers.php
       controllers/
         AuthController.php
@@ -384,6 +405,7 @@ SOLUTION: You may need to specify the PHP version:
         UserController.php
       middleware/
         AuthMiddleware.php
+        RateLimitMiddleware.php
     vendor/                        ← Created by composer install
     composer.json
     composer.phar

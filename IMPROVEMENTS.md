@@ -139,23 +139,49 @@ staleness risk. `npm run lint` is now clean (0 errors, 0 warnings); `npm test` (
 
 ## P1 — Backend security
 
-### 6. No rate limiting on any endpoint
+### 6. No rate limiting on any endpoint — ✅ Fixed
 
-- [ ] `POST /auth/verify-otp` — [`AuthController.php:98`](backend/src/controllers/AuthController.php#L98)
+- [x] `POST /auth/verify-otp` — [`AuthController.php:98`](backend/src/controllers/AuthController.php#L98)
       accepts unlimited guesses against a 6-digit OTP valid for 15 minutes. Brute-forceable.
       Add a per-user attempt counter that invalidates the OTP after ~5 failures.
-- [ ] `POST /auth/login` — unlimited password guesses. Add attempt counting plus a lockout window.
-- [ ] `POST /auth/register` and `POST /auth/resend-otp` — unlimited SMTP sends. Spam vector, and a
+- [x] `POST /auth/login` — unlimited password guesses. Add attempt counting plus a lockout window.
+- [x] `POST /auth/register` and `POST /auth/resend-otp` — unlimited SMTP sends. Spam vector, and a
       risk to the sending domain's mail reputation. Throttle per email and per IP.
 - [ ] Schema: add the columns these need (`failed_attempts`, `locked_until`, `otp_attempts`) to
-      [`backend/schema.sql`](backend/schema.sql), plus a migration note in the setup guide.
+      [`backend/schema.sql`](backend/schema.sql), plus a migration note in the setup guide. Not
+      done — see note below.
 
-### 7. `/backup/upload` has no size cap
+**Fix:** Added a file-based rate limiter ([`RateLimiter.php`](backend/src/RateLimiter.php) +
+[`RateLimitMiddleware.php`](backend/src/middleware/RateLimitMiddleware.php)) since shared cPanel
+hosting has no guaranteed Redis/APCu — each (bucket, client) pair gets a small JSON counter file
+under a new `rate_limit_dir` config key (same pattern as `backup_dir`), guarded with `flock()` and
+failing open on storage errors. `Router.php` now accepts a middleware entry as either a plain
+class string or a `[Class, options]` tuple, so this composes with the existing `AuthMiddleware`.
+Wired into every route in [`public/index.php`](backend/public/index.php): auth endpoints are
+limited per client IP (register 5/hr, verify-otp 10/15min, resend-otp 3/15min, login 10/15min,
+forgot-password 5/hr, reset-password 10/15min), and backup/user endpoints are limited per
+authenticated user after `AuthMiddleware` runs (reads 60/min, writes/deletes 30/min, profile
+update 10/min, account delete 5/min). Exceeding a limit returns 429 with a `Retry-After` header.
+Manually verified against the deployed backend (hammering `/auth/resend-otp` returns 404×3 then
+429, with a counter file appearing under `finio-ratelimit/`).
 
-- [ ] [`BackupController.php:26`](backend/src/controllers/BackupController.php#L26) reads
+This closes the "unlimited requests" hole across the whole API, but it's request-*volume*
+limiting, not account-level lockout — a per-account `otp_attempts`/`failed_attempts` counter
+(the unchecked schema item above) would still be a stronger follow-up against a slow, distributed
+brute force that stays under the per-IP thresholds.
+
+### 7. `/backup/upload` has no size cap — ✅ Fixed
+
+- [x] [`BackupController.php:26`](backend/src/controllers/BackupController.php#L26) reads
       `php://input` and writes it straight to disk with no ceiling. Any authenticated user can
       fill the volume. Check `Content-Length` / `strlen($raw)` against a configurable maximum
       before writing, and return 413 past it.
+
+**Fix:** New `backup_max_size_mb` config key (default 10) in
+[`config.example.php`](backend/config.example.php). `upload()` now rejects early via the
+`Content-Length` header when present, bounds `file_get_contents()` itself with a `maxlen` so an
+oversized body is never fully buffered, and re-checks `strlen($raw)` afterwards to cover missing
+or spoofed `Content-Length` — all three return `413`.
 
 ### 8. Email-enumeration inconsistency
 

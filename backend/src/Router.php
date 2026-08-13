@@ -9,7 +9,8 @@ namespace Finio;
  * Supports:
  *   - HTTP verbs: GET, POST, PUT, DELETE
  *   - Named path params:  /backup/{date}  → $params['date']
- *   - Middleware classes that must expose a static handle() method
+ *   - Middleware classes that must expose a static handle() method, registered
+ *     either as a plain class string or a [class, options] tuple
  */
 class Router
 {
@@ -68,9 +69,16 @@ class Router
             // Named captures become $params
             $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
 
-            // Run middleware (e.g. AuthMiddleware::handle($params))
-            foreach ($route['middleware'] as $mwClass) {
-                $params = $mwClass::handle($params);
+            // Run middleware. Each entry is either a plain class string
+            // (AuthMiddleware::handle($params)) or a [class, options] tuple
+            // (RateLimitMiddleware::handle($params, $options)).
+            foreach ($route['middleware'] as $mw) {
+                if (is_array($mw)) {
+                    [$mwClass, $options] = $mw;
+                    $params = $mwClass::handle($params, $options);
+                } else {
+                    $params = $mw::handle($params);
+                }
             }
 
             // Call the controller
