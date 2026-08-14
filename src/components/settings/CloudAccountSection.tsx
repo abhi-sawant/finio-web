@@ -94,7 +94,7 @@ export function CloudAccountSection() {
 
   return (
     <>
-      <div className="card-elevated divide-border divide-y overflow-hidden rounded-2xl">
+      <div className="card-elevated divide-border divide-y overflow-hidden rounded-md">
         {token && user ? (
           <>
             <div className="bg-grad-primary-soft flex items-center gap-3 p-4">
@@ -159,7 +159,7 @@ export function CloudAccountSection() {
           }
         }}
       >
-        <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+        <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-md sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>Sign in on other devices again after this.</DialogDescription>
@@ -172,7 +172,7 @@ export function CloudAccountSection() {
                 autoComplete="current-password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="bg-muted h-auto rounded-lg border-0 px-3 py-2"
+                className="bg-muted h-auto rounded-sm border-0 px-3 py-2"
               />
             </div>
             <div>
@@ -183,7 +183,7 @@ export function CloudAccountSection() {
                 placeholder="Min 8 characters"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="bg-muted h-auto rounded-lg border-0 px-3 py-2"
+                className="bg-muted h-auto rounded-sm border-0 px-3 py-2"
               />
             </div>
             <div>
@@ -193,13 +193,13 @@ export function CloudAccountSection() {
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="bg-muted h-auto rounded-lg border-0 px-3 py-2"
+                className="bg-muted h-auto rounded-sm border-0 px-3 py-2"
               />
             </div>
             <Button
               onClick={handleChangePassword}
               disabled={changingPassword || !currentPassword || !newPassword}
-              className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-60"
+              className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-2.5 text-sm font-medium text-white disabled:opacity-60"
             >
               {changingPassword ? 'Changing...' : 'Change Password'}
             </Button>
@@ -215,7 +215,7 @@ export function CloudAccountSection() {
           if (!open) setDeleteAccountPassword('');
         }}
       >
-        <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+        <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-md sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Delete Cloud Account?</DialogTitle>
             <DialogDescription>
@@ -231,13 +231,13 @@ export function CloudAccountSection() {
                 autoComplete="current-password"
                 value={deleteAccountPassword}
                 onChange={(e) => setDeleteAccountPassword(e.target.value)}
-                className="bg-muted h-auto rounded-lg border-0 px-3 py-2"
+                className="bg-muted h-auto rounded-sm border-0 px-3 py-2"
               />
             </div>
             <Button
               onClick={handleDeleteCloudAccount}
               disabled={deletingAccount || !deleteAccountPassword}
-              className="bg-destructive h-auto w-full rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-60"
+              className="bg-destructive h-auto w-full rounded-sm py-2.5 text-sm font-medium text-white disabled:opacity-60"
             >
               {deletingAccount ? 'Deleting...' : 'Permanently Delete Account'}
             </Button>

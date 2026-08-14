@@ -4,6 +4,7 @@ import { Search, Filter, X, Download, Tag, Tags, Trash2 } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { cn } from '@/lib/utils';
 import { downloadBlob } from '@/services/download';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import {
@@ -38,7 +39,9 @@ import type { Transaction, TransactionType } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
-type VirtualRow = { kind: 'header'; date: string } | { kind: 'tx'; tx: Transaction };
+type VirtualRow =
+  | { kind: 'header'; date: string }
+  | { kind: 'tx'; tx: Transaction; groupPosition: 'only' | 'first' | 'middle' | 'last' };
 
 export default function Transactions() {
   const navigate = useNavigate();
@@ -150,9 +153,12 @@ export default function Transactions() {
     const rows: VirtualRow[] = [];
     for (const group of groups) {
       rows.push({ kind: 'header', date: group.date });
-      for (const tx of group.transactions) {
-        rows.push({ kind: 'tx', tx });
-      }
+      group.transactions.forEach((tx, i) => {
+        const isFirst = i === 0;
+        const isLast = i === group.transactions.length - 1;
+        const groupPosition = isFirst && isLast ? 'only' : isFirst ? 'first' : isLast ? 'last' : 'middle';
+        rows.push({ kind: 'tx', tx, groupPosition });
+      });
     }
     return rows;
   }, [filtered]);
@@ -323,11 +329,7 @@ export default function Transactions() {
             variant={hasActiveFilters ? 'default' : 'outline'}
             size="icon"
             onClick={() => setShowFilters(!showFilters)}
-            className={`h-9 w-9 rounded-full transition-all ${
-              hasActiveFilters
-                ? 'bg-grad-primary shadow-glow-primary border-transparent text-white'
-                : 'bg-card'
-            }`}
+            className={cn('h-9 w-9 rounded-full', !hasActiveFilters && 'bg-card')}
             aria-label="Toggle filters"
           >
             <Filter size={16} />
@@ -346,20 +348,20 @@ export default function Transactions() {
             placeholder="Search notes, categories, accounts, labels, amounts..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-card h-auto w-full rounded-xl py-2.5 pr-4 pl-9"
+            className="bg-card h-auto w-full rounded-sm py-2.5 pr-4 pl-9"
           />
         </div>
 
         <div className="flex items-center justify-end gap-3">
           <span className="text-muted-foreground text-xs">
             Earned{' '}
-            <span className="font-bold text-emerald-500">
+            <span className="text-primary font-bold">
               {formatCurrency(totalIncome, false, hideAmounts)}
             </span>
           </span>
           <span className="text-muted-foreground text-xs">
             Spent{' '}
-            <span className="font-bold text-rose-500">
+            <span className="text-foreground font-bold">
               {formatCurrency(totalExpense, false, hideAmounts)}
             </span>
           </span>
@@ -367,7 +369,7 @@ export default function Transactions() {
 
         {/* Filters */}
         {showFilters && (
-          <div className="card-elevated space-y-3 rounded-2xl p-3">
+          <div className="card-elevated space-y-3 rounded-md p-3">
             <div>
               <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Type</Label>
               <div className="flex flex-wrap gap-2">
@@ -375,11 +377,12 @@ export default function Transactions() {
                   <button
                     key={type}
                     onClick={() => setTypeFilter(type)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-all ${
+                    className={cn(
+                      'rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors',
                       typeFilter === type
-                        ? 'bg-grad-primary text-white shadow'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground',
+                    )}
                   >
                     {type}
                   </button>
@@ -391,7 +394,7 @@ export default function Transactions() {
                 Account
               </Label>
               <Select value={accountFilter} onValueChange={(v) => setAccountFilter(v ?? 'all')}>
-                <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                   <SelectValue>
                     {accounts.find((a) => a.id === accountFilter)?.name || 'All Accounts'}
                   </SelectValue>
@@ -412,7 +415,7 @@ export default function Transactions() {
                   Category
                 </Label>
                 <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? 'all')}>
-                  <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                  <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                     <SelectValue>
                       {categories.find((c) => c.id === categoryFilter)?.name || 'All Categories'}
                     </SelectValue>
@@ -432,7 +435,7 @@ export default function Transactions() {
                   Label
                 </Label>
                 <Select value={labelFilter} onValueChange={(v) => setLabelFilter(v ?? 'all')}>
-                  <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                  <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                     <SelectValue>
                       {labels.find((l) => l.id === labelFilter)?.name || 'All Labels'}
                     </SelectValue>
@@ -497,11 +500,19 @@ export default function Transactions() {
                   className="absolute top-0 left-0 w-full"
                 >
                   {row.kind === 'header' ? (
-                    <p className="text-muted-foreground pb-2 text-xs font-medium">
+                    <p className="text-muted-foreground mt-3 pb-1 ps-2 text-[11px] font-medium tracking-wide uppercase first:pt-0">
                       {formatDate(row.date)}
                     </p>
                   ) : (
-                    <div className="pb-2">
+                    <div
+                      className={cn(
+                        'bg-card border-border border-x border-b',
+                        (row.groupPosition === 'first' || row.groupPosition === 'only') &&
+                          'rounded-t-md border-t',
+                        (row.groupPosition === 'last' || row.groupPosition === 'only') &&
+                          'rounded-b-md',
+                      )}
+                    >
                       <TransactionItem
                         transaction={row.tx}
                         categories={categories}
@@ -585,7 +596,7 @@ export default function Transactions() {
             placeholder="Template name"
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
-            className="bg-card h-auto rounded-xl px-4 py-3"
+            className="bg-card h-auto rounded-sm px-4 py-3"
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setTemplateTx(null)}>
@@ -606,7 +617,7 @@ export default function Transactions() {
             <DialogDescription>Every selected transaction moves to this category.</DialogDescription>
           </DialogHeader>
           <Select value={recategorizeCategoryId} onValueChange={(v) => setRecategorizeCategoryId(v ?? '')}>
-            <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+            <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
               <SelectValue placeholder="Select category">
                 {categories.find((c) => c.id === recategorizeCategoryId)?.name}
               </SelectValue>
@@ -644,7 +655,7 @@ export default function Transactions() {
             </DialogDescription>
           </DialogHeader>
           <Select value={addLabelId} onValueChange={(v) => setAddLabelId(v ?? '')}>
-            <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+            <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
               <SelectValue placeholder="Select label">
                 {labels.find((l) => l.id === addLabelId)?.name}
               </SelectValue>

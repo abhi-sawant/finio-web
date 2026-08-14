@@ -23,7 +23,7 @@ export function TopMerchants({ transactions }: Props) {
   const maxAmount = merchants[0].totalAmount;
 
   return (
-    <div className="card-elevated rounded-2xl p-4">
+    <div className="card-elevated rounded-md p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold">Top Merchants</h3>
         <button

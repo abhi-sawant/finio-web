@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { MISC_CATEGORY_ID } from '@/data/defaultData';
+import { COLOR_PALETTE } from '@/data/colorPalette';
 import { formatCurrency, formatFullDate } from '@/utils/formatters';
 import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import { PersonIcon } from '@/components/people/PersonIcon';
@@ -36,20 +37,7 @@ import type { DebtEntry, Person } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
-const personColors = [
-  '#6C63FF',
-  '#ef4444',
-  '#f97316',
-  '#f59e0b',
-  '#84cc16',
-  '#22c55e',
-  '#10b981',
-  '#14b8a6',
-  '#06b6d4',
-  '#3b82f6',
-  '#8b5cf6',
-  '#ec4899',
-];
+const personColors = COLOR_PALETTE;
 
 export default function Debts() {
   const navigate = useNavigate();
@@ -250,7 +238,7 @@ export default function Debts() {
 
       <Main className="lg:max-w-xl">
         {showForm && (
-          <div className="card-elevated space-y-3 rounded-2xl p-4">
+          <div className="card-elevated space-y-3 rounded-md p-4">
             <div>
               <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                 Name
@@ -260,7 +248,7 @@ export default function Debts() {
                 placeholder="e.g., Rahul"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="bg-muted h-auto rounded-lg px-3 py-2"
+                className="bg-muted h-auto rounded-sm px-3 py-2"
               />
             </div>
 
@@ -271,7 +259,7 @@ export default function Debts() {
                   <button
                     key={i}
                     onClick={() => setIcon(i)}
-                    className={`flex h-9 items-center justify-center rounded-lg border transition-colors ${
+                    className={`flex h-9 items-center justify-center rounded-sm border transition-colors ${
                       icon === i ? 'border-primary bg-primary/10' : 'border-border bg-card'
                     }`}
                     aria-label={i}
@@ -303,14 +291,14 @@ export default function Debts() {
             <div className="flex gap-2">
               <Button
                 onClick={handleSubmit}
-                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
               >
                 {editingId ? 'Save Changes' : 'Save'}
               </Button>
               <Button
                 variant="secondary"
                 onClick={resetForm}
-                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </Button>
@@ -326,7 +314,7 @@ export default function Debts() {
             <p className="text-muted-foreground mb-4">No one on your ledger yet</p>
             <Button
               onClick={startCreate}
-              className="bg-grad-primary shadow-glow-primary h-auto rounded-xl px-5 py-2.5 text-sm font-medium text-white"
+              className="bg-grad-primary shadow-glow-primary h-auto rounded-sm px-5 py-2.5 text-sm font-medium text-white"
             >
               Add your first person
             </Button>
@@ -375,7 +363,7 @@ export default function Debts() {
           if (!v) setEntryPerson(null);
         }}
       >
-        <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-2xl">
+        <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-md">
           <DialogHeader>
             <DialogTitle>
               {entryPerson?.mode === 'borrow' ? 'Borrowed from' : 'Lent to'} {entryPerson?.person.name}
@@ -388,19 +376,19 @@ export default function Debts() {
               placeholder="Note (optional)"
               value={entryNote}
               onChange={(e) => setEntryNote(e.target.value)}
-              className="bg-muted h-auto rounded-lg px-3 py-2"
+              className="bg-muted h-auto rounded-sm px-3 py-2"
             />
             <div className="flex gap-2">
               <Button
                 onClick={handleEntrySubmit}
-                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
               >
                 Save
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setEntryPerson(null)}
-                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </Button>
@@ -416,7 +404,7 @@ export default function Debts() {
           if (!v) setSettlePerson(null);
         }}
       >
-        <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-2xl">
+        <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-md">
           <DialogHeader>
             <DialogTitle>Settle up with {settlePerson?.person.name}</DialogTitle>
           </DialogHeader>
@@ -434,7 +422,7 @@ export default function Debts() {
               </p>
             ) : (
               <Select value={settleAccountId} onValueChange={(v) => setSettleAccountId(v ?? '')}>
-                <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                   <SelectValue>
                     {openAccounts.find((a) => a.id === settleAccountId)?.name ?? 'Choose account'}
                   </SelectValue>
@@ -454,20 +442,20 @@ export default function Debts() {
               placeholder="Note (optional)"
               value={settleNote}
               onChange={(e) => setSettleNote(e.target.value)}
-              className="bg-muted h-auto rounded-lg px-3 py-2"
+              className="bg-muted h-auto rounded-sm px-3 py-2"
             />
             <div className="flex gap-2">
               <Button
                 onClick={handleSettleSubmit}
                 disabled={openAccounts.length === 0}
-                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
               >
                 Settle
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setSettlePerson(null)}
-                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </Button>
@@ -510,21 +498,13 @@ function PersonCard({
   const theyOweYou = balance > 0;
 
   return (
-    <div className="card-elevated rounded-2xl p-4">
+    <div className="card-elevated rounded-md p-4">
       <div className="mb-2 flex items-center justify-between">
-        <div className="flex min-w-0 items-center gap-2">
-          <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-            style={{ backgroundImage: `linear-gradient(135deg, ${person.color}, ${person.color}cc)` }}
-          >
-            <PersonIcon icon={person.icon} size={16} color="white" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{person.name}</p>
-            <p className="text-muted-foreground truncate text-[11px]">
-              {lastActivity ? `Last activity ${formatFullDate(lastActivity)}` : 'No activity yet'}
-            </p>
-          </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{person.name}</p>
+          <p className="text-muted-foreground truncate text-[11px]">
+            {lastActivity ? `Last activity ${formatFullDate(lastActivity)}` : 'No activity yet'}
+          </p>
         </div>
         <div className="flex shrink-0 items-center">
           <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7" aria-label="Edit">
@@ -544,7 +524,7 @@ function PersonCard({
 
       <p
         className={`mb-3 text-sm font-medium ${
-          isSettled ? 'text-muted-foreground' : theyOweYou ? 'text-emerald-500' : 'text-rose-500'
+          isSettled ? 'text-muted-foreground' : theyOweYou ? 'text-primary' : 'text-destructive'
         }`}
       >
         {isSettled
@@ -557,14 +537,14 @@ function PersonCard({
       <div className="flex gap-2">
         <Button
           onClick={onLend}
-          className="bg-grad-success h-auto flex-1 rounded-lg py-2 text-xs font-medium text-white"
+          className="bg-grad-success h-auto flex-1 rounded-sm py-2 text-xs font-medium text-white"
         >
           <Plus size={13} className="mr-1" /> They owe me
         </Button>
         <Button
           variant="secondary"
           onClick={onBorrow}
-          className="bg-muted text-muted-foreground h-auto flex-1 rounded-lg py-2 text-xs font-medium"
+          className="bg-muted text-muted-foreground h-auto flex-1 rounded-sm py-2 text-xs font-medium"
         >
           <Minus size={13} className="mr-1" /> I owe them
         </Button>
@@ -573,7 +553,7 @@ function PersonCard({
         <Button
           variant="secondary"
           onClick={onSettle}
-          className="bg-primary/10 text-primary mt-2 h-auto w-full rounded-lg py-2 text-xs font-medium"
+          className="bg-primary/10 text-primary mt-2 h-auto w-full rounded-sm py-2 text-xs font-medium"
         >
           Settle up
         </Button>
@@ -611,7 +591,7 @@ function PersonCard({
                         : 'They owe more')}
                 </span>
                 <span
-                  className={`shrink-0 font-medium ${e.amount < 0 ? 'text-rose-500' : 'text-emerald-500'}`}
+                  className={`shrink-0 font-medium ${e.amount < 0 ? 'text-destructive' : 'text-primary'}`}
                 >
                   {e.amount < 0 ? '-' : '+'}
                   {formatCurrency(Math.abs(e.amount), true, hideAmounts)}

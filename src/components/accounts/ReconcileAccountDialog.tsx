@@ -73,7 +73,7 @@ export function ReconcileAccountDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-2xl">
+      <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-md">
         <DialogHeader>
           <DialogTitle>Reconcile "{account.name}"</DialogTitle>
         </DialogHeader>
@@ -91,7 +91,7 @@ export function ReconcileAccountDialog({
             <NumberPad value={statementInput} onChange={setStatementInput} />
             <Button
               onClick={handleCompare}
-              className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-lg py-2 text-sm font-medium text-white"
+              className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-2 text-sm font-medium text-white"
             >
               Compare
             </Button>
@@ -107,9 +107,7 @@ export function ReconcileAccountDialog({
                 <p className="text-sm">
                   Off by{' '}
                   <span
-                    className={
-                      adjustment.type === 'income' ? 'text-emerald-500' : 'text-rose-500'
-                    }
+                    className={adjustment.type === 'income' ? 'text-primary' : 'text-destructive'}
                   >
                     {adjustment.type === 'income' ? '+' : '−'}
                     {formatCurrency(adjustment.amount)}
@@ -123,7 +121,7 @@ export function ReconcileAccountDialog({
                   placeholder="Note (optional)"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  className="bg-muted h-auto rounded-lg px-3 py-2"
+                  className="bg-muted h-auto rounded-sm px-3 py-2"
                 />
               </>
             )}
@@ -131,7 +129,7 @@ export function ReconcileAccountDialog({
               {adjustment.type !== null && (
                 <Button
                   onClick={handleConfirm}
-                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
                 >
                   Add adjustment
                 </Button>
@@ -139,7 +137,7 @@ export function ReconcileAccountDialog({
               <Button
                 variant="secondary"
                 onClick={() => (adjustment.type === null ? handleOpenChange(false) : setPhase('input'))}
-                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
               >
                 {adjustment.type === null ? 'Close' : 'Back'}
               </Button>

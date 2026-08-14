@@ -42,7 +42,7 @@ export function IncomeExpenseBar({ transactions }: Props) {
   );
 
   return (
-    <div className="card-elevated rounded-2xl p-4">
+    <div className="card-elevated rounded-md p-4">
       <h3 className="mb-3 text-sm font-semibold">Income vs Expenses</h3>
       <div
         className="h-48 lg:h-64"
@@ -55,12 +55,12 @@ export function IncomeExpenseBar({ transactions }: Props) {
           <BarChart data={data} barGap={4} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="barIncome" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#16c47f" />
-                <stop offset="100%" stopColor="#34d399" />
+                <stop offset="0%" stopColor="#146b54" />
+                <stop offset="100%" stopColor="#4a6b5c" />
               </linearGradient>
               <linearGradient id="barExpense" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ff5f7e" />
-                <stop offset="100%" stopColor="#ef4444" />
+                <stop offset="0%" stopColor="#c48b7a" />
+                <stop offset="100%" stopColor="#b3421f" />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" opacity={0.12} />

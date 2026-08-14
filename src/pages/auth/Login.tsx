@@ -53,7 +53,7 @@ export default function Login() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-card h-auto w-full rounded-xl py-3 pr-4 pl-11"
+              className="bg-card h-auto w-full rounded-sm py-3 pr-4 pl-11"
               autoComplete="email"
             />
           </div>
@@ -65,7 +65,7 @@ export default function Login() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-card h-auto w-full rounded-xl py-3 pr-11 pl-11"
+              className="bg-card h-auto w-full rounded-sm py-3 pr-11 pl-11"
               autoComplete="current-password"
             />
             <Button
@@ -88,7 +88,7 @@ export default function Login() {
           <Button
             type="submit"
             disabled={loading}
-            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3 font-semibold text-white disabled:opacity-50"
+            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-3 font-semibold text-white disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>

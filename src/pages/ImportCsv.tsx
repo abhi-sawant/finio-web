@@ -207,21 +207,21 @@ export default function ImportCsv() {
         {step === 'upload' && (
           <div className="space-y-4">
             {activeAccounts.length === 0 ? (
-              <div className="card-elevated space-y-2 rounded-2xl p-4 text-sm">
+              <div className="card-elevated space-y-2 rounded-md p-4 text-sm">
                 <p className="font-medium">Add an account first</p>
                 <p className="text-muted-foreground text-xs">
                   A CSV import needs somewhere to attach the transactions.
                 </p>
                 <Button
                   onClick={() => navigate('/add-account')}
-                  className="bg-grad-primary h-auto w-full rounded-xl py-2.5 text-sm font-medium text-white"
+                  className="bg-grad-primary h-auto w-full rounded-sm py-2.5 text-sm font-medium text-white"
                 >
                   Add Account
                 </Button>
               </div>
             ) : (
               <>
-                <div className="card-elevated space-y-3 rounded-2xl p-4">
+                <div className="card-elevated space-y-3 rounded-md p-4">
                   <p className="text-sm">
                     Import transactions from a bank or card statement CSV. You'll map its columns to
                     Finio's fields on the next step, and review everything before it's added.
@@ -236,7 +236,7 @@ export default function ImportCsv() {
                       inputMode="numeric"
                       value={skipRows}
                       onChange={(e) => setSkipRows(e.target.value)}
-                      className="bg-card h-auto w-24 rounded-xl px-3 py-2"
+                      className="bg-card h-auto w-24 rounded-sm px-3 py-2"
                     />
                     <p className="text-muted-foreground mt-1 text-xs">
                       Some statements have a few title lines before the real column headers.
@@ -245,7 +245,7 @@ export default function ImportCsv() {
                 </div>
                 <Button
                   onClick={handleChooseFile}
-                  className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-2xl py-3.5 text-sm font-semibold text-white"
+                  className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-md py-3.5 text-sm font-semibold text-white"
                 >
                   <FileUp size={16} className="mr-1.5" /> Choose CSV File
                 </Button>
@@ -258,13 +258,13 @@ export default function ImportCsv() {
           <div className="space-y-4">
             <p className="text-muted-foreground truncate text-xs">{fileName}</p>
 
-            <div className="card-elevated space-y-3 rounded-2xl p-4">
+            <div className="card-elevated space-y-3 rounded-md p-4">
               <div>
                 <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                   Account
                 </Label>
                 <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-                  <SelectTrigger className="bg-card h-auto w-full rounded-xl px-4 py-3">
+                  <SelectTrigger className="bg-card h-auto w-full rounded-sm px-4 py-3">
                     <SelectValue placeholder="Select account">
                       {activeAccounts.find((a) => a.id === accountId)?.name}
                     </SelectValue>
@@ -298,7 +298,7 @@ export default function ImportCsv() {
                     value={dateFormat}
                     onValueChange={(v) => setDateFormat((v as DateFormatCode) ?? dateFormat)}
                   >
-                    <SelectTrigger className="bg-card h-auto w-full rounded-xl px-3 py-3 text-xs">
+                    <SelectTrigger className="bg-card h-auto w-full rounded-sm px-3 py-3 text-xs">
                       <SelectValue>
                         {DATE_FORMATS.find((f) => f.value === dateFormat)?.value}
                       </SelectValue>
@@ -318,12 +318,12 @@ export default function ImportCsv() {
                 <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                   Amount columns
                 </Label>
-                <div className="bg-muted mb-2 grid grid-cols-2 gap-1 rounded-xl p-1">
+                <div className="bg-muted mb-2 grid grid-cols-2 gap-1 rounded-sm p-1">
                   {(['signed', 'debitCredit'] as const).map((mode) => (
                     <button
                       key={mode}
                       onClick={() => setAmountMode(mode)}
-                      className={`rounded-lg py-1.5 text-xs font-medium transition-all ${
+                      className={`rounded-sm py-1.5 text-xs font-medium transition-all ${
                         amountMode === mode
                           ? 'bg-grad-primary text-white shadow'
                           : 'text-muted-foreground'
@@ -345,7 +345,7 @@ export default function ImportCsv() {
                       value={negativeIsExpense ? 'expense' : 'income'}
                       onValueChange={(v) => setNegativeIsExpense((v ?? 'expense') === 'expense')}
                     >
-                      <SelectTrigger className="bg-card h-auto w-full rounded-xl px-3 py-3 text-xs">
+                      <SelectTrigger className="bg-card h-auto w-full rounded-sm px-3 py-3 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -421,7 +421,7 @@ export default function ImportCsv() {
             <Button
               onClick={handlePreview}
               disabled={!canPreview}
-              className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-2xl py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-md py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               Preview Import
             </Button>
@@ -430,7 +430,7 @@ export default function ImportCsv() {
 
         {step === 'preview' && result && (
           <div className="space-y-4">
-            <div className="card-elevated divide-border grid grid-cols-3 divide-x rounded-2xl text-center">
+            <div className="card-elevated divide-border grid grid-cols-3 divide-x rounded-md text-center">
               <div className="p-3">
                 <p className="text-lg font-bold">{result.totalRows}</p>
                 <p className="text-muted-foreground text-[11px]">Rows in file</p>
@@ -454,7 +454,7 @@ export default function ImportCsv() {
 
             {duplicateRows.size > 0 && (
               <SwitchField
-                className="card-elevated rounded-2xl p-4"
+                className="card-elevated rounded-md p-4"
                 interactiveRow
                 title="Skip duplicate transactions"
                 description="Matched by same day, type, amount and note"
@@ -464,17 +464,17 @@ export default function ImportCsv() {
             )}
 
             {result.issues.length > 0 && (
-              <div className="bg-muted/50 space-y-1.5 rounded-xl p-3">
+              <div className="bg-muted/50 space-y-1.5 rounded-sm p-3">
                 {result.issues.map((issue) => (
                   <p key={issue} className="flex gap-2 text-xs">
-                    <AlertTriangle size={14} className="mt-px shrink-0 text-amber-500" />
+                    <AlertTriangle size={14} className="mt-px shrink-0 text-[#c79b4f]" />
                     <span className="text-muted-foreground">{issue}</span>
                   </p>
                 ))}
               </div>
             )}
 
-            <div className="card-elevated divide-border divide-y overflow-hidden rounded-2xl">
+            <div className="card-elevated divide-border divide-y overflow-hidden rounded-md">
               {result.accepted.slice(0, MAX_PREVIEW_ROWS).map((row) => {
                 const isDup = duplicateRows.has(row.rowIndex);
                 return (
@@ -501,7 +501,7 @@ export default function ImportCsv() {
                     </div>
                     <span
                       className={`shrink-0 text-sm font-semibold ${
-                        row.transaction.type === 'expense' ? 'text-rose-500' : 'text-emerald-500'
+                        row.transaction.type === 'expense' ? 'text-destructive' : 'text-primary'
                       }`}
                     >
                       {row.transaction.type === 'expense' ? '-' : '+'}
@@ -525,7 +525,7 @@ export default function ImportCsv() {
             <Button
               onClick={handleImport}
               disabled={importing || toImport.length === 0}
-              className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-2xl py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-md py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {importing
                 ? 'Importing...'
@@ -551,7 +551,7 @@ function ColumnSelect({
 }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v ?? NONE)}>
-      <SelectTrigger className="bg-card h-auto w-full rounded-xl px-3 py-3 text-xs">
+      <SelectTrigger className="bg-card h-auto w-full rounded-sm px-3 py-3 text-xs">
         <SelectValue placeholder="Select column">
           {value === NONE ? 'None' : headers[Number(value)]}
         </SelectValue>

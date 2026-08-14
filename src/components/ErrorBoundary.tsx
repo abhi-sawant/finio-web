@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 this.setState({ hasError: false });
                 window.location.href = '/';
               }}
-              className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium"
+              className="bg-primary text-primary-foreground rounded-full px-5 py-2 text-sm font-medium"
             >
               Go Home
             </button>

@@ -37,7 +37,7 @@ export default function Settings() {
         <NotificationsSection />
 
         {/* Manage */}
-        <div className="card-elevated divide-border divide-y rounded-2xl">
+        <div className="card-elevated divide-border divide-y rounded-md">
           <button
             onClick={() => navigate('/budgets')}
             className="flex w-full items-center justify-between p-4"

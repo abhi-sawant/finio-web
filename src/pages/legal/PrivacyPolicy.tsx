@@ -27,7 +27,7 @@ export default function PrivacyPolicy() {
       </Header>
 
       <Main className="lg:max-w-2xl">
-        <div className="card-elevated space-y-6 rounded-2xl p-5">
+        <div className="card-elevated space-y-6 rounded-md p-5">
           <p className="text-muted-foreground text-xs">
             Last updated: 13 August 2026. This policy covers the hosted Finio app and the
             optional cloud backup service. If you are using a self-hosted deployment, the person

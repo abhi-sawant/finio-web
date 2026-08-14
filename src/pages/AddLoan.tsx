@@ -133,7 +133,7 @@ export default function AddLoan() {
             placeholder="e.g., Home Loan — HDFC"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="bg-card h-auto rounded-xl px-4 py-3"
+            className="bg-card h-auto rounded-sm px-4 py-3"
           />
         </div>
 
@@ -161,7 +161,7 @@ export default function AddLoan() {
               placeholder="e.g. 8.5"
               value={interestRate}
               onChange={(e) => setInterestRate(e.target.value)}
-              className="bg-card h-auto rounded-xl px-4 py-3"
+              className="bg-card h-auto rounded-sm px-4 py-3"
             />
           </div>
           <div>
@@ -179,13 +179,13 @@ export default function AddLoan() {
               placeholder="e.g. 240"
               value={tenureMonths}
               onChange={(e) => setTenureMonths(e.target.value)}
-              className="bg-card h-auto rounded-xl px-4 py-3"
+              className="bg-card h-auto rounded-sm px-4 py-3"
             />
           </div>
         </div>
 
         {previewEmi > 0 && (
-          <div className="card-elevated bg-grad-primary-soft rounded-2xl p-4 text-center">
+          <div className="card-elevated bg-grad-primary-soft rounded-md p-4 text-center">
             <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
               Estimated EMI
             </p>
@@ -208,7 +208,7 @@ export default function AddLoan() {
             <p className="text-destructive text-xs">Add an account first.</p>
           ) : (
             <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-              <SelectTrigger className="bg-card h-auto w-full rounded-xl px-4 py-3">
+              <SelectTrigger className="bg-card h-auto w-full rounded-sm px-4 py-3">
                 <SelectValue>
                   {openAccounts.find((a) => a.id === accountId)?.name ?? 'Choose account'}
                 </SelectValue>
@@ -235,7 +235,7 @@ export default function AddLoan() {
                 <button
                   key={cat.id}
                   onClick={() => setCategoryId(cat.id)}
-                  className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition-all ${
+                  className={`flex flex-col items-center gap-1 rounded-sm border p-2 text-center transition-all ${
                     selected ? 'ring-grad-primary border-transparent' : 'border-border bg-card hover:bg-muted'
                   }`}
                   style={
@@ -260,7 +260,7 @@ export default function AddLoan() {
         <Button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-3.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {existing ? 'Update Loan' : 'Add Loan'}
         </Button>

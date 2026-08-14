@@ -8,7 +8,7 @@ type HeaderProps = React.ComponentPropsWithoutRef<'header'> & {
 function Header({ children, className, innerClassName, ...props }: HeaderProps) {
   return (
     <header
-      className={cn('sticky top-0 z-5 bg-background/15 backdrop-blur', className)}
+      className={cn('sticky top-0 z-5 bg-background', className)}
       {...props}
     >
       <div

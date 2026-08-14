@@ -170,7 +170,7 @@ export function LockScreen() {
                 onClick={handleBiometric}
                 disabled={checking || inCooldown}
                 aria-label="Unlock with biometrics"
-                className="bg-card active:bg-muted flex h-14 items-center justify-center rounded-2xl transition-all select-none active:scale-95 disabled:opacity-40"
+                className="bg-card active:bg-muted flex h-14 items-center justify-center rounded-md transition-all select-none active:scale-95 disabled:opacity-40"
               >
                 <Fingerprint size={22} className="text-muted-foreground" />
               </button>
@@ -185,7 +185,7 @@ export function LockScreen() {
         </div>
 
         <Dialog open={showForgot} onOpenChange={setShowForgot}>
-          <DialogContent className="bg-card top-1/3 mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-2xl sm:max-w-md">
+          <DialogContent className="bg-card top-1/3 mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-md sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Forgot your PIN?</DialogTitle>
               <DialogDescription>

@@ -33,7 +33,7 @@ function MerchantRow({
   const accounts = useFinanceStore((s) => s.accounts);
 
   return (
-    <div className="card-elevated overflow-hidden rounded-2xl">
+    <div className="card-elevated overflow-hidden rounded-md">
       <button
         onClick={onToggle}
         className="flex w-full items-center justify-between p-4"
@@ -49,7 +49,7 @@ function MerchantRow({
         <div className="flex items-center gap-2 pl-3">
           <p
             className={`text-sm font-semibold ${
-              merchant.type === 'income' ? 'text-emerald-500' : ''
+              merchant.type === 'income' ? 'text-primary' : ''
             }`}
           >
             {formatCurrency(merchant.totalAmount, true, hideAmounts, { forceCompact: compact })}
@@ -80,7 +80,7 @@ function MerchantRow({
                 state: { pattern: merchant.displayName, scope: merchant.type },
               })
             }
-            className="text-primary flex w-full items-center justify-center gap-1.5 rounded-xl p-2.5 text-xs font-medium"
+            className="text-primary flex w-full items-center justify-center gap-1.5 rounded-sm p-2.5 text-xs font-medium"
           >
             <Wand2 size={13} />
             Create a rule for "{merchant.displayName}"
@@ -133,7 +133,7 @@ export default function Merchants() {
           ))}
         </div>
 
-        <div className="card-elevated bg-grad-primary-soft rounded-2xl p-4">
+        <div className="card-elevated bg-grad-primary-soft rounded-md p-4">
           <div className="mb-1 flex items-center gap-1.5">
             <Store size={12} className="text-primary" />
             <p className="text-muted-foreground text-[10px] tracking-wide uppercase">

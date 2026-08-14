@@ -104,7 +104,7 @@ export default function ResetPassword() {
                   value={digit}
                   onChange={(e) => handleChange(i, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="bg-card h-14 w-12 rounded-xl text-center text-xl font-bold"
+                  className="bg-card h-14 w-12 rounded-sm text-center text-xl font-bold"
                 />
               ))}
             </div>
@@ -119,7 +119,7 @@ export default function ResetPassword() {
                 placeholder="Min 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-card h-auto w-full rounded-xl py-3 pr-11 pl-11"
+                className="bg-card h-auto w-full rounded-sm py-3 pr-11 pl-11"
                 autoComplete="new-password"
               />
               <Button
@@ -137,7 +137,7 @@ export default function ResetPassword() {
           <Button
             type="submit"
             disabled={loading}
-            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3 font-semibold text-white disabled:opacity-50"
+            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-3 font-semibold text-white disabled:opacity-50"
           >
             {loading ? 'Resetting...' : 'Reset Password'}
           </Button>

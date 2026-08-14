@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { COLOR_PALETTE } from '@/data/colorPalette';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,32 +42,7 @@ const accountTypes: { value: AccountType; label: string; icon: string }[] = [
   { value: 'wallet', label: 'Wallet', icon: 'wallet' },
 ];
 
-const accountColors = [
-  '#6C63FF',
-  '#ef4444',
-  '#f97316',
-  '#fb923c',
-  '#f59e0b',
-  '#fbbf24',
-  '#84cc16',
-  '#22c55e',
-  '#10b981',
-  '#34d399',
-  '#14b8a6',
-  '#06b6d4',
-  '#0ea5e9',
-  '#60a5fa',
-  '#3b82f6',
-  '#8b5cf6',
-  '#a78bfa',
-  '#d946ef',
-  '#ec4899',
-  '#f472b6',
-  '#64748b',
-  '#94a3b8',
-  '#78716c',
-  '#6b7280',
-];
+const accountColors = COLOR_PALETTE;
 
 export default function AddAccount() {
   const navigate = useNavigate();
@@ -182,7 +158,7 @@ export default function AddAccount() {
             placeholder="e.g., HDFC Savings"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="bg-card h-auto rounded-xl px-4 py-3"
+            className="bg-card h-auto rounded-sm px-4 py-3"
           />
         </div>
 
@@ -199,7 +175,7 @@ export default function AddAccount() {
               <button
                 key={t.value}
                 onClick={() => setType(t.value)}
-                className={`rounded-xl border p-3 text-center transition-colors ${
+                className={`rounded-sm border p-3 text-center transition-colors ${
                   type === t.value ? 'border-primary bg-primary/10' : 'border-border bg-card'
                 }`}
               >
@@ -267,7 +243,7 @@ export default function AddAccount() {
                   placeholder="e.g. 5"
                   value={statementCloseDay}
                   onChange={(e) => setStatementCloseDay(e.target.value)}
-                  className="bg-card h-auto rounded-xl px-3 py-2.5"
+                  className="bg-card h-auto rounded-sm px-3 py-2.5"
                 />
               </div>
               <div>
@@ -285,7 +261,7 @@ export default function AddAccount() {
                   placeholder="e.g. 20"
                   value={paymentDueDays}
                   onChange={(e) => setPaymentDueDays(e.target.value)}
-                  className="bg-card h-auto rounded-xl px-3 py-2.5"
+                  className="bg-card h-auto rounded-sm px-3 py-2.5"
                 />
               </div>
               <div>
@@ -304,7 +280,7 @@ export default function AddAccount() {
                   placeholder="5"
                   value={minimumDuePercent}
                   onChange={(e) => setMinimumDuePercent(e.target.value)}
-                  className="bg-card h-auto rounded-xl px-3 py-2.5"
+                  className="bg-card h-auto rounded-sm px-3 py-2.5"
                 />
               </div>
             </div>
@@ -340,7 +316,7 @@ export default function AddAccount() {
         <Button
           onClick={handleSubmit}
           disabled={!name.trim()}
-          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-3.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {existing ? 'Update Account' : 'Add Account'}
         </Button>
@@ -349,7 +325,7 @@ export default function AddAccount() {
           <Button
             variant="secondary"
             onClick={() => setShowReconcile(true)}
-            className="bg-muted text-muted-foreground h-auto w-full gap-2 rounded-xl py-3 text-sm font-medium"
+            className="bg-muted text-muted-foreground h-auto w-full gap-2 rounded-sm py-3 text-sm font-medium"
           >
             <Scale size={16} />
             Reconcile Balance

@@ -36,7 +36,7 @@ function ChangeBadge({ ratio, invert = false }: { ratio: number | null; invert?:
   const Icon = pct > 0 ? ArrowUp : ArrowDown;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${isGood ? 'text-emerald-500' : 'text-rose-500'}`}
+      className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${isGood ? 'text-primary' : 'text-destructive'}`}
     >
       <Icon size={9} />
       {formatPercentChange(ratio).replace('+', '')}
@@ -87,7 +87,7 @@ export function PeriodComparison() {
   }
 
   return (
-    <section className="card-elevated rounded-2xl p-4">
+    <section className="card-elevated rounded-md p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Compare Periods</h3>
         <div className="flex gap-1">
@@ -112,7 +112,7 @@ export function PeriodComparison() {
         {columns.map(({ heading, summary }, index) => {
           const base = index === 0 ? null : comparison.current;
           return (
-            <div key={heading} className="bg-muted/40 rounded-xl p-3">
+            <div key={heading} className="bg-muted/40 rounded-sm p-3">
               <p className="text-muted-foreground truncate text-[10px] tracking-wide uppercase">
                 {heading}
               </p>
@@ -121,18 +121,18 @@ export function PeriodComparison() {
               <dl className="mt-2 space-y-1.5">
                 <div>
                   <dt className="text-muted-foreground text-[10px]">Income</dt>
-                  <dd className="text-xs font-semibold text-emerald-500">
+                  <dd className="text-xs font-semibold text-primary">
                     {money(summary.income)}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground text-[10px]">Expenses</dt>
-                  <dd className="text-xs font-semibold text-rose-500">{money(summary.expenses)}</dd>
+                  <dd className="text-xs font-semibold text-destructive">{money(summary.expenses)}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground text-[10px]">Net</dt>
                   <dd
-                    className={`text-xs font-semibold ${summary.net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
+                    className={`text-xs font-semibold ${summary.net >= 0 ? 'text-primary' : 'text-destructive'}`}
                   >
                     {money(summary.net)}
                   </dd>
@@ -185,7 +185,7 @@ export function PeriodComparison() {
                     {category?.name ?? 'Uncategorized'}
                   </span>
                   <span
-                    className={`shrink-0 text-xs font-semibold ${isUp ? 'text-rose-500' : 'text-emerald-500'}`}
+                    className={`shrink-0 text-xs font-semibold ${isUp ? 'text-destructive' : 'text-primary'}`}
                   >
                     {isUp ? '+' : '−'}
                     {money(Math.abs(mover.change))}

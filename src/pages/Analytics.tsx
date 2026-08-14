@@ -162,13 +162,13 @@ export default function Analytics() {
               </Popover>
             </div>
             {/* Period Summary */}
-            <div className="card-elevated bg-grad-surface rounded-2xl p-4">
+            <div className="card-elevated bg-grad-surface rounded-md p-4">
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
                     Income
                   </p>
-                  <p className="text-sm font-semibold text-emerald-500">
+                  <p className="text-primary text-sm font-semibold">
                     {formatCurrency(totalIncome, true, hideAmounts, {
                       forceCompact: summaryCompact,
                     })}
@@ -178,7 +178,7 @@ export default function Analytics() {
                   <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
                     Expenses
                   </p>
-                  <p className="text-sm font-semibold text-rose-500">
+                  <p className="text-foreground text-sm font-semibold">
                     {formatCurrency(totalExpenses, true, hideAmounts, {
                       forceCompact: summaryCompact,
                     })}
@@ -187,7 +187,7 @@ export default function Analytics() {
                 <div>
                   <p className="text-muted-foreground text-[10px] tracking-wide uppercase">Net</p>
                   <p
-                    className={`text-sm font-semibold ${net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
+                    className={`text-sm font-semibold ${net >= 0 ? 'text-primary' : 'text-destructive'}`}
                   >
                     {formatCurrency(net, true, hideAmounts, { forceCompact: summaryCompact })}
                   </p>
@@ -229,7 +229,7 @@ export default function Analytics() {
         )}
 
         {/* Tools */}
-        <div className="card-elevated divide-border divide-y rounded-2xl">
+        <div className="card-elevated divide-border divide-y rounded-md">
           <button
             onClick={() => navigate('/budgets')}
             className="flex w-full items-center justify-between p-4"

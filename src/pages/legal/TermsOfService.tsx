@@ -27,7 +27,7 @@ export default function TermsOfService() {
       </Header>
 
       <Main className="lg:max-w-2xl">
-        <div className="card-elevated space-y-6 rounded-2xl p-5">
+        <div className="card-elevated space-y-6 rounded-md p-5">
           <p className="text-muted-foreground text-xs">
             Last updated: 13 August 2026. These terms cover the hosted Finio app and its
             optional cloud backup service. See the <span className="text-foreground">Privacy Policy</span>{' '}

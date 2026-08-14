@@ -181,7 +181,7 @@ export default function CategoryRules() {
 
       <Main className="lg:max-w-xl">
         {rules.length === 0 ? (
-          <div className="card-elevated space-y-2 rounded-2xl p-6 text-center">
+          <div className="card-elevated space-y-2 rounded-md p-6 text-center">
             <Wand2 size={28} className="text-muted-foreground mx-auto" />
             <p className="text-sm font-medium">No rules yet</p>
             <p className="text-muted-foreground text-xs">
@@ -206,7 +206,7 @@ export default function CategoryRules() {
                 return (
                   <div
                     key={rule.id}
-                    className={`card-elevated rounded-2xl p-3 ${rule.enabled ? '' : 'opacity-60'}`}
+                    className={`card-elevated rounded-md p-3 ${rule.enabled ? '' : 'opacity-60'}`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex flex-col">
@@ -296,7 +296,7 @@ export default function CategoryRules() {
             <Button
               onClick={() => setReplayOpen(true)}
               variant="secondary"
-              className="bg-muted h-auto w-full rounded-2xl py-3 text-sm font-medium"
+              className="bg-muted h-auto w-full rounded-md py-3 text-sm font-medium"
             >
               <Wand2 size={15} className="mr-1.5" /> Apply to Existing Transactions
             </Button>
@@ -310,7 +310,7 @@ export default function CategoryRules() {
             if (!v) resetForm();
           }}
         >
-          <DialogContent className="bg-card mx-auto max-h-[80vh] w-11/12 overflow-y-auto rounded-2xl sm:max-w-md">
+          <DialogContent className="bg-card mx-auto max-h-[80vh] w-11/12 overflow-y-auto rounded-md sm:max-w-md">
             <DialogHeader>
               <DialogTitle>{editId ? 'Edit Rule' : 'New Rule'}</DialogTitle>
               <DialogDescription>
@@ -328,7 +328,7 @@ export default function CategoryRules() {
                     value={matchType}
                     onValueChange={(v) => setMatchType((v as RuleMatchType) ?? matchType)}
                   >
-                    <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2 text-sm">
+                    <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2 text-sm">
                       <SelectValue>{MATCH_TYPE_LABELS[matchType]}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -345,7 +345,7 @@ export default function CategoryRules() {
                     Applies to
                   </Label>
                   <Select value={scope} onValueChange={(v) => setScope((v as RuleScope) ?? scope)}>
-                    <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2 text-sm">
+                    <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2 text-sm">
                       <SelectValue>{SCOPES.find((s) => s.value === scope)?.label}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -365,10 +365,10 @@ export default function CategoryRules() {
                   placeholder={matchType === 'regex' ? 'e\\.g\\. uber|ola' : 'e.g. Uber'}
                   value={pattern}
                   onChange={(e) => setPattern(e.target.value)}
-                  className="bg-muted h-auto rounded-lg px-3 py-2"
+                  className="bg-muted h-auto rounded-sm px-3 py-2"
                 />
                 {matchType === 'regex' && pattern.trim() !== '' && !patternValid && (
-                  <p className="mt-1 text-xs text-rose-500">Not a valid regular expression</p>
+                  <p className="mt-1 text-xs text-destructive">Not a valid regular expression</p>
                 )}
                 <p className="text-muted-foreground mt-1 text-xs">
                   Matching ignores case.
@@ -387,7 +387,7 @@ export default function CategoryRules() {
                       <button
                         key={cat.id}
                         onClick={() => setCategoryId(cat.id)}
-                        className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition-all ${
+                        className={`flex flex-col items-center gap-1 rounded-sm border p-2 text-center transition-all ${
                           selected
                             ? 'ring-grad-primary border-transparent'
                             : 'border-border bg-card hover:bg-muted'
@@ -449,14 +449,14 @@ export default function CategoryRules() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleSubmit}
-                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
                 >
                   {editId ? 'Update Rule' : 'Add Rule'}
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={resetForm}
-                  className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                  className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
                 >
                   Cancel
                 </Button>
@@ -467,7 +467,7 @@ export default function CategoryRules() {
 
         {/* Replay over existing history */}
         <Dialog open={replayOpen} onOpenChange={setReplayOpen}>
-          <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-2xl sm:max-w-md">
+          <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-md sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Apply Rules to Existing Transactions</DialogTitle>
               <DialogDescription>
@@ -477,7 +477,7 @@ export default function CategoryRules() {
             </DialogHeader>
 
             <div className="space-y-3">
-              <div className="bg-muted grid grid-cols-2 gap-1 rounded-xl p-1">
+              <div className="bg-muted grid grid-cols-2 gap-1 rounded-sm p-1">
                 {[
                   { value: true, label: 'Uncategorized only' },
                   { value: false, label: 'All transactions' },
@@ -485,7 +485,7 @@ export default function CategoryRules() {
                   <button
                     key={String(option.value)}
                     onClick={() => setOnlyUncategorized(option.value)}
-                    className={`rounded-lg py-1.5 text-xs font-medium transition-all ${
+                    className={`rounded-sm py-1.5 text-xs font-medium transition-all ${
                       onlyUncategorized === option.value
                         ? 'bg-grad-primary text-white shadow'
                         : 'text-muted-foreground'
@@ -510,14 +510,14 @@ export default function CategoryRules() {
                 <Button
                   onClick={handleReplay}
                   disabled={replayPlan.length === 0}
-                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Apply
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={() => setReplayOpen(false)}
-                  className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                  className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
                 >
                   Cancel
                 </Button>

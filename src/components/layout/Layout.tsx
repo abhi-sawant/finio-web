@@ -136,7 +136,7 @@ export function Layout() {
           ref={fabRef}
           onClick={handleFabClick}
           {...fabLongPressHandlers}
-          className="bg-grad-primary shadow-glow-primary fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform active:scale-95 lg:hidden"
+          className="bg-primary text-primary-foreground shadow-[var(--shadow-float)] fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-transform active:scale-95 lg:hidden"
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}
           aria-label="Add transaction. Long-press for templates."
         >
@@ -172,7 +172,7 @@ export function Layout() {
 
       {/* Bottom Nav — mobile only */}
       <nav
-        className="pb-safe border-border bg-card/85 fixed right-0 left-0 z-40 flex w-full items-center justify-around border-t px-2 pt-2 backdrop-blur-xl lg:hidden"
+        className="pb-safe border-border bg-card fixed right-0 left-0 z-40 flex w-full items-center justify-around border-t px-2 pt-2 lg:hidden"
         style={{ bottom: 0 }}
       >
         {navTabs.map((tab) => {
@@ -183,14 +183,15 @@ export function Layout() {
               key={tab.path}
               onClick={() => navigate(tab.path)}
               className={cn(
-                'relative flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 transition-colors',
+                'relative flex flex-col items-center gap-1 rounded-sm px-3 py-1.5 transition-colors',
                 isActive ? 'text-primary' : 'text-muted-foreground',
               )}
             >
-              {isActive && (
-                <span className="bg-grad-primary absolute -top-0.5 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full" />
-              )}
               <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+              <span
+                className={cn('bg-primary h-1 w-1 rounded-full', !isActive && 'opacity-0')}
+                aria-hidden="true"
+              />
               <span className="text-[10px] font-medium">{tab.label}</span>
             </button>
           );

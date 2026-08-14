@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   AlertTriangle,
@@ -8,11 +8,9 @@ import {
   History,
   Pencil,
   Plus,
-  Tag,
   Target,
   Trash2,
 } from 'lucide-react';
-import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import { BudgetHealthBadge, BudgetProgressBar } from '@/components/budgets/BudgetHealthBadge';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
@@ -115,7 +113,7 @@ export default function Budgets() {
       const label = labels.find((l) => l.id === budget.labelId);
       return { name: label?.name ?? 'Unknown label', color: label?.color ?? '#94a3b8' };
     }
-    if (budget.categoryId === '') return { name: 'Overall Expenses', color: '#7c5cff' };
+    if (budget.categoryId === '') return { name: 'Overall Expenses', color: '#146b54' };
     const cat = expenseCategories.find((c) => c.id === budget.categoryId);
     return { name: cat?.name ?? 'Unknown', color: cat?.color ?? '#94a3b8' };
   };
@@ -204,13 +202,13 @@ export default function Budgets() {
 
       <Main className="lg:max-w-xl">
         {showForm && (
-          <div className="card-elevated space-y-3 rounded-2xl p-4">
+          <div className="card-elevated space-y-3 rounded-md p-4">
             <div>
               <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                 Scope
               </Label>
               <Select value={scope} onValueChange={(v) => setScope(v ?? OVERALL_SCOPE)}>
-                <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                   <SelectValue>{describe(decodeScope(scope)).name}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-h-72 overflow-y-auto">
@@ -233,13 +231,15 @@ export default function Budgets() {
               <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                 Period
               </Label>
-              <div className="bg-muted grid grid-cols-3 gap-2 rounded-xl p-1">
+              <div className="bg-muted grid grid-cols-3 gap-2 rounded-sm p-1">
                 {PERIOD_TYPES.map((p) => (
                   <button
                     key={p}
                     onClick={() => setPeriod(p)}
-                    className={`rounded-lg py-2 text-xs font-medium transition-all ${
-                      period === p ? 'bg-grad-primary text-white shadow' : 'text-muted-foreground'
+                    className={`rounded-sm py-2 text-xs font-medium transition-colors ${
+                      period === p
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground'
                     }`}
                   >
                     {PERIOD_LABELS[p]}
@@ -265,14 +265,14 @@ export default function Budgets() {
             <div className="flex gap-2">
               <Button
                 onClick={handleSubmit}
-                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
               >
                 {editingId ? 'Save Changes' : 'Save'}
               </Button>
               <Button
                 variant="secondary"
                 onClick={resetForm}
-                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </Button>
@@ -282,14 +282,9 @@ export default function Budgets() {
 
         {sortedStatuses.length === 0 ? (
           <div className="py-12 text-center">
-            <div className="bg-grad-primary-soft mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full">
-              <Target size={22} className="text-primary" />
-            </div>
+            <Target size={28} className="text-primary mx-auto mb-3" />
             <p className="text-muted-foreground mb-4">No budgets yet</p>
-            <Button
-              onClick={startCreate}
-              className="bg-grad-primary shadow-glow-primary h-auto rounded-xl px-5 py-2.5 text-sm font-medium text-white"
-            >
+            <Button onClick={startCreate} className="rounded-full px-5 py-2.5">
               Create your first budget
             </Button>
           </div>
@@ -302,22 +297,6 @@ export default function Budgets() {
                 monthStartDay={monthStartDay}
                 scopeName={describe(s.budget).name}
                 scopeColor={describe(s.budget).color}
-                icon={
-                  s.budget.labelId ? (
-                    <Tag size={16} color="white" />
-                  ) : s.budget.categoryId === '' ? (
-                    <Target size={16} color="white" />
-                  ) : (
-                    <CategoryIcon
-                      icon={
-                        expenseCategories.find((c) => c.id === s.budget.categoryId)?.icon ??
-                        'circle-ellipsis'
-                      }
-                      size={16}
-                      color="white"
-                    />
-                  )
-                }
                 expanded={expandedId === s.budget.id}
                 onToggleHistory={() =>
                   setExpandedId((id) => (id === s.budget.id ? null : s.budget.id))
@@ -345,7 +324,6 @@ interface BudgetCardProps {
   monthStartDay: number;
   scopeName: string;
   scopeColor: string;
-  icon: ReactNode;
   expanded: boolean;
   onToggleHistory: () => void;
   onEdit: () => void;
@@ -357,7 +335,6 @@ function BudgetCard({
   monthStartDay,
   scopeName,
   scopeColor,
-  icon,
   expanded,
   onToggleHistory,
   onEdit,
@@ -373,21 +350,13 @@ function BudgetCard({
   );
 
   return (
-    <div className="card-elevated rounded-2xl p-4">
+    <div className="card-elevated rounded-md p-4">
       <div className="mb-2 flex items-center justify-between">
-        <div className="flex min-w-0 items-center gap-2">
-          <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-            style={{ backgroundImage: `linear-gradient(135deg, ${scopeColor}, ${scopeColor}cc)` }}
-          >
-            {icon}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{scopeName}</p>
-            <p className="text-muted-foreground truncate text-[11px]">
-              {PERIOD_LABELS[budget.period]} · {periodLabel(status.range, monthStartDay)}
-            </p>
-          </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{scopeName}</p>
+          <p className="text-muted-foreground truncate text-[11px]">
+            {PERIOD_LABELS[budget.period]} · {periodLabel(status.range, monthStartDay)}
+          </p>
         </div>
         <div className="flex shrink-0 items-center">
           <Button
@@ -412,14 +381,14 @@ function BudgetCard({
       </div>
 
       <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
-        <span className={status.isOver ? 'font-medium text-rose-500' : 'text-muted-foreground'}>
+        <span className={status.isOver ? 'font-medium text-destructive' : 'text-muted-foreground'}>
           {formatCurrency(status.spent, false, hideAmounts)} of{' '}
           {formatCurrency(status.limit, false, hideAmounts)}
         </span>
         <span className="flex shrink-0 items-center gap-1.5">
           <BudgetHealthBadge status={status} />
           <span
-            className={`font-medium ${status.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
+            className={`font-medium ${status.isOver ? 'text-destructive' : 'text-muted-foreground'}`}
           >
             {Math.round(status.percent)}%
           </span>
@@ -440,7 +409,7 @@ function BudgetCard({
           : `${formatCurrency(status.remaining, false, hideAmounts)} left ${PERIOD_NOUN[budget.period]}`}
       </p>
       {budget.rollover && status.carryover !== 0 && (
-        <p className="text-[11px] text-amber-500">
+        <p className="text-[11px] text-[#c79b4f]">
           {status.carryover > 0
             ? `Includes ${formatCurrency(status.carryover, false, hideAmounts)} rolled over`
             : `Includes ${formatCurrency(-status.carryover, false, hideAmounts)} overspend carried in`}
@@ -481,12 +450,12 @@ function BudgetCard({
                     className="h-full rounded-full"
                     style={{
                       width: `${h.limit > 0 ? Math.min((h.spent / h.limit) * 100, 100) : 0}%`,
-                      backgroundImage: h.isOver ? 'var(--grad-danger)' : 'var(--grad-success)',
+                      backgroundColor: h.isOver ? 'var(--destructive)' : 'var(--primary)',
                     }}
                   />
                 </div>
                 <span
-                  className={`flex w-32 shrink-0 items-center justify-end gap-1 text-right ${h.isOver ? 'text-rose-500' : 'text-muted-foreground'}`}
+                  className={`flex w-32 shrink-0 items-center justify-end gap-1 text-right ${h.isOver ? 'text-destructive' : 'text-muted-foreground'}`}
                 >
                   {h.isOver ? (
                     <AlertTriangle size={10} aria-label="Over budget" />
