@@ -210,7 +210,6 @@ const parseTransaction: RowParser<Transaction> = (row) => {
   if (type === 'transfer' && !toAccountId) return 'transfer has no destination account';
 
   const recurringId = asId(row.recurringId);
-  const merchant = asId(row.merchant);
   const splits = type === 'expense' ? asSplits(row.splits, amount) : undefined;
 
   return {
@@ -225,7 +224,6 @@ const parseTransaction: RowParser<Transaction> = (row) => {
     createdAt: asIsoDate(row.createdAt) ?? date,
     ...(toAccountId ? { toAccountId } : {}),
     ...(recurringId ? { recurringId } : {}),
-    ...(merchant ? { merchant } : {}),
     ...(splits ? { splits } : {}),
   };
 };
@@ -347,7 +345,6 @@ const parseTemplate: RowParser<TransactionTemplate> = (row) => {
   if (type === 'transfer' && !toAccountId) return 'transfer template has no destination account';
 
   const splits = type === 'expense' ? asSplits(row.splits, amount) : undefined;
-  const merchant = asId(row.merchant);
 
   return {
     id,
@@ -360,7 +357,6 @@ const parseTemplate: RowParser<TransactionTemplate> = (row) => {
     labels: asStringArray(row.labels),
     createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
     ...(toAccountId && type === 'transfer' ? { toAccountId } : {}),
-    ...(merchant ? { merchant } : {}),
     ...(splits ? { splits } : {}),
   };
 };

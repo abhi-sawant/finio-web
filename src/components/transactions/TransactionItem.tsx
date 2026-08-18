@@ -94,11 +94,7 @@ export const TransactionItem = memo(function TransactionItem({
         .join(' + ')
     : undefined;
 
-  const primaryText = transaction.merchant
-    ? transaction.note
-      ? `${transaction.merchant} - ${transaction.note}`
-      : transaction.merchant
-    : transaction.note || splitTitle || category?.name || 'Transaction';
+  const primaryText = transaction.note || splitTitle || category?.name || 'Transaction';
 
   const secondaryLine =
     isTransfer && toAccount

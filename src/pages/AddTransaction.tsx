@@ -85,7 +85,6 @@ export default function AddTransaction() {
       : toLocalDateTimeInputValue(new Date()),
   );
   const [note, setNote] = useState(existing?.note ?? shared?.note ?? '');
-  const [merchant, setMerchant] = useState(existing?.merchant ?? '');
   const [selectedLabels, setSelectedLabels] = useState<string[]>(
     existing?.labels ?? mergeLabels([], sharedRule?.labelIds ?? []),
   );
@@ -182,13 +181,6 @@ export default function AddTransaction() {
     const seen = new Set<string>();
     return transactions
       .map((t) => t.note?.trim())
-      .filter((n): n is string => !!n && !seen.has(n) && seen.add(n) !== undefined);
-  }, [transactions]);
-
-  const merchantSuggestions = useMemo(() => {
-    const seen = new Set<string>();
-    return transactions
-      .map((t) => t.merchant?.trim())
       .filter((n): n is string => !!n && !seen.has(n) && seen.add(n) !== undefined);
   }, [transactions]);
 
@@ -304,7 +296,6 @@ export default function AddTransaction() {
             : categoryId,
       date: new Date(date).toISOString(),
       note,
-      merchant: merchant.trim() || undefined,
       labels: selectedLabels,
       splits: useSplits
         ? splitRows.map((r) => ({
@@ -555,7 +546,7 @@ export default function AddTransaction() {
                 </p>
               </div>
             ) : (
-              <div className="scrollbar-hide grid max-h-44 grid-cols-4 gap-2 overflow-y-auto">
+              <div className="scrollbar-hide grid max-h-54 grid-cols-4 gap-2 overflow-y-auto">
                 {filteredCategories.map((cat) => {
                   const selected = categoryId === cat.id;
                   return (
@@ -598,24 +589,6 @@ export default function AddTransaction() {
             Date & Time
           </Label>
           <DateTimePicker value={date} onChange={setDate} />
-        </div>
-
-        {/* Merchant */}
-        <div>
-          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Merchant</Label>
-          <Input
-            type="text"
-            placeholder="Add a merchant..."
-            value={merchant}
-            onChange={(e) => setMerchant(e.target.value)}
-            className="bg-card h-auto rounded-sm px-4 py-3"
-            list="merchant-suggestions"
-          />
-          <datalist id="merchant-suggestions">
-            {merchantSuggestions.map((m) => (
-              <option key={m} value={m} />
-            ))}
-          </datalist>
         </div>
 
         {/* Note */}
@@ -683,13 +656,16 @@ export default function AddTransaction() {
         )}
 
         {/* Submit */}
-        <Button
-          onClick={handleSubmit}
-          disabled={!amount || !accountId}
-          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-md py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {existing ? 'Update Transaction' : 'Add Transaction'}
-        </Button>
+        <div className="bg-background fixed bottom-0 left-0 z-50 w-full p-3 shadow">
+          <Button
+            onClick={handleSubmit}
+            disabled={!amount || !accountId}
+            className="w-full rounded-md"
+            size="lg"
+          >
+            {existing ? 'Update Transaction' : 'Add Transaction'}
+          </Button>
+        </div>
       </Main>
     </>
   );
