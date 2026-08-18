@@ -2,7 +2,11 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, ChevronDown, ChevronUp, Store, Wand2 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
-import { summarizeMerchants, type MerchantSummary, type MerchantTransactionType } from '@/utils/merchants';
+import {
+  summarizeMerchants,
+  type MerchantSummary,
+  type MerchantTransactionType,
+} from '@/utils/merchants';
 import { formatCurrency, formatDate, shouldCompactGroup } from '@/utils/formatters';
 import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
@@ -48,9 +52,7 @@ function MerchantRow({
         </div>
         <div className="flex items-center gap-2 pl-3">
           <p
-            className={`text-sm font-semibold ${
-              merchant.type === 'income' ? 'text-primary' : ''
-            }`}
+            className={`text-sm font-semibold ${merchant.type === 'income' ? 'text-primary' : ''}`}
           >
             {formatCurrency(merchant.totalAmount, true, hideAmounts, { forceCompact: compact })}
           </p>
@@ -100,7 +102,10 @@ export default function Merchants() {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const merchants = useMemo(() => summarizeMerchants(transactions, type), [transactions, type]);
-  const compact = useMemo(() => shouldCompactGroup(merchants.map((m) => m.totalAmount)), [merchants]);
+  const compact = useMemo(
+    () => shouldCompactGroup(merchants.map((m) => m.totalAmount)),
+    [merchants],
+  );
   const total = useMemo(() => merchants.reduce((sum, m) => sum + m.totalAmount, 0), [merchants]);
 
   return (
@@ -123,9 +128,7 @@ export default function Merchants() {
                 setExpandedKey(null);
               }}
               className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-                type === chip.value
-                  ? 'bg-grad-primary text-white'
-                  : 'bg-card text-muted-foreground'
+                type === chip.value ? 'bg-grad-primary text-white' : 'bg-card text-muted-foreground'
               }`}
             >
               {chip.label}
@@ -158,8 +161,8 @@ export default function Merchants() {
 
         {merchants.length === 0 && (
           <p className="text-muted-foreground py-12 text-center text-sm">
-            No noted {type === 'expense' ? 'spending' : 'income'} yet — add a note to a
-            transaction to see it show up here.
+            No noted {type === 'expense' ? 'spending' : 'income'} yet — add a note to a transaction
+            to see it show up here.
           </p>
         )}
       </Main>

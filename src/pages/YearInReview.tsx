@@ -12,7 +12,12 @@ import {
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { buildYearInReview } from '@/utils/analytics';
 import { normalizeMonthStartDay } from '@/utils/period';
-import { formatCurrency, formatDate, formatPercentChange, shouldCompactGroup } from '@/utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  formatPercentChange,
+  shouldCompactGroup,
+} from '@/utils/formatters';
 import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/ui/header';
@@ -118,17 +123,15 @@ export default function YearInReview() {
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-muted-foreground text-[10px] tracking-wide uppercase">Income</p>
-              <p className="text-sm font-semibold text-primary">
+              <p className="text-primary text-sm font-semibold">
                 {formatCurrency(review.current.income, true, hideAmounts, {
                   forceCompact: heroCompact,
                 })}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
-                Expenses
-              </p>
-              <p className="text-sm font-semibold text-destructive">
+              <p className="text-muted-foreground text-[10px] tracking-wide uppercase">Expenses</p>
+              <p className="text-destructive text-sm font-semibold">
                 {formatCurrency(review.current.expenses, true, hideAmounts, {
                   forceCompact: heroCompact,
                 })}
@@ -147,10 +150,7 @@ export default function YearInReview() {
           </div>
           <div className="border-border mt-3 grid grid-cols-3 gap-3 border-t pt-2 text-center">
             <ChangeBadge value={ratio(review.current.income, review.previous.income)} />
-            <ChangeBadge
-              value={ratio(review.current.expenses, review.previous.expenses)}
-              invert
-            />
+            <ChangeBadge value={ratio(review.current.expenses, review.previous.expenses)} invert />
             <ChangeBadge value={ratio(review.current.net, review.previous.net)} />
           </div>
         </div>
@@ -264,13 +264,15 @@ export default function YearInReview() {
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">
-                  {review.biggestExpense.note || categoryFor(review.biggestExpense.categoryId)?.name || 'Expense'}
+                  {review.biggestExpense.note ||
+                    categoryFor(review.biggestExpense.categoryId)?.name ||
+                    'Expense'}
                 </p>
                 <p className="text-muted-foreground text-xs">
                   {formatDate(review.biggestExpense.date)}
                 </p>
               </div>
-              <p className="shrink-0 text-sm font-semibold text-destructive">
+              <p className="text-destructive shrink-0 text-sm font-semibold">
                 {money(review.biggestExpense.amount)}
               </p>
             </div>

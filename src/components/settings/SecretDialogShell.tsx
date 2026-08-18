@@ -33,7 +33,9 @@ export function SecretDialogShell({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn('bg-card top-1/3 mx-auto w-11/12 rounded-md sm:max-w-sm', className)}>
+      <DialogContent
+        className={cn('bg-card top-1/3 mx-auto w-11/12 rounded-md sm:max-w-sm', className)}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

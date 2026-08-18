@@ -304,10 +304,7 @@ describe('buildInsights', () => {
       },
     ];
 
-    const insights = buildInsights(
-      { ...baseInput([]), accounts },
-      { formatAmount: money },
-    );
+    const insights = buildInsights({ ...baseInput([]), accounts }, { formatAmount: money });
     const negative = insights.filter((i) => i.kind === 'negative-balance');
 
     expect(negative).toHaveLength(1);

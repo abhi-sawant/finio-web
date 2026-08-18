@@ -253,7 +253,7 @@ describe('buildYearInReview', () => {
     expect(lastYear.previous.expenses).toBe(0);
   });
 
-  it('reconstructs net worth at the edges of the year from today\'s accounts and ledger', () => {
+  it("reconstructs net worth at the edges of the year from today's accounts and ledger", () => {
     const review = buildYearInReview({
       transactions: [
         // Starting balance is 5000 today; this income happened mid-year, so net worth was

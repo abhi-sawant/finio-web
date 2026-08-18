@@ -144,7 +144,7 @@ export default function ManageCategories() {
                 <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                   Icon
                 </Label>
-                <div className="grid grid-cols-6 gap-2 h-50 overflow-auto">
+                <div className="grid h-50 grid-cols-6 gap-2 overflow-auto">
                   {CATEGORY_ICONS.map((i) => (
                     <button
                       key={i}

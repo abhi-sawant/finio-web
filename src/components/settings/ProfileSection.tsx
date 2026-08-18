@@ -104,7 +104,10 @@ export function ProfileSection() {
             <Palette size={18} className="text-muted-foreground" />
             <span className="text-sm font-medium">Theme</span>
           </div>
-          <Select value={settings.theme} onValueChange={(v) => updateSettings({ theme: v as Theme })}>
+          <Select
+            value={settings.theme}
+            onValueChange={(v) => updateSettings({ theme: v as Theme })}
+          >
             <SelectTrigger className="bg-muted h-auto rounded-sm border-0 px-3 py-1.5">
               <SelectValue>{themes.find((t) => t.value === settings.theme)?.label}</SelectValue>
             </SelectTrigger>
@@ -141,8 +144,8 @@ export function ProfileSection() {
             <DialogHeader>
               <DialogTitle>Month starts on</DialogTitle>
               <DialogDescription>
-                Every "this month" total and monthly budget will run from this day to the day
-                before it in the next month.
+                Every "this month" total and monthly budget will run from this day to the day before
+                it in the next month.
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-7 gap-1.5">
@@ -154,7 +157,9 @@ export function ProfileSection() {
                     setShowMonthStartPicker(false);
                   }}
                   className={`rounded-sm py-2 text-sm font-medium transition-colors ${
-                    day === monthStartDay ? 'bg-grad-primary text-white' : 'bg-muted hover:bg-muted/70'
+                    day === monthStartDay
+                      ? 'bg-grad-primary text-white'
+                      : 'bg-muted hover:bg-muted/70'
                   }`}
                 >
                   {day}

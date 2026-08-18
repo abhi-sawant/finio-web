@@ -14,14 +14,7 @@ import {
   type NotificationPrefs,
   type ScheduledNotification,
 } from '@/utils/notifications';
-import type {
-  Account,
-  Budget,
-  Category,
-  Label,
-  RecurringTransaction,
-  Transaction,
-} from '@/types';
+import type { Account, Budget, Category, Label, RecurringTransaction, Transaction } from '@/types';
 
 /**
  * Turns the user's data into a flat list of dated reminders.
@@ -69,10 +62,7 @@ function relativeDueLabel(dueDate: Date, now: Date): string {
   return `in ${days} days`;
 }
 
-function buildBillEntries(
-  input: NotificationScheduleInput,
-  now: Date,
-): ScheduledNotification[] {
+function buildBillEntries(input: NotificationScheduleInput, now: Date): ScheduledNotification[] {
   const { prefs, recurring, categories } = input;
   if (!prefs.notifyBills) return [];
 
@@ -105,10 +95,7 @@ function buildBillEntries(
   return entries;
 }
 
-function buildBudgetEntries(
-  input: NotificationScheduleInput,
-  now: Date,
-): ScheduledNotification[] {
+function buildBudgetEntries(input: NotificationScheduleInput, now: Date): ScheduledNotification[] {
   const { prefs, budgets, transactions, categories, labels, monthStartDay } = input;
   if (!prefs.notifyBudgets) return [];
 
@@ -150,10 +137,7 @@ function buildBudgetEntries(
   return entries;
 }
 
-function buildCreditEntries(
-  input: NotificationScheduleInput,
-  now: Date,
-): ScheduledNotification[] {
+function buildCreditEntries(input: NotificationScheduleInput, now: Date): ScheduledNotification[] {
   const { prefs, accounts } = input;
   if (!prefs.notifyCreditDue) return [];
 

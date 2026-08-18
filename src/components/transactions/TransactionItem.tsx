@@ -112,7 +112,7 @@ export const TransactionItem = memo(function TransactionItem({
         onClick={handleClick}
         aria-pressed={selectionMode ? selected : undefined}
         {...(longPressEnabled ? longPressHandlers : undefined)}
-        className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/40 active:bg-muted/60"
+        className="hover:bg-muted/40 active:bg-muted/60 flex w-full items-center gap-3 px-3 py-3 text-left transition-colors"
       >
         {selectionMode && (
           <Checkbox checked={selected} className="pointer-events-none shrink-0" tabIndex={-1} />

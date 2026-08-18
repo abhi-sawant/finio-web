@@ -306,7 +306,8 @@ export function BackupSection() {
 
   /** Same reasoning as the app lock's toggle: both directions need input, so the switch opens
    *  a dialog rather than writing state optimistically. */
-  const handleToggleBackupEncryption = (next: boolean) => openCryptoDialog(next ? 'set' : 'disable');
+  const handleToggleBackupEncryption = (next: boolean) =>
+    openCryptoDialog(next ? 'set' : 'disable');
 
   const saveBackupPassphrase = async (passphrase: string) => {
     setPassphraseBusy(true);
@@ -338,7 +339,11 @@ export function BackupSection() {
     if (cryptoDialog === 'unlock' || cryptoPhase === 'current') {
       if (!cryptoConfig) return;
       setPassphraseBusy(true);
-      const key = await deriveEncryptionKey(passphraseEntry, cryptoConfig.salt, cryptoConfig.iterations);
+      const key = await deriveEncryptionKey(
+        passphraseEntry,
+        cryptoConfig.salt,
+        cryptoConfig.iterations,
+      );
       const ok = await verifyPassphraseAgainstConfig(key, cryptoConfig);
       setPassphraseBusy(false);
 
@@ -457,7 +462,9 @@ export function BackupSection() {
             className="flex w-full items-center gap-3 p-4 disabled:opacity-60"
           >
             <Cloud size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">{restoring ? 'Restoring...' : 'Restore from Cloud'}</span>
+            <span className="text-sm font-medium">
+              {restoring ? 'Restoring...' : 'Restore from Cloud'}
+            </span>
           </button>
           <button onClick={openBackupHistory} className="flex w-full items-center gap-3 p-4">
             <History size={18} className="text-muted-foreground" />
@@ -555,7 +562,11 @@ export function BackupSection() {
             disabled={passphraseBusy || passphraseEntry.length === 0}
             onClick={handleCryptoPassphraseSubmit}
           >
-            {cryptoDialog === 'disable' ? 'Turn off' : cryptoPhase === 'confirm' ? 'Confirm' : 'Continue'}
+            {cryptoDialog === 'disable'
+              ? 'Turn off'
+              : cryptoPhase === 'confirm'
+                ? 'Confirm'
+                : 'Continue'}
           </Button>
         </div>
       </SecretDialogShell>
@@ -614,7 +625,9 @@ export function BackupSection() {
               </p>
             </div>
             <button
-              onClick={backupFolderName ? handleDisconnectBackupFolder : () => setShowFolderSetupInfo(true)}
+              onClick={
+                backupFolderName ? handleDisconnectBackupFolder : () => setShowFolderSetupInfo(true)
+              }
               className="bg-muted shrink-0 rounded-sm px-3 py-1.5 text-xs font-medium"
             >
               {backupFolderName ? 'Disconnect' : 'Choose Folder'}
@@ -630,8 +643,8 @@ export function BackupSection() {
                 In the folder picker that opens next, create a new folder named{' '}
                 <strong className="text-foreground">"Finio"</strong> inside your Downloads folder,
                 then select it. This is the recommended setup — it keeps backups organized in one
-                place and lets Finio automatically keep only the 10 most recent, deleting older
-                ones for you.
+                place and lets Finio automatically keep only the 10 most recent, deleting older ones
+                for you.
               </DialogDescription>
             </DialogHeader>
             <div className="flex gap-2">
@@ -659,7 +672,10 @@ export function BackupSection() {
           <Upload size={18} className="text-muted-foreground" />
           <span className="text-sm font-medium">Import Data</span>
         </button>
-        <button onClick={() => navigate('/import-csv')} className="flex w-full items-center gap-3 p-4">
+        <button
+          onClick={() => navigate('/import-csv')}
+          className="flex w-full items-center gap-3 p-4"
+        >
           <FileSpreadsheet size={18} className="text-muted-foreground" />
           <div className="flex-1 text-left">
             <p className="text-sm font-medium">Import Bank CSV</p>
@@ -787,7 +803,9 @@ export function BackupSection() {
                 <li key={backup.backup_date} className="flex items-center justify-between py-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{formatFullDate(backup.backup_date)}</p>
-                    <p className="text-muted-foreground text-xs">{formatFileSize(backup.file_size)}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {formatFileSize(backup.file_size)}
+                    </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     <Button

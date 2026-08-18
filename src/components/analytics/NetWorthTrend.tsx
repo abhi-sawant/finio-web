@@ -109,7 +109,13 @@ export function NetWorthTrend() {
               interval="preserveStartEnd"
               minTickGap={24}
             />
-            <YAxis fontSize={10} tickLine={false} axisLine={false} width={50} tickFormatter={money} />
+            <YAxis
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              width={50}
+              tickFormatter={money}
+            />
             <Tooltip
               cursor={{ fill: 'rgba(124,92,255,0.08)' }}
               contentStyle={{

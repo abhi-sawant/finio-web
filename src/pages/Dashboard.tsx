@@ -176,11 +176,20 @@ export default function Dashboard() {
           ? 'Overall expenses'
           : (categories.find((c) => c.id === s.budget.categoryId)?.name ?? 'Unknown');
     return [
-      ...nearLimitBudgets.map((s) => ({ kind: 'budget' as const, status: s, label: budgetLabel(s) })),
+      ...nearLimitBudgets.map((s) => ({
+        kind: 'budget' as const,
+        status: s,
+        label: budgetLabel(s),
+      })),
       ...creditDues.map(({ account, dueInfo }) => ({ kind: 'credit' as const, account, dueInfo })),
       ...upcomingRecurring.map(({ rule, daysUntil }) => {
         const cat = categories.find((c) => c.id === rule.categoryId);
-        return { kind: 'recurring' as const, rule, label: rule.note || cat?.name || 'Recurring', daysUntil };
+        return {
+          kind: 'recurring' as const,
+          rule,
+          label: rule.note || cat?.name || 'Recurring',
+          daysUntil,
+        };
       }),
     ];
   }, [nearLimitBudgets, creditDues, upcomingRecurring, labels, categories]);
@@ -274,7 +283,7 @@ export default function Dashboard() {
               <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
                 Total balance
               </p>
-              <p className="mt-1 text-4xl font-bold tracking-tight text-primary">
+              <p className="text-primary mt-1 text-4xl font-bold tracking-tight">
                 {formatCurrency(totalBalance, false, hideAmounts)}
               </p>
               {creditOutstanding > 0 && (
@@ -300,7 +309,9 @@ export default function Dashboard() {
             <div className="border-border mb-3 flex items-center justify-between border-b pb-3">
               <span className="text-muted-foreground text-xs">Total balance</span>
               <div className="text-right">
-                <p className="text-base font-bold">{formatCurrency(totalBalance, false, hideAmounts)}</p>
+                <p className="text-base font-bold">
+                  {formatCurrency(totalBalance, false, hideAmounts)}
+                </p>
                 {creditOutstanding > 0 && (
                   <p className="text-muted-foreground text-[11px]">
                     {formatCurrency(afterDues, false, hideAmounts)} after card dues
@@ -399,7 +410,7 @@ export default function Dashboard() {
                 <button
                   key={i}
                   onClick={() => goToAttentionItem(item)}
-                  className="border-border flex w-full items-center justify-between gap-3 border-b px-4 py-3 text-left last:border-b-0 hover:bg-muted/40"
+                  className="border-border hover:bg-muted/40 flex w-full items-center justify-between gap-3 border-b px-4 py-3 text-left last:border-b-0"
                 >
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">
                     {describeAttention(item)}
@@ -465,7 +476,10 @@ export default function Dashboard() {
             </div>
             <div className="divide-border divide-y">
               {topDebts.map((s) => (
-                <div key={s.person.id} className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
+                <div
+                  key={s.person.id}
+                  className="flex items-center gap-3 py-2 first:pt-0 last:pb-0"
+                >
                   <PersonIcon icon={s.person.icon} size={14} color={s.person.color} />
                   <p className="min-w-0 flex-1 truncate text-xs font-medium">{s.person.name}</p>
                   <p

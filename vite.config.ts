@@ -23,7 +23,7 @@ export default defineConfig({
         name: 'Finio - Finance Tracker',
         short_name: 'Finio',
         description: 'Personal finance tracker - track expenses, income, and budgets',
-        theme_color: '#6C63FF',
+        theme_color: '#146b54',
         background_color: '#0f1117',
         display: 'standalone',
         scope: '/',

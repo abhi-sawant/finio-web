@@ -368,7 +368,7 @@ export default function CategoryRules() {
                   className="bg-muted h-auto rounded-sm px-3 py-2"
                 />
                 {matchType === 'regex' && pattern.trim() !== '' && !patternValid && (
-                  <p className="mt-1 text-xs text-destructive">Not a valid regular expression</p>
+                  <p className="text-destructive mt-1 text-xs">Not a valid regular expression</p>
                 )}
                 <p className="text-muted-foreground mt-1 text-xs">
                   Matching ignores case.

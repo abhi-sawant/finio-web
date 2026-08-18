@@ -32,9 +32,27 @@ describe('summarizeMerchants', () => {
 
   it('picks the most common raw note as the display name, ties broken by recency', () => {
     const transactions = [
-      tx({ id: '1', type: 'expense', amount: 100, date: '2026-06-01T00:00:00.000Z', note: 'Swiggy' }),
-      tx({ id: '2', type: 'expense', amount: 100, date: '2026-06-05T00:00:00.000Z', note: 'Swiggy' }),
-      tx({ id: '3', type: 'expense', amount: 100, date: '2026-06-10T00:00:00.000Z', note: 'SWIGGY 99' }),
+      tx({
+        id: '1',
+        type: 'expense',
+        amount: 100,
+        date: '2026-06-01T00:00:00.000Z',
+        note: 'Swiggy',
+      }),
+      tx({
+        id: '2',
+        type: 'expense',
+        amount: 100,
+        date: '2026-06-05T00:00:00.000Z',
+        note: 'Swiggy',
+      }),
+      tx({
+        id: '3',
+        type: 'expense',
+        amount: 100,
+        date: '2026-06-10T00:00:00.000Z',
+        note: 'SWIGGY 99',
+      }),
     ];
 
     const [merchant] = summarizeMerchants(transactions);
@@ -64,9 +82,27 @@ describe('summarizeMerchants', () => {
 
   it('sorts merchants by total amount descending and lists their transactions newest first', () => {
     const transactions = [
-      tx({ id: 'a1', type: 'expense', amount: 100, date: '2026-06-01T00:00:00.000Z', note: 'Amazon' }),
-      tx({ id: 'a2', type: 'expense', amount: 100, date: '2026-06-10T00:00:00.000Z', note: 'Amazon' }),
-      tx({ id: 'b1', type: 'expense', amount: 900, date: '2026-06-05T00:00:00.000Z', note: 'Rent' }),
+      tx({
+        id: 'a1',
+        type: 'expense',
+        amount: 100,
+        date: '2026-06-01T00:00:00.000Z',
+        note: 'Amazon',
+      }),
+      tx({
+        id: 'a2',
+        type: 'expense',
+        amount: 100,
+        date: '2026-06-10T00:00:00.000Z',
+        note: 'Amazon',
+      }),
+      tx({
+        id: 'b1',
+        type: 'expense',
+        amount: 900,
+        date: '2026-06-05T00:00:00.000Z',
+        note: 'Rent',
+      }),
     ];
 
     const summaries = summarizeMerchants(transactions);

@@ -345,12 +345,7 @@ export default function AddTransaction() {
     <>
       {/* Header */}
       <Header innerClassName="lg:max-w-xl">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={goBack}
-          className="h-9 w-9 rounded-full"
-        >
+        <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 rounded-full">
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-base font-semibold">
@@ -607,9 +602,7 @@ export default function AddTransaction() {
 
         {/* Merchant */}
         <div>
-          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
-            Merchant
-          </Label>
+          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Merchant</Label>
           <Input
             type="text"
             placeholder="Add a merchant..."

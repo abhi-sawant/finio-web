@@ -5,14 +5,17 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppLockStore } from '@/store/useAppLockStore';
 import { exportLocalBackup } from '@/services/backup';
-import {
-  isPlatformAuthenticatorAvailable,
-  registerBiometric,
-} from '@/services/appLockBiometric';
+import { isPlatformAuthenticatorAvailable, registerBiometric } from '@/services/appLockBiometric';
 import { clearBackgroundedAt } from '@/services/appLockSession';
 import { SwitchField } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { SecretDialogShell, SecretDialogError } from './SecretDialogShell';
 import {
   derivePinHash,
@@ -293,7 +296,11 @@ export function AppLockSection() {
         onOpenChange={(open) => !open && closeLockDialog()}
         className="max-h-[80vh] overflow-y-auto"
         title={
-          lockDialog === 'disable' ? 'Turn off app lock' : lockDialog === 'change' ? 'Change PIN' : 'Set a PIN'
+          lockDialog === 'disable'
+            ? 'Turn off app lock'
+            : lockDialog === 'change'
+              ? 'Change PIN'
+              : 'Set a PIN'
         }
         description={
           lockDialog === 'disable'
@@ -316,7 +323,9 @@ export function AppLockSection() {
                   onClick={() => setPinLength(length)}
                   aria-pressed={pinLength === length}
                   className={`rounded-sm py-3 text-sm font-medium transition-colors ${
-                    pinLength === length ? 'bg-grad-primary text-white' : 'bg-muted hover:bg-muted/70'
+                    pinLength === length
+                      ? 'bg-grad-primary text-white'
+                      : 'bg-muted hover:bg-muted/70'
                   }`}
                 >
                   {length} digits
@@ -331,7 +340,11 @@ export function AppLockSection() {
                 </button>
               </p>
             )}
-            <Button size="lg" className="bg-grad-primary w-full text-white" onClick={() => setPinPhase('enter')}>
+            <Button
+              size="lg"
+              className="bg-grad-primary w-full text-white"
+              onClick={() => setPinPhase('enter')}
+            >
               Continue
             </Button>
           </div>

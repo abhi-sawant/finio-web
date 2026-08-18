@@ -96,7 +96,13 @@ export function CashFlowForecast() {
               interval="preserveStartEnd"
               minTickGap={32}
             />
-            <YAxis fontSize={10} tickLine={false} axisLine={false} width={50} tickFormatter={money} />
+            <YAxis
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              width={50}
+              tickFormatter={money}
+            />
             <Tooltip
               cursor={{ stroke: 'rgba(124,92,255,0.25)', strokeWidth: 1 }}
               contentStyle={{
@@ -170,7 +176,7 @@ export function CashFlowForecast() {
       </dl>
 
       {forecast.shortfallDate && (
-        <p className="mt-3 flex items-start gap-2 rounded-sm bg-destructive/10 p-2.5 text-xs text-destructive">
+        <p className="bg-destructive/10 text-destructive mt-3 flex items-start gap-2 rounded-sm p-2.5 text-xs">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" />
           <span>
             At this rate your liquid balance runs out around{' '}

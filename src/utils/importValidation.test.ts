@@ -200,7 +200,7 @@ describe('validateBackup', () => {
     expect(report.counts.recurring.rejected).toBe(1);
   });
 
-  it('carries a recurring rule\'s goal link through, and warns when the goal is missing', () => {
+  it("carries a recurring rule's goal link through, and warns when the goal is missing", () => {
     const base = {
       id: 'r-1',
       type: 'expense',
@@ -428,7 +428,7 @@ describe('validateBackup', () => {
       id: 'goal-1',
       name: 'Emergency Fund',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 10000,
       createdAt: '2026-01-01T00:00:00.000Z',
     };
@@ -467,7 +467,7 @@ describe('validateBackup', () => {
           id: 'goal-1',
           name: 'Emergency Fund',
           icon: 'target',
-          color: '#6C63FF',
+          color: '#146b54',
           targetAmount: 10000,
           createdAt: '2026-01-01T00:00:00.000Z',
         },
@@ -491,7 +491,7 @@ describe('validateBackup', () => {
       id: 'person-1',
       name: 'Rahul',
       icon: 'user',
-      color: '#6C63FF',
+      color: '#146b54',
       createdAt: '2026-01-01T00:00:00.000Z',
     };
     const { data, report } = validateBackup({
@@ -529,7 +529,7 @@ describe('validateBackup', () => {
           id: 'person-1',
           name: 'Rahul',
           icon: 'user',
-          color: '#6C63FF',
+          color: '#146b54',
           createdAt: '2026-01-01T00:00:00.000Z',
         },
       ],
@@ -586,7 +586,7 @@ describe('validateBackup', () => {
           id: 'acc-1',
           name: 'Checking',
           type: 'checking',
-          color: '#6C63FF',
+          color: '#146b54',
           icon: 'landmark',
           balance: 1000,
           openingBalance: 1000,

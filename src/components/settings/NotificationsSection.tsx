@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellRing, Repeat, Target, CreditCard, CalendarClock, NotebookPen } from 'lucide-react';
+import {
+  Bell,
+  BellRing,
+  Repeat,
+  Target,
+  CreditCard,
+  CalendarClock,
+  NotebookPen,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import {
@@ -66,7 +74,9 @@ export function NotificationsSection() {
       // Leave the setting off. Once denied, requestPermission() resolves instantly forever, so
       // the switch is rendered disabled from here on rather than snapping back on every tap.
       if (result === 'denied') {
-        toast.error('Notifications are blocked for this site. Turn them on in your browser settings.');
+        toast.error(
+          'Notifications are blocked for this site. Turn them on in your browser settings.',
+        );
       }
       return;
     }

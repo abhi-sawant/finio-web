@@ -126,7 +126,10 @@ export default function ManageLabels() {
           {labels.map((label) => (
             <div key={label.id} className="flex items-center justify-between py-3">
               <div className="flex items-center gap-2.5">
-                <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
+                <div
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: label.color }}
+                />
                 <p className="text-sm font-medium">{label.name}</p>
               </div>
               <div className="flex gap-1">

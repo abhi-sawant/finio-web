@@ -181,7 +181,7 @@ const parseAccount: RowParser<ImportedAccount> = (row) => {
     id,
     name,
     type: type as ImportedAccount['type'],
-    color: asString(row.color, '#6C63FF'),
+    color: asString(row.color, '#146b54'),
     icon: asString(row.icon, 'landmark'),
     balance,
     createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
@@ -413,7 +413,7 @@ const parseGoal: RowParser<Goal> = (row) => {
     id,
     name,
     icon: asString(row.icon, 'target'),
-    color: asString(row.color, '#6C63FF'),
+    color: asString(row.color, '#146b54'),
     targetAmount,
     createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
     ...(targetDate ? { targetDate } : {}),
@@ -452,7 +452,7 @@ const parsePerson: RowParser<Person> = (row) => {
     id,
     name,
     icon: asString(row.icon, 'user'),
-    color: asString(row.color, '#6C63FF'),
+    color: asString(row.color, '#146b54'),
     createdAt: asIsoDate(row.createdAt) ?? new Date().toISOString(),
   };
 };

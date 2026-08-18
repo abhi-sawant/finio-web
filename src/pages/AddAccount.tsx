@@ -68,9 +68,7 @@ export default function AddAccount() {
   const [statementCloseDay, setStatementCloseDay] = useState(
     existing?.statementCloseDay?.toString() ?? '',
   );
-  const [paymentDueDays, setPaymentDueDays] = useState(
-    existing?.paymentDueDays?.toString() ?? '',
-  );
+  const [paymentDueDays, setPaymentDueDays] = useState(existing?.paymentDueDays?.toString() ?? '');
   const [minimumDuePercent, setMinimumDuePercent] = useState(
     existing?.minimumDuePercent?.toString() ?? '',
   );

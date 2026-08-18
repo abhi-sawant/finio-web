@@ -81,8 +81,8 @@ export function ReconcileAccountDialog({
         {phase === 'input' ? (
           <div className="space-y-3">
             <p className="text-muted-foreground text-xs">
-              Enter the balance from your {isCredit ? 'card statement' : 'bank statement'} and
-              we'll show you the difference against what Finio has on record (
+              Enter the balance from your {isCredit ? 'card statement' : 'bank statement'} and we'll
+              show you the difference against what Finio has on record (
               {formatCurrency(isCredit ? Math.abs(account.balance) : account.balance)}).
             </p>
             <Label className="text-muted-foreground block text-xs font-medium">
@@ -99,9 +99,7 @@ export function ReconcileAccountDialog({
         ) : (
           <div className="space-y-3">
             {adjustment.type === null ? (
-              <p className="text-sm">
-                You're all set — Finio already matches your statement.
-              </p>
+              <p className="text-sm">You're all set — Finio already matches your statement.</p>
             ) : (
               <>
                 <p className="text-sm">
@@ -136,7 +134,9 @@ export function ReconcileAccountDialog({
               )}
               <Button
                 variant="secondary"
-                onClick={() => (adjustment.type === null ? handleOpenChange(false) : setPhase('input'))}
+                onClick={() =>
+                  adjustment.type === null ? handleOpenChange(false) : setPhase('input')
+                }
                 className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
               >
                 {adjustment.type === null ? 'Close' : 'Back'}

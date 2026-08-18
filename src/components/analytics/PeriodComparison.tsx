@@ -121,13 +121,13 @@ export function PeriodComparison() {
               <dl className="mt-2 space-y-1.5">
                 <div>
                   <dt className="text-muted-foreground text-[10px]">Income</dt>
-                  <dd className="text-xs font-semibold text-primary">
-                    {money(summary.income)}
-                  </dd>
+                  <dd className="text-primary text-xs font-semibold">{money(summary.income)}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground text-[10px]">Expenses</dt>
-                  <dd className="text-xs font-semibold text-destructive">{money(summary.expenses)}</dd>
+                  <dd className="text-destructive text-xs font-semibold">
+                    {money(summary.expenses)}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground text-[10px]">Net</dt>

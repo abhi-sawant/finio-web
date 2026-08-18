@@ -20,7 +20,7 @@ const chance = (p) => rand() < p;
 // ── Accounts (starting state) ────────────────────────────────────────────
 const CUR = 'INR';
 const accounts = [
-  { id: 'acc-sav-1', name: 'Primary Savings', type: 'savings', currency: CUR, color: '#6C63FF', icon: 'piggy-bank', balance: 20000, createdAt: '2024-12-01T09:00:00.000Z' },
+  { id: 'acc-sav-1', name: 'Primary Savings', type: 'savings', currency: CUR, color: '#146b54', icon: 'piggy-bank', balance: 20000, createdAt: '2024-12-01T09:00:00.000Z' },
   { id: 'acc-sav-2', name: 'Emergency Fund', type: 'savings', currency: CUR, color: '#10b981', icon: 'piggy-bank', balance: 30000, createdAt: '2024-12-01T09:00:00.000Z' },
   { id: 'acc-sav-3', name: 'Goals Savings', type: 'savings', currency: CUR, color: '#f59e0b', icon: 'piggy-bank', balance: 40000, createdAt: '2024-12-01T09:00:00.000Z' },
   { id: 'acc-cash', name: 'Wallet Cash', type: 'cash', currency: CUR, color: '#22c55e', icon: 'wallet', balance: 10000, createdAt: '2024-12-01T09:00:00.000Z' },
@@ -227,7 +227,7 @@ const categories = [
   { id: 'cat-20', name: 'Financial', icon: 'dollar-sign', color: '#10b981', type: 'expense' },
   { id: 'cat-11', name: 'Investments', icon: 'trending-up', color: '#f59e0b', type: 'expense' },
   { id: 'cat-9', name: 'Salary', icon: 'briefcase', color: '#22c55e', type: 'income' },
-  { id: 'cat-10', name: 'Freelance', icon: 'laptop', color: '#6C63FF', type: 'income' },
+  { id: 'cat-10', name: 'Freelance', icon: 'laptop', color: '#146b54', type: 'income' },
   { id: 'cat-12', name: 'Business', icon: 'building-2', color: '#a855f7', type: 'income' },
   { id: 'cat-21', name: 'Gifts', icon: 'gift', color: '#f97316', type: 'income' },
   { id: 'cat-22', name: 'Rent', icon: 'home', color: '#3b82f6', type: 'income' },

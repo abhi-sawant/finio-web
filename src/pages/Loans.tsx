@@ -71,7 +71,13 @@ function LoanCard({
           </p>
         </div>
         <div className="flex shrink-0 items-center">
-          <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7" aria-label="Edit">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onEdit}
+            className="h-7 w-7"
+            aria-label="Edit"
+          >
             <Pencil size={13} className="text-muted-foreground" />
           </Button>
           <Button
@@ -133,7 +139,9 @@ function LoanCard({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-muted-foreground">Total interest (life of loan)</p>
-              <p className="font-medium">{formatCurrency(status.totalInterest, true, hideAmounts)}</p>
+              <p className="font-medium">
+                {formatCurrency(status.totalInterest, true, hideAmounts)}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Interest paid so far</p>
@@ -163,7 +171,7 @@ function LoanCard({
                   {format(parseISO(p.date), 'd MMM yyyy')}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{p.note}</span>
-                <span className="shrink-0 font-medium text-primary">
+                <span className="text-primary shrink-0 font-medium">
                   {formatCurrency(p.amount, true, hideAmounts)}
                 </span>
                 <button
@@ -333,7 +341,9 @@ export default function Loans() {
             <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
               Outstanding across {activeLoans.length} loan{activeLoans.length === 1 ? '' : 's'}
             </p>
-            <p className="text-lg font-bold">{formatCurrency(totalOutstanding, true, hideAmounts)}</p>
+            <p className="text-lg font-bold">
+              {formatCurrency(totalOutstanding, true, hideAmounts)}
+            </p>
           </div>
         )}
 

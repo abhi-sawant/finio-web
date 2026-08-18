@@ -602,7 +602,7 @@ describe('addGoal / updateGoal / deleteGoal', () => {
     const id = useFinanceStore.getState().addGoal({
       name: 'Emergency Fund',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 10000,
     });
 
@@ -616,7 +616,7 @@ describe('addGoal / updateGoal / deleteGoal', () => {
     const id = useFinanceStore.getState().addGoal({
       name: 'Emergency Fund',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 10000,
     });
 
@@ -630,7 +630,7 @@ describe('addGoal / updateGoal / deleteGoal', () => {
     const id = useFinanceStore.getState().addGoal({
       name: 'Emergency Fund',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 10000,
     });
     const otherId = useFinanceStore.getState().addGoal({
@@ -655,7 +655,7 @@ describe('addGoal / updateGoal / deleteGoal', () => {
     const id = useFinanceStore.getState().addGoal({
       name: 'Emergency Fund',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 10000,
     });
     const ruleId = useFinanceStore.getState().addRecurring({
@@ -681,7 +681,7 @@ describe('addGoal / updateGoal / deleteGoal', () => {
     const id = useFinanceStore.getState().addGoal({
       name: 'Emergency Fund',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 10000,
     });
     useFinanceStore.getState().addContribution({ goalId: id, amount: 1000, date: '', note: '' });
@@ -746,7 +746,7 @@ describe('deleteAccount clears dangling goal links', () => {
     const id = useFinanceStore.getState().addGoal({
       name: 'Emergency Fund',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 10000,
       linkedAccountId: 'a',
     });
@@ -763,7 +763,7 @@ describe('addPerson / updatePerson / deletePerson', () => {
   it('creates a person and returns its id', () => {
     const id = useFinanceStore
       .getState()
-      .addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+      .addPerson({ name: 'Rahul', icon: 'user', color: '#146b54' });
 
     const [created] = useFinanceStore.getState().people;
     expect(created.id).toBe(id);
@@ -774,7 +774,7 @@ describe('addPerson / updatePerson / deletePerson', () => {
   it('updates only the given fields', () => {
     const id = useFinanceStore
       .getState()
-      .addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+      .addPerson({ name: 'Rahul', icon: 'user', color: '#146b54' });
 
     useFinanceStore.getState().updatePerson(id, { name: 'Rahul Sharma' });
     const [updated] = useFinanceStore.getState().people;
@@ -785,7 +785,7 @@ describe('addPerson / updatePerson / deletePerson', () => {
   it('deleting a person removes every debt entry logged against them, not other people', () => {
     const id = useFinanceStore
       .getState()
-      .addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+      .addPerson({ name: 'Rahul', icon: 'user', color: '#146b54' });
     const otherId = useFinanceStore
       .getState()
       .addPerson({ name: 'Priya', icon: 'user', color: '#f59e0b' });
@@ -802,7 +802,7 @@ describe('addPerson / updatePerson / deletePerson', () => {
   it('is cleared by resetToDefaults, same as every other finance collection', () => {
     const id = useFinanceStore
       .getState()
-      .addPerson({ name: 'Rahul', icon: 'user', color: '#6C63FF' });
+      .addPerson({ name: 'Rahul', icon: 'user', color: '#146b54' });
     useFinanceStore.getState().addDebtEntry({ personId: id, amount: 500, date: '', note: '' });
 
     useFinanceStore.getState().resetToDefaults();
@@ -921,7 +921,7 @@ describe('importData', () => {
     const localId = useFinanceStore.getState().addGoal({
       name: 'Local Goal',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 1000,
     });
 
@@ -959,7 +959,7 @@ describe('importData', () => {
   it('merges people and debt entries by id, same as every other collection', () => {
     const localId = useFinanceStore
       .getState()
-      .addPerson({ name: 'Local Person', icon: 'user', color: '#6C63FF' });
+      .addPerson({ name: 'Local Person', icon: 'user', color: '#146b54' });
 
     useFinanceStore.getState().importData(
       {
@@ -1101,7 +1101,7 @@ describe('recurring rules', () => {
     const goalId = useFinanceStore.getState().addGoal({
       name: 'Emergency Fund',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 10000,
     });
     useFinanceStore.setState({ recurring: [recurringRule({ goalId })] });

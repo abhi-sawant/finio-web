@@ -165,7 +165,9 @@ export default function Goals() {
       date: new Date().toISOString(),
       note: contributionNote.trim(),
     });
-    toast.success(contributionGoal.mode === 'withdraw' ? 'Withdrawal logged' : 'Contribution added');
+    toast.success(
+      contributionGoal.mode === 'withdraw' ? 'Withdrawal logged' : 'Contribution added',
+    );
     setContributionGoal(null);
   };
 
@@ -464,7 +466,13 @@ function GoalCard({
           </p>
         </div>
         <div className="flex shrink-0 items-center">
-          <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7" aria-label="Edit">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onEdit}
+            className="h-7 w-7"
+            aria-label="Edit"
+          >
             <Pencil size={13} className="text-muted-foreground" />
           </Button>
           <Button
@@ -480,7 +488,7 @@ function GoalCard({
       </div>
 
       <div className="mb-1.5 flex justify-between text-xs">
-        <span className={status.isComplete ? 'font-medium text-primary' : 'text-muted-foreground'}>
+        <span className={status.isComplete ? 'text-primary font-medium' : 'text-muted-foreground'}>
           {formatCurrency(status.current, false, hideAmounts)} of{' '}
           {formatCurrency(goal.targetAmount, false, hideAmounts)}
         </span>
@@ -549,7 +557,9 @@ function GoalCard({
                 <span className="text-muted-foreground w-14 shrink-0">
                   {format(parseISO(c.date), 'd MMM')}
                 </span>
-                <span className="min-w-0 flex-1 truncate">{c.note || (c.amount < 0 ? 'Withdrawal' : 'Contribution')}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {c.note || (c.amount < 0 ? 'Withdrawal' : 'Contribution')}
+                </span>
                 <span
                   className={`shrink-0 font-medium ${c.amount < 0 ? 'text-destructive' : 'text-primary'}`}
                 >

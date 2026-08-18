@@ -12,7 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NumberPad } from '@/components/ui/number-pad';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useConfirm } from '@/components/ui/use-confirm';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -124,7 +130,10 @@ export default function AddLoan() {
 
       <Main className="lg:max-w-xl">
         <div>
-          <Label htmlFor="loanName" className="text-muted-foreground mb-1.5 block text-xs font-medium">
+          <Label
+            htmlFor="loanName"
+            className="text-muted-foreground mb-1.5 block text-xs font-medium"
+          >
             Loan Name
           </Label>
           <Input
@@ -225,9 +234,7 @@ export default function AddLoan() {
         </div>
 
         <div>
-          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
-            Category
-          </Label>
+          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Category</Label>
           <div className="scrollbar-hide grid max-h-40 grid-cols-4 gap-2 overflow-y-auto">
             {expenseCategories.map((cat) => {
               const selected = categoryId === cat.id;
@@ -236,17 +243,23 @@ export default function AddLoan() {
                   key={cat.id}
                   onClick={() => setCategoryId(cat.id)}
                   className={`flex flex-col items-center gap-1 rounded-sm border p-2 text-center transition-all ${
-                    selected ? 'ring-grad-primary border-transparent' : 'border-border bg-card hover:bg-muted'
+                    selected
+                      ? 'ring-grad-primary border-transparent'
+                      : 'border-border bg-card hover:bg-muted'
                   }`}
                   style={
                     selected
-                      ? { backgroundImage: `linear-gradient(135deg, ${cat.color}22, ${cat.color}11)` }
+                      ? {
+                          backgroundImage: `linear-gradient(135deg, ${cat.color}22, ${cat.color}11)`,
+                        }
                       : undefined
                   }
                 >
                   <div
                     className="flex h-7 w-7 items-center justify-center rounded-full"
-                    style={{ backgroundImage: `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)` }}
+                    style={{
+                      backgroundImage: `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)`,
+                    }}
                   >
                     <CategoryIcon icon={cat.icon} size={14} color="white" />
                   </div>

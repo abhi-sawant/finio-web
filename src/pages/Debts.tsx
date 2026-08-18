@@ -61,9 +61,10 @@ export default function Debts() {
   const [color, setColor] = useState(personColors[0]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const [entryPerson, setEntryPerson] = useState<{ person: Person; mode: 'lend' | 'borrow' } | null>(
-    null,
-  );
+  const [entryPerson, setEntryPerson] = useState<{
+    person: Person;
+    mode: 'lend' | 'borrow';
+  } | null>(null);
   const [entryAmount, setEntryAmount] = useState('');
   const [entryNote, setEntryNote] = useState('');
 
@@ -240,9 +241,7 @@ export default function Debts() {
         {showForm && (
           <div className="card-elevated space-y-3 rounded-md p-4">
             <div>
-              <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
-                Name
-              </Label>
+              <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Name</Label>
               <Input
                 type="text"
                 placeholder="e.g., Rahul"
@@ -366,7 +365,8 @@ export default function Debts() {
         <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-md">
           <DialogHeader>
             <DialogTitle>
-              {entryPerson?.mode === 'borrow' ? 'Borrowed from' : 'Lent to'} {entryPerson?.person.name}
+              {entryPerson?.mode === 'borrow' ? 'Borrowed from' : 'Lent to'}{' '}
+              {entryPerson?.person.name}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
@@ -507,7 +507,13 @@ function PersonCard({
           </p>
         </div>
         <div className="flex shrink-0 items-center">
-          <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7" aria-label="Edit">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onEdit}
+            className="h-7 w-7"
+            aria-label="Edit"
+          >
             <Pencil size={13} className="text-muted-foreground" />
           </Button>
           <Button

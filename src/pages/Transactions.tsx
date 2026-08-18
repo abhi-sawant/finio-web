@@ -14,7 +14,10 @@ import {
   transactionMatchesQuery,
   transactionsToCsv,
 } from '@/utils/calculations';
-import { TransactionItem, type TransactionRowAction } from '@/components/transactions/TransactionItem';
+import {
+  TransactionItem,
+  type TransactionRowAction,
+} from '@/components/transactions/TransactionItem';
 import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -156,7 +159,8 @@ export default function Transactions() {
       group.transactions.forEach((tx, i) => {
         const isFirst = i === 0;
         const isLast = i === group.transactions.length - 1;
-        const groupPosition = isFirst && isLast ? 'only' : isFirst ? 'first' : isLast ? 'last' : 'middle';
+        const groupPosition =
+          isFirst && isLast ? 'only' : isFirst ? 'first' : isLast ? 'last' : 'middle';
         rows.push({ kind: 'tx', tx, groupPosition });
       });
     }
@@ -500,7 +504,7 @@ export default function Transactions() {
                   className="absolute top-0 left-0 w-full"
                 >
                   {row.kind === 'header' ? (
-                    <p className="text-muted-foreground mt-3 pb-1 ps-2 text-[11px] font-medium tracking-wide uppercase first:pt-0">
+                    <p className="text-muted-foreground mt-3 ps-2 pb-1 text-[11px] font-medium tracking-wide uppercase first:pt-0">
                       {formatDate(row.date)}
                     </p>
                   ) : (
@@ -614,9 +618,14 @@ export default function Transactions() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Recategorize {selectedIds.size} transactions</DialogTitle>
-            <DialogDescription>Every selected transaction moves to this category.</DialogDescription>
+            <DialogDescription>
+              Every selected transaction moves to this category.
+            </DialogDescription>
           </DialogHeader>
-          <Select value={recategorizeCategoryId} onValueChange={(v) => setRecategorizeCategoryId(v ?? '')}>
+          <Select
+            value={recategorizeCategoryId}
+            onValueChange={(v) => setRecategorizeCategoryId(v ?? '')}
+          >
             <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
               <SelectValue placeholder="Select category">
                 {categories.find((c) => c.id === recategorizeCategoryId)?.name}

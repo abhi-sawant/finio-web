@@ -136,7 +136,7 @@ export function Layout() {
           ref={fabRef}
           onClick={handleFabClick}
           {...fabLongPressHandlers}
-          className="bg-primary text-primary-foreground shadow-[var(--shadow-float)] fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-transform active:scale-95 lg:hidden"
+          className="bg-primary text-primary-foreground fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-[var(--shadow-float)] transition-transform active:scale-95 lg:hidden"
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}
           aria-label="Add transaction. Long-press for templates."
         >

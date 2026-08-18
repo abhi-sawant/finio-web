@@ -237,9 +237,7 @@ export default function Budgets() {
                     key={p}
                     onClick={() => setPeriod(p)}
                     className={`rounded-sm py-2 text-xs font-medium transition-colors ${
-                      period === p
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground'
+                      period === p ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
                     }`}
                   >
                     {PERIOD_LABELS[p]}
@@ -381,7 +379,7 @@ function BudgetCard({
       </div>
 
       <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
-        <span className={status.isOver ? 'font-medium text-destructive' : 'text-muted-foreground'}>
+        <span className={status.isOver ? 'text-destructive font-medium' : 'text-muted-foreground'}>
           {formatCurrency(status.spent, false, hideAmounts)} of{' '}
           {formatCurrency(status.limit, false, hideAmounts)}
         </span>

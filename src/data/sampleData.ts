@@ -126,8 +126,22 @@ function at(now: Date, monthsAgo: number, day: number, hour = 12): string {
 
 export function generateSampleData(now = new Date()): SampleData {
   const accounts: SampleAccountSpec[] = [
-    { key: CHECKING, name: 'HDFC Checking', type: 'checking', color: '#6C63FF', icon: 'landmark', balance: 15000 },
-    { key: SAVINGS, name: 'Savings', type: 'savings', color: '#22c55e', icon: 'piggy-bank', balance: 40000 },
+    {
+      key: CHECKING,
+      name: 'HDFC Checking',
+      type: 'checking',
+      color: '#146b54',
+      icon: 'landmark',
+      balance: 15000,
+    },
+    {
+      key: SAVINGS,
+      name: 'Savings',
+      type: 'savings',
+      color: '#22c55e',
+      icon: 'piggy-bank',
+      balance: 40000,
+    },
     {
       key: CARD,
       name: 'Credit Card',
@@ -307,7 +321,7 @@ export function generateSampleData(now = new Date()): SampleData {
       key: EMERGENCY_GOAL,
       name: 'Emergency Fund',
       icon: 'target',
-      color: '#6C63FF',
+      color: '#146b54',
       targetAmount: 100000,
     },
   ];
@@ -420,7 +434,10 @@ export function loadSampleData(actions: SampleDataActions, now = new Date()): vo
   );
 
   const personIds = new Map(
-    data.people.map((p) => [p.key, actions.addPerson({ name: p.name, icon: p.icon, color: p.color })]),
+    data.people.map((p) => [
+      p.key,
+      actions.addPerson({ name: p.name, icon: p.icon, color: p.color }),
+    ]),
   );
 
   for (const budget of data.budgets) actions.addBudget(budget);

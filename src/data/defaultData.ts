@@ -27,7 +27,7 @@ export const defaultCategories: Category[] = [
   },
   { id: 'cat-11', name: 'Investments', icon: 'trending-up', color: '#f59e0b', type: 'expense' },
   { id: 'cat-9', name: 'Salary', icon: 'briefcase', color: '#22c55e', type: 'income' },
-  { id: 'cat-10', name: 'Freelance', icon: 'laptop', color: '#6C63FF', type: 'income' },
+  { id: 'cat-10', name: 'Freelance', icon: 'laptop', color: '#146b54', type: 'income' },
   { id: 'cat-12', name: 'Business', icon: 'building-2', color: '#a855f7', type: 'income' },
   { id: 'cat-21', name: 'Gifts', icon: 'gift', color: '#f97316', type: 'income' },
   { id: 'cat-22', name: 'Rent', icon: 'home', color: '#3b82f6', type: 'income' },

@@ -53,7 +53,7 @@ export function NumberPad({ value, onChange }: NumberPadProps) {
             key={btn}
             type="button"
             onClick={() => handlePress(btn)}
-            className="bg-card active:bg-muted flex h-14 items-center justify-center rounded-md text-xl font-semibold transition-all active:scale-95 select-none"
+            className="bg-card active:bg-muted flex h-14 items-center justify-center rounded-md text-xl font-semibold transition-all select-none active:scale-95"
           >
             {btn === '⌫' ? (
               <Delete size={20} className="text-muted-foreground" />

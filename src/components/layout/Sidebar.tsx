@@ -11,7 +11,7 @@ export function Sidebar() {
     <aside className="border-border bg-card hidden w-60 shrink-0 flex-col gap-1 border-r px-3 py-5 lg:flex">
       {/* Brand */}
       <div className="mb-4 flex items-center gap-2.5 px-2">
-        <div className="bg-primary flex h-9 w-9 items-center justify-center rounded-full text-base font-bold text-primary-foreground">
+        <div className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-full text-base font-bold">
           F
         </div>
         <span className="font-heading text-lg font-bold tracking-tight">Finio</span>
@@ -20,7 +20,7 @@ export function Sidebar() {
       {/* Add transaction */}
       <button
         onClick={() => navigate('/add-transaction')}
-        className="bg-primary text-primary-foreground shadow-[var(--shadow-card)] mb-3 flex items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold transition-transform active:scale-[0.98]"
+        className="bg-primary text-primary-foreground mb-3 flex items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold shadow-[var(--shadow-card)] transition-transform active:scale-[0.98]"
       >
         <Plus size={18} strokeWidth={2.4} />
         Add Transaction

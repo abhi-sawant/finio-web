@@ -196,8 +196,8 @@ export function LockScreen() {
               <p>
                 The lock is a screen gate, not encryption — your data is still stored on this
                 device. The way back in is to clear Finio&rsquo;s site data in your browser, which
-                removes the lock <strong className="text-foreground">and every transaction on
-                this device</strong>.
+                removes the lock{' '}
+                <strong className="text-foreground">and every transaction on this device</strong>.
               </p>
               <ul className="list-disc space-y-1 pl-5">
                 <li>Chrome: Settings → Privacy and security → Site settings</li>
