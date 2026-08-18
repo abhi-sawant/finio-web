@@ -63,7 +63,7 @@ function goal(extra: Partial<Goal> = {}): Goal {
     id: 'goal-1',
     name: 'Emergency Fund',
     icon: 'target',
-    color: '#6C63FF',
+    color: '#146b54',
     targetAmount: 10000,
     createdAt: '2026-01-01T00:00:00.000Z',
     ...extra,
@@ -88,7 +88,7 @@ function person(extra: Partial<Person> = {}): Person {
     id: 'person-1',
     name: 'Rahul',
     icon: 'user',
-    color: '#6C63FF',
+    color: '#146b54',
     createdAt: '2026-01-01T00:00:00.000Z',
     ...extra,
   };

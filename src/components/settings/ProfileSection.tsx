@@ -72,7 +72,7 @@ export function ProfileSection() {
   return (
     <>
       {/* Profile name */}
-      <div className="card-elevated divide-border divide-y rounded-2xl">
+      <div className="card-elevated divide-border divide-y rounded-md">
         <div className="flex items-center gap-3 p-4">
           <div className="bg-grad-primary-soft flex h-10 w-10 items-center justify-center rounded-full">
             <User size={18} className="text-primary" />
@@ -86,7 +86,7 @@ export function ProfileSection() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleNameSave(nameValue);
               }}
-              className="bg-muted h-auto flex-1 rounded-lg border-0 px-3 py-1.5"
+              className="bg-muted h-auto flex-1 rounded-sm border-0 px-3 py-1.5"
             />
           ) : (
             <button onClick={() => setEditingName(true)} className="flex-1 text-left">
@@ -98,14 +98,17 @@ export function ProfileSection() {
       </div>
 
       {/* Preferences */}
-      <div className="card-elevated divide-border divide-y rounded-2xl">
+      <div className="card-elevated divide-border divide-y rounded-md">
         <div className="flex items-center justify-between p-4">
           <div className="flex w-32 items-center gap-3">
             <Palette size={18} className="text-muted-foreground" />
             <span className="text-sm font-medium">Theme</span>
           </div>
-          <Select value={settings.theme} onValueChange={(v) => updateSettings({ theme: v as Theme })}>
-            <SelectTrigger className="bg-muted h-auto rounded-lg border-0 px-3 py-1.5">
+          <Select
+            value={settings.theme}
+            onValueChange={(v) => updateSettings({ theme: v as Theme })}
+          >
+            <SelectTrigger className="bg-muted h-auto rounded-sm border-0 px-3 py-1.5">
               <SelectValue>{themes.find((t) => t.value === settings.theme)?.label}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -130,19 +133,19 @@ export function ProfileSection() {
           {/* A grid beats a 28-item dropdown here — every day is one tap away. */}
           <button
             onClick={() => setShowMonthStartPicker(true)}
-            className="bg-muted shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium"
+            className="bg-muted shrink-0 rounded-sm px-3 py-1.5 text-sm font-medium"
           >
             {formatOrdinal(monthStartDay)}
           </button>
         </div>
 
         <Dialog open={showMonthStartPicker} onOpenChange={setShowMonthStartPicker}>
-          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-md sm:max-w-sm">
             <DialogHeader>
               <DialogTitle>Month starts on</DialogTitle>
               <DialogDescription>
-                Every "this month" total and monthly budget will run from this day to the day
-                before it in the next month.
+                Every "this month" total and monthly budget will run from this day to the day before
+                it in the next month.
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-7 gap-1.5">
@@ -153,8 +156,10 @@ export function ProfileSection() {
                     updateSettings({ monthStartDay: day });
                     setShowMonthStartPicker(false);
                   }}
-                  className={`rounded-lg py-2 text-sm font-medium transition-colors ${
-                    day === monthStartDay ? 'bg-grad-primary text-white' : 'bg-muted hover:bg-muted/70'
+                  className={`rounded-sm py-2 text-sm font-medium transition-colors ${
+                    day === monthStartDay
+                      ? 'bg-grad-primary text-white'
+                      : 'bg-muted hover:bg-muted/70'
                   }`}
                 >
                   {day}

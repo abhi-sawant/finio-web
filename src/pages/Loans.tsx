@@ -1,14 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { format, parseISO } from 'date-fns';
-import {
-  ArrowLeft,
-  ChevronDown,
-  Landmark,
-  Pencil,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { ArrowLeft, ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { loanStatus, simulatePrepaymentImpact } from '@/utils/loan';
@@ -63,27 +56,28 @@ function LoanCard({
   const progress = status.totalMonths > 0 ? status.paidInstallments / status.totalMonths : 0;
 
   return (
-    <div className={`card-elevated rounded-2xl p-4 ${isClosed ? 'opacity-70' : ''}`}>
+    <div className={`card-elevated rounded-md p-4 ${isClosed ? 'opacity-70' : ''}`}>
       <div className="mb-2 flex items-center justify-between">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="bg-grad-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-            <Landmark size={16} className="text-white" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{loan.name}</p>
-            <p className="text-muted-foreground truncate text-[11px]">
-              {isClosed
-                ? 'Paid off'
-                : status.isPaidOff
-                  ? 'All installments due'
-                  : `EMI ${formatCurrency(status.emi, true, hideAmounts)}/mo · Next ${
-                      status.nextDueDate ? format(parseISO(status.nextDueDate), 'd MMM yyyy') : '—'
-                    }`}
-            </p>
-          </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{loan.name}</p>
+          <p className="text-muted-foreground truncate text-[11px]">
+            {isClosed
+              ? 'Paid off'
+              : status.isPaidOff
+                ? 'All installments due'
+                : `EMI ${formatCurrency(status.emi, true, hideAmounts)}/mo · Next ${
+                    status.nextDueDate ? format(parseISO(status.nextDueDate), 'd MMM yyyy') : '—'
+                  }`}
+          </p>
         </div>
         <div className="flex shrink-0 items-center">
-          <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7" aria-label="Edit">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onEdit}
+            className="h-7 w-7"
+            aria-label="Edit"
+          >
             <Pencil size={13} className="text-muted-foreground" />
           </Button>
           <Button
@@ -115,14 +109,14 @@ function LoanCard({
         <Button
           onClick={onAddPrepayment}
           disabled={isClosed}
-          className="bg-primary/10 text-primary h-auto flex-1 rounded-lg py-2 text-xs font-medium disabled:opacity-50"
+          className="bg-primary/10 text-primary h-auto flex-1 rounded-sm py-2 text-xs font-medium disabled:opacity-50"
         >
           Add Prepayment
         </Button>
         <Button
           variant="secondary"
           onClick={onToggleClosed}
-          className="bg-muted text-muted-foreground h-auto flex-1 rounded-lg py-2 text-xs font-medium"
+          className="bg-muted text-muted-foreground h-auto flex-1 rounded-sm py-2 text-xs font-medium"
         >
           {isClosed ? 'Reopen' : 'Mark Paid Off'}
         </Button>
@@ -145,7 +139,9 @@ function LoanCard({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-muted-foreground">Total interest (life of loan)</p>
-              <p className="font-medium">{formatCurrency(status.totalInterest, true, hideAmounts)}</p>
+              <p className="font-medium">
+                {formatCurrency(status.totalInterest, true, hideAmounts)}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Interest paid so far</p>
@@ -175,7 +171,7 @@ function LoanCard({
                   {format(parseISO(p.date), 'd MMM yyyy')}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{p.note}</span>
-                <span className="shrink-0 font-medium text-emerald-500">
+                <span className="text-primary shrink-0 font-medium">
                   {formatCurrency(p.amount, true, hideAmounts)}
                 </span>
                 <button
@@ -341,11 +337,13 @@ export default function Loans() {
 
       <Main className="lg:max-w-xl">
         {activeLoans.length > 0 && (
-          <div className="card-elevated bg-grad-primary-soft rounded-2xl p-4">
+          <div className="card-elevated bg-grad-primary-soft rounded-md p-4">
             <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
               Outstanding across {activeLoans.length} loan{activeLoans.length === 1 ? '' : 's'}
             </p>
-            <p className="text-lg font-bold">{formatCurrency(totalOutstanding, true, hideAmounts)}</p>
+            <p className="text-lg font-bold">
+              {formatCurrency(totalOutstanding, true, hideAmounts)}
+            </p>
           </div>
         )}
 
@@ -373,7 +371,7 @@ export default function Loans() {
             <p className="text-muted-foreground mb-4">No loans yet</p>
             <button
               onClick={() => navigate('/add-loan')}
-              className="bg-grad-primary shadow-glow-primary rounded-xl px-5 py-2.5 text-sm font-medium text-white"
+              className="bg-grad-primary shadow-glow-primary rounded-sm px-5 py-2.5 text-sm font-medium text-white"
             >
               Add Loan
             </button>
@@ -387,7 +385,7 @@ export default function Loans() {
           if (!v) setPrepayLoan(null);
         }}
       >
-        <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-2xl">
+        <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-md">
           <DialogHeader>
             <DialogTitle>Prepay "{prepayLoan?.name}"</DialogTitle>
           </DialogHeader>
@@ -399,16 +397,16 @@ export default function Loans() {
               placeholder="Note (optional)"
               value={prepayNote}
               onChange={(e) => setPrepayNote(e.target.value)}
-              className="bg-muted h-auto rounded-lg px-3 py-2"
+              className="bg-muted h-auto rounded-sm px-3 py-2"
             />
             {prepayImpact && (
               <p className="text-muted-foreground text-xs">
                 This would save{' '}
-                <span className="text-emerald-500 font-medium">
+                <span className="text-primary font-medium">
                   {prepayImpact.monthsSaved} month{prepayImpact.monthsSaved === 1 ? '' : 's'}
                 </span>{' '}
                 and{' '}
-                <span className="text-emerald-500 font-medium">
+                <span className="text-primary font-medium">
                   {formatCurrency(prepayImpact.interestSaved, true, hideAmounts)}
                 </span>{' '}
                 in interest.
@@ -417,14 +415,14 @@ export default function Loans() {
             <div className="flex gap-2">
               <Button
                 onClick={handlePrepaySubmit}
-                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
               >
                 Record Prepayment
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setPrepayLoan(null)}
-                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </Button>

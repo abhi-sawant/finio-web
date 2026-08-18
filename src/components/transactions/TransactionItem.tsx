@@ -1,10 +1,9 @@
 import { memo, useRef, useState } from 'react';
-import { ArrowLeftRight, Repeat, Copy, BookmarkPlus, CheckSquare, Trash2, Split } from 'lucide-react';
+import { Repeat, Copy, BookmarkPlus, CheckSquare, Trash2 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useLongPress } from '@/hooks/useLongPress';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CategoryIcon } from '@/components/categories/CategoryIcon';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,10 +71,10 @@ export const TransactionItem = memo(function TransactionItem({
 
   const amountColor =
     transaction.type === 'income'
-      ? 'text-emerald-500'
+      ? 'text-primary'
       : transaction.type === 'expense'
-        ? 'text-rose-500'
-        : 'text-sky-500';
+        ? 'text-foreground'
+        : 'text-muted-foreground';
 
   const amountPrefix =
     transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '';
@@ -95,19 +94,6 @@ export const TransactionItem = memo(function TransactionItem({
         .join(' + ')
     : undefined;
 
-  const tint = isSplit ? '#94a3b8' : (category?.color ?? '#94a3b8');
-
-  // A split has no single category to show; a transfer keeps its directional arrow. Everything
-  // else shows its own category's icon so the two primary organizing dimensions (category,
-  // labels) are visible without opening the row.
-  const iconNode = isSplit ? (
-    <Split size={16} style={{ color: tint }} />
-  ) : isTransfer ? (
-    <ArrowLeftRight size={16} style={{ color: tint }} />
-  ) : (
-    <CategoryIcon icon={category?.icon ?? 'circle-ellipsis'} size={16} color={tint} />
-  );
-
   const primaryText = transaction.merchant
     ? transaction.note
       ? `${transaction.merchant} - ${transaction.note}`
@@ -126,17 +112,11 @@ export const TransactionItem = memo(function TransactionItem({
         onClick={handleClick}
         aria-pressed={selectionMode ? selected : undefined}
         {...(longPressEnabled ? longPressHandlers : undefined)}
-        className="card-elevated flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-all hover:shadow-md active:scale-[0.98] lg:pr-3"
+        className="hover:bg-muted/40 active:bg-muted/60 flex w-full items-center gap-3 px-3 py-3 text-left transition-colors"
       >
         {selectionMode && (
           <Checkbox checked={selected} className="pointer-events-none shrink-0" tabIndex={-1} />
         )}
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundImage: `linear-gradient(135deg, ${tint}26, ${tint}10)` }}
-        >
-          {iconNode}
-        </div>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 truncate text-sm font-medium">
             {primaryText}

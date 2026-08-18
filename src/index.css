@@ -25,6 +25,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -39,6 +40,9 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-warning-band: var(--warning-band);
+  --color-warning-band-foreground: var(--warning-band-foreground);
+  --color-warning-band-accent: var(--warning-band-accent);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,132 +53,115 @@
 }
 
 :root {
-  --background: oklch(0.98 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Focus palette (light) — warm paper on cream, one deep-green accent */
+  --background: #f7f5f1;
+  --foreground: #1b1a17;
+  --card: #fffdf9;
+  --card-foreground: #1b1a17;
+  --popover: #fffdf9;
+  --popover-foreground: #1b1a17;
+  --primary: #146b54;
+  --primary-foreground: #fffdf9;
+  --secondary: #f0ece3;
+  --secondary-foreground: #1b1a17;
+  --muted: #f0ece3;
+  --muted-foreground: #79746a;
+  --accent: #e9f1ec;
+  --accent-foreground: #0f4c3d;
+  --destructive: #b3421f;
+  --destructive-foreground: #fffdf9;
+  --border: #eae5db;
+  --input: #eae5db;
+  --ring: #146b54;
+  --chart-1: #146b54;
+  --chart-2: #b3421f;
+  --chart-3: #c79b4f;
+  --chart-4: #6ba292;
+  --chart-5: #6e8fb0;
+  --radius: 1rem;
+  --sidebar: #fffdf9;
+  --sidebar-foreground: #1b1a17;
+  --sidebar-primary: #146b54;
+  --sidebar-primary-foreground: #fffdf9;
+  --sidebar-accent: #e9f1ec;
+  --sidebar-accent-foreground: #0f4c3d;
+  --sidebar-border: #eae5db;
+  --sidebar-ring: #146b54;
 
-  /* Gradient palette (light) */
-  --grad-primary: linear-gradient(135deg, #7c5cff 0%, #5b6cff 50%, #4f8dff 100%);
-  --grad-primary-soft: linear-gradient(
-    135deg,
-    rgba(124, 92, 255, 0.14) 0%,
-    rgba(79, 141, 255, 0.14) 100%
-  );
-  --grad-success: linear-gradient(135deg, #16c47f 0%, #34d399 100%);
-  --grad-success-soft: linear-gradient(
-    135deg,
-    rgba(22, 196, 127, 0.12) 0%,
-    rgba(52, 211, 153, 0.12) 100%
-  );
-  --grad-danger: linear-gradient(135deg, #ff5f7e 0%, #ef4444 100%);
-  --grad-danger-soft: linear-gradient(
-    135deg,
-    rgba(255, 95, 126, 0.12) 0%,
-    rgba(239, 68, 68, 0.12) 100%
-  );
-  --grad-info: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
-  --grad-warning: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
-  --grad-surface: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.6) 0%,
-    rgba(255, 255, 255, 0.2) 100%
-  );
-  --grad-app-bg:
-    radial-gradient(1200px 600px at -10% -20%, rgba(124, 92, 255, 0.1), transparent 60%),
-    radial-gradient(900px 500px at 110% 10%, rgba(6, 182, 212, 0.08), transparent 60%);
+  /* The single collapsed-alert "warm band" — distinct from destructive */
+  --warning-band: #fbede6;
+  --warning-band-foreground: #7a2e13;
+  --warning-band-accent: #b3421f;
+
+  /* Flat accent fills — kept as the same custom-property names the app already
+     used for gradients, but resolved to solid colors under the Focus system
+     (no gradients/glows). See the bg-grad and shadow-glow utilities below. */
+  --grad-primary: #146b54;
+  --grad-primary-soft: #e9f1ec;
+  --grad-success: #146b54;
+  --grad-success-soft: #e9f1ec;
+  --grad-danger: #b3421f;
+  --grad-danger-soft: #f7e6de;
+  --grad-info: #6e8fb0;
+  --grad-warning: #c79b4f;
+  --grad-surface: #fffdf9;
+
+  /* Soft, warm, neutral elevation — no colored glows */
+  --shadow-card: 0 1px 2px rgba(27, 26, 23, 0.05);
+  --shadow-float: 0 18px 40px -20px rgba(27, 26, 23, 0.35);
 }
 
 .dark {
-  --background: oklch(0.16 0.01 270);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.2 0.01 270);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.2 0.01 270);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.55 0.2 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0.005 270);
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.269 0.005 270);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.55 0.2 264.376);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Focus palette (dark) — warm dark paper, same single accent, brightened for contrast */
+  --background: #211e1a;
+  --foreground: #f3efe7;
+  --card: #2a2521;
+  --card-foreground: #f3efe7;
+  --popover: #2a2521;
+  --popover-foreground: #f3efe7;
+  --primary: #2e9c7a;
+  --primary-foreground: #0b1f19;
+  --secondary: #35302a;
+  --secondary-foreground: #f3efe7;
+  --muted: #35302a;
+  --muted-foreground: #b0a99c;
+  --accent: #24352e;
+  --accent-foreground: #8fcbb3;
+  --destructive: #e0714a;
+  --destructive-foreground: #241008;
+  --border: rgba(243, 239, 231, 0.1);
+  --input: rgba(243, 239, 231, 0.14);
+  --ring: #2e9c7a;
+  --chart-1: #2e9c7a;
+  --chart-2: #e0714a;
+  --chart-3: #d9b36b;
+  --chart-4: #7fb8a4;
+  --chart-5: #86a9c4;
+  --sidebar: #211e1a;
+  --sidebar-foreground: #f3efe7;
+  --sidebar-primary: #2e9c7a;
+  --sidebar-primary-foreground: #0b1f19;
+  --sidebar-accent: #24352e;
+  --sidebar-accent-foreground: #8fcbb3;
+  --sidebar-border: rgba(243, 239, 231, 0.1);
+  --sidebar-ring: #2e9c7a;
 
-  /* Gradient palette (dark) */
-  --grad-primary: linear-gradient(135deg, #8b6dff 0%, #6577ff 50%, #4f9bff 100%);
-  --grad-primary-soft: linear-gradient(
-    135deg,
-    rgba(139, 109, 255, 0.22) 0%,
-    rgba(79, 155, 255, 0.18) 100%
-  );
-  --grad-success: linear-gradient(135deg, #22c55e 0%, #16c47f 100%);
-  --grad-success-soft: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.18) 0%,
-    rgba(22, 196, 127, 0.18) 100%
-  );
-  --grad-danger: linear-gradient(135deg, #ff6b81 0%, #f43f5e 100%);
-  --grad-danger-soft: linear-gradient(
-    135deg,
-    rgba(255, 107, 129, 0.18) 0%,
-    rgba(244, 63, 94, 0.18) 100%
-  );
-  --grad-info: linear-gradient(135deg, #60a5fa 0%, #22d3ee 100%);
-  --grad-warning: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
-  --grad-surface: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.01) 100%
-  );
-  --grad-app-bg:
-    radial-gradient(1200px 700px at -10% -20%, rgba(124, 92, 255, 0.18), transparent 60%),
-    radial-gradient(900px 500px at 110% 10%, rgba(6, 182, 212, 0.12), transparent 60%);
+  --warning-band: #3a2a20;
+  --warning-band-foreground: #e8c9b8;
+  --warning-band-accent: #e0714a;
+
+  --grad-primary: #2e9c7a;
+  --grad-primary-soft: #1d3129;
+  --grad-success: #2e9c7a;
+  --grad-success-soft: #1d3129;
+  --grad-danger: #e0714a;
+  --grad-danger-soft: #3a2419;
+  --grad-info: #86a9c4;
+  --grad-warning: #d9b36b;
+  --grad-surface: #2a2521;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-float: 0 18px 40px -20px rgba(0, 0, 0, 0.6);
 }
 
 @layer base {
@@ -184,8 +171,6 @@
 
   body {
     @apply bg-background text-foreground;
-    background-image: var(--grad-app-bg);
-    background-attachment: fixed;
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -218,74 +203,70 @@
   }
 }
 
-/* Gradient utilities */
+/* Flat-fill utilities (kept under their original bg-grad and shadow-glow
+   names — old call sites are unaffected — but every one resolves to a solid
+   Focus-palette color rather than a gradient) */
 @layer utilities {
   .bg-grad-primary {
-    background-image: var(--grad-primary);
+    background-color: var(--grad-primary);
   }
 
   .bg-grad-primary-soft {
-    background-image: var(--grad-primary-soft);
+    background-color: var(--grad-primary-soft);
   }
 
   .bg-grad-success {
-    background-image: var(--grad-success);
+    background-color: var(--grad-success);
   }
 
   .bg-grad-success-soft {
-    background-image: var(--grad-success-soft);
+    background-color: var(--grad-success-soft);
   }
 
   .bg-grad-danger {
-    background-image: var(--grad-danger);
+    background-color: var(--grad-danger);
   }
 
   .bg-grad-danger-soft {
-    background-image: var(--grad-danger-soft);
+    background-color: var(--grad-danger-soft);
   }
 
   .bg-grad-info {
-    background-image: var(--grad-info);
+    background-color: var(--grad-info);
   }
 
   .bg-grad-warning {
-    background-image: var(--grad-warning);
+    background-color: var(--grad-warning);
   }
 
   .bg-grad-surface {
-    background-image: var(--grad-surface);
+    background-color: var(--grad-surface);
   }
 
   .text-grad-primary {
-    background-image: var(--grad-primary);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--grad-primary);
   }
 
-  .shadow-glow-primary {
-    box-shadow: 0 10px 30px -10px rgba(124, 92, 255, 0.45);
-  }
-
+  .shadow-glow-primary,
   .shadow-glow-success {
-    box-shadow: 0 10px 30px -10px rgba(22, 196, 127, 0.45);
+    box-shadow: var(--shadow-float);
   }
 
   .shadow-glow-danger {
-    box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.4);
+    box-shadow: var(--shadow-float);
   }
 
   .ring-grad-primary {
     box-shadow:
-      0 0 0 1px rgba(124, 92, 255, 0.35),
-      0 12px 36px -16px rgba(124, 92, 255, 0.5);
+      0 0 0 1px var(--primary),
+      var(--shadow-float);
   }
 
-  /* Frosted card */
+  /* Paper card — opaque, hairline border, soft neutral lift (no frosted blur) */
   .card-elevated {
     background-color: var(--card);
     border: 1px solid var(--border);
-    backdrop-filter: saturate(140%) blur(6px);
+    box-shadow: var(--shadow-card);
   }
 
   .pb-safe {

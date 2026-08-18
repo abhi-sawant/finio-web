@@ -108,7 +108,7 @@ export default function VerifyOtp() {
                 value={digit}
                 onChange={(e) => handleChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
-                className="bg-card h-14 w-12 rounded-xl text-center text-xl font-bold"
+                className="bg-card h-14 w-12 rounded-sm text-center text-xl font-bold"
               />
             ))}
           </div>
@@ -116,7 +116,7 @@ export default function VerifyOtp() {
           <Button
             type="submit"
             disabled={loading}
-            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3 font-semibold text-white disabled:opacity-50"
+            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-3 font-semibold text-white disabled:opacity-50"
           >
             {loading ? 'Verifying...' : 'Verify'}
           </Button>

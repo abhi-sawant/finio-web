@@ -16,14 +16,17 @@ export function TopMerchants({ transactions }: Props) {
   const hideAmounts = useFinanceStore((s) => s.settings.hideAmounts);
 
   const merchants = useMemo(() => topMerchants(transactions, TOP_N), [transactions]);
-  const compact = useMemo(() => shouldCompactGroup(merchants.map((m) => m.totalAmount)), [merchants]);
+  const compact = useMemo(
+    () => shouldCompactGroup(merchants.map((m) => m.totalAmount)),
+    [merchants],
+  );
 
   if (merchants.length === 0) return null;
 
   const maxAmount = merchants[0].totalAmount;
 
   return (
-    <div className="card-elevated rounded-2xl p-4">
+    <div className="card-elevated rounded-md p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold">Top Merchants</h3>
         <button
@@ -45,7 +48,9 @@ export function TopMerchants({ transactions }: Props) {
             <div className="bg-muted h-1.5 overflow-hidden rounded-full">
               <div
                 className="bg-grad-primary h-full rounded-full"
-                style={{ width: `${maxAmount > 0 ? (merchant.totalAmount / maxAmount) * 100 : 0}%` }}
+                style={{
+                  width: `${maxAmount > 0 ? (merchant.totalAmount / maxAmount) * 100 : 0}%`,
+                }}
               />
             </div>
           </div>

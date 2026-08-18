@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellRing, Repeat, Target, CreditCard, CalendarClock, NotebookPen } from 'lucide-react';
+import {
+  Bell,
+  BellRing,
+  Repeat,
+  Target,
+  CreditCard,
+  CalendarClock,
+  NotebookPen,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import {
@@ -66,7 +74,9 @@ export function NotificationsSection() {
       // Leave the setting off. Once denied, requestPermission() resolves instantly forever, so
       // the switch is rendered disabled from here on rather than snapping back on every tap.
       if (result === 'denied') {
-        toast.error('Notifications are blocked for this site. Turn them on in your browser settings.');
+        toast.error(
+          'Notifications are blocked for this site. Turn them on in your browser settings.',
+        );
       }
       return;
     }
@@ -90,7 +100,7 @@ export function NotificationsSection() {
   if (!isNotificationSupported()) return null;
 
   return (
-    <div className="card-elevated divide-border divide-y rounded-2xl">
+    <div className="card-elevated divide-border divide-y rounded-md">
       <SwitchField
         className="p-4"
         icon={<Bell size={18} className="text-muted-foreground shrink-0" />}
@@ -170,7 +180,7 @@ export function NotificationsSection() {
             </div>
             <button
               onClick={() => setShowLeadDaysPicker(true)}
-              className="bg-muted shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium"
+              className="bg-muted shrink-0 rounded-sm px-3 py-1.5 text-sm font-medium"
             >
               {settings.notifyLeadDays === 0 ? 'Same day' : `${settings.notifyLeadDays}d`}
             </button>
@@ -186,7 +196,7 @@ export function NotificationsSection() {
       )}
 
       <Dialog open={showLeadDaysPicker} onOpenChange={setShowLeadDaysPicker}>
-        <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+        <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-md sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Remind me</DialogTitle>
             <DialogDescription>
@@ -202,7 +212,7 @@ export function NotificationsSection() {
                   refreshNotificationSchedule();
                   setShowLeadDaysPicker(false);
                 }}
-                className={`rounded-lg py-2 text-sm font-medium transition-colors ${
+                className={`rounded-sm py-2 text-sm font-medium transition-colors ${
                   days === settings.notifyLeadDays
                     ? 'bg-grad-primary text-white'
                     : 'bg-muted hover:bg-muted/70'

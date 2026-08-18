@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react';
 import { CategoryIcon, CATEGORY_ICONS } from '@/components/categories/CategoryIcon';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { COLOR_PALETTE } from '@/data/colorPalette';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,32 +13,7 @@ import type { CategoryType } from '@/types';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
-const categoryColors = [
-  '#6C63FF',
-  '#ef4444',
-  '#f97316',
-  '#fb923c',
-  '#f59e0b',
-  '#fbbf24',
-  '#84cc16',
-  '#22c55e',
-  '#10b981',
-  '#34d399',
-  '#14b8a6',
-  '#06b6d4',
-  '#0ea5e9',
-  '#60a5fa',
-  '#3b82f6',
-  '#8b5cf6',
-  '#a78bfa',
-  '#d946ef',
-  '#ec4899',
-  '#f472b6',
-  '#64748b',
-  '#94a3b8',
-  '#78716c',
-  '#6b7280',
-];
+const categoryColors = COLOR_PALETTE;
 
 export default function ManageCategories() {
   const navigate = useNavigate();
@@ -119,7 +95,7 @@ export default function ManageCategories() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize ${
+              className={`rounded-sm px-3 py-1.5 text-xs font-medium capitalize ${
                 filter === f
                   ? 'bg-grad-primary text-white shadow'
                   : 'bg-muted text-muted-foreground'
@@ -137,7 +113,7 @@ export default function ManageCategories() {
             if (!v) resetForm();
           }}
         >
-          <DialogContent className="bg-card mx-auto w-11/12 rounded-2xl">
+          <DialogContent className="bg-card mx-auto w-11/12 rounded-md">
             <DialogHeader>
               <DialogTitle>{editId ? 'Edit Category' : 'Add Category'}</DialogTitle>
             </DialogHeader>
@@ -147,14 +123,14 @@ export default function ManageCategories() {
                 placeholder="Category name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="bg-muted h-auto rounded-lg px-3 py-2"
+                className="bg-muted h-auto rounded-sm px-3 py-2"
               />
               <div className="flex gap-2">
                 {(['expense', 'income', 'both'] as const).map((t) => (
                   <button
                     key={t}
                     onClick={() => setType(t)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize ${
+                    className={`rounded-sm px-3 py-1.5 text-xs font-medium capitalize ${
                       type === t
                         ? 'bg-grad-primary text-white shadow'
                         : 'bg-muted text-muted-foreground'
@@ -168,12 +144,12 @@ export default function ManageCategories() {
                 <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
                   Icon
                 </Label>
-                <div className="grid grid-cols-6 gap-2 h-50 overflow-auto">
+                <div className="grid h-50 grid-cols-6 gap-2 overflow-auto">
                   {CATEGORY_ICONS.map((i) => (
                     <button
                       key={i}
                       onClick={() => setIcon(i)}
-                      className={`flex h-9 items-center justify-center rounded-lg border transition-colors ${
+                      className={`flex h-9 items-center justify-center rounded-sm border transition-colors ${
                         icon === i ? 'border-primary bg-primary/10' : 'border-border bg-card'
                       }`}
                       aria-label={i}
@@ -196,14 +172,14 @@ export default function ManageCategories() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleSubmit}
-                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
                 >
                   {editId ? 'Update' : 'Add'}
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={resetForm}
-                  className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                  className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
                 >
                   Cancel
                 </Button>
@@ -213,23 +189,12 @@ export default function ManageCategories() {
         </Dialog>
 
         {/* List */}
-        <div className="space-y-2">
+        <div className="card-elevated divide-border divide-y rounded-md px-4">
           {filtered.map((cat) => (
-            <div
-              key={cat.id}
-              className="bg-card border-border flex items-center justify-between rounded-xl border p-3"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full"
-                  style={{ backgroundColor: cat.color }}
-                >
-                  <CategoryIcon icon={cat.icon} size={16} color="white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{cat.name}</p>
-                  <p className="text-muted-foreground text-xs capitalize">{cat.type}</p>
-                </div>
+            <div key={cat.id} className="flex items-center justify-between py-3">
+              <div>
+                <p className="text-sm font-medium">{cat.name}</p>
+                <p className="text-muted-foreground text-xs capitalize">{cat.type}</p>
               </div>
               <div className="flex gap-1">
                 <Button

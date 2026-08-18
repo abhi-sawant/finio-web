@@ -24,9 +24,7 @@ const FORECAST_DAYS = 100;
 function dayClasses(day: CashFlowCalendarDay): string {
   if (!day.inRange) return 'opacity-0';
   if (day.netFlow === 0) return 'bg-muted/50 text-muted-foreground';
-  return day.netFlow > 0
-    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-    : 'bg-rose-500/15 text-rose-600 dark:text-rose-400';
+  return day.netFlow > 0 ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive';
 }
 
 export function CashFlowCalendar() {
@@ -77,7 +75,7 @@ export function CashFlowCalendar() {
   if (forecast.isEmpty) return null;
 
   return (
-    <section className="card-elevated rounded-2xl p-4">
+    <section className="card-elevated rounded-md p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Cash Flow Calendar</h3>
         <div className="flex items-center gap-1">
@@ -165,10 +163,10 @@ export function CashFlowCalendar() {
 
       <div className="text-muted-foreground mt-3 flex items-center justify-center gap-4 text-[10px]">
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/40" /> Money in
+          <span className="bg-primary/50 h-2.5 w-2.5 rounded-sm" /> Money in
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm bg-rose-500/40" /> Money out
+          <span className="bg-destructive/50 h-2.5 w-2.5 rounded-sm" /> Money out
         </span>
         <span className="flex items-center gap-1">
           <CreditCard size={10} /> Card due

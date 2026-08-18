@@ -28,9 +28,9 @@ const KIND_ICON = {
 } as const;
 
 const SEVERITY_STYLE = {
-  warn: { wrap: 'bg-amber-500/15', icon: 'text-amber-500' },
+  warn: { wrap: 'bg-[#c79b4f]/15', icon: 'text-[#c79b4f]' },
   info: { wrap: 'bg-primary/15', icon: 'text-primary' },
-  good: { wrap: 'bg-emerald-500/15', icon: 'text-emerald-500' },
+  good: { wrap: 'bg-primary/10', icon: 'text-primary' },
 } as const;
 
 export function InsightsFeed() {
@@ -89,7 +89,7 @@ export function InsightsFeed() {
   if (visible.length === 0) return null;
 
   return (
-    <section className="card-elevated rounded-2xl p-4">
+    <section className="card-elevated rounded-md p-4">
       <div className="mb-3 flex items-center gap-2">
         <div className="bg-grad-primary-soft flex h-6 w-6 items-center justify-center rounded-full">
           <Lightbulb size={13} className="text-primary" />

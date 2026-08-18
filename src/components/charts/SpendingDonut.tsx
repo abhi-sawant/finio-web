@@ -37,7 +37,7 @@ export function SpendingDonut({ transactions }: Props) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
   return (
-    <div className="card-elevated rounded-2xl p-4">
+    <div className="card-elevated rounded-md p-4">
       <h3 className="mb-3 text-sm font-semibold">Spending by Category</h3>
       <div className="grid items-center justify-center gap-4">
         {/* The legend below is the text alternative — the ring itself only needs a headline. */}

@@ -170,7 +170,7 @@ export function LockScreen() {
                 onClick={handleBiometric}
                 disabled={checking || inCooldown}
                 aria-label="Unlock with biometrics"
-                className="bg-card active:bg-muted flex h-14 items-center justify-center rounded-2xl transition-all select-none active:scale-95 disabled:opacity-40"
+                className="bg-card active:bg-muted flex h-14 items-center justify-center rounded-md transition-all select-none active:scale-95 disabled:opacity-40"
               >
                 <Fingerprint size={22} className="text-muted-foreground" />
               </button>
@@ -185,7 +185,7 @@ export function LockScreen() {
         </div>
 
         <Dialog open={showForgot} onOpenChange={setShowForgot}>
-          <DialogContent className="bg-card top-1/3 mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-2xl sm:max-w-md">
+          <DialogContent className="bg-card top-1/3 mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-md sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Forgot your PIN?</DialogTitle>
               <DialogDescription>
@@ -196,8 +196,8 @@ export function LockScreen() {
               <p>
                 The lock is a screen gate, not encryption — your data is still stored on this
                 device. The way back in is to clear Finio&rsquo;s site data in your browser, which
-                removes the lock <strong className="text-foreground">and every transaction on
-                this device</strong>.
+                removes the lock{' '}
+                <strong className="text-foreground">and every transaction on this device</strong>.
               </p>
               <ul className="list-disc space-y-1 pl-5">
                 <li>Chrome: Settings → Privacy and security → Site settings</li>

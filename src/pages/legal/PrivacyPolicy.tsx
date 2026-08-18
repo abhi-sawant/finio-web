@@ -27,20 +27,20 @@ export default function PrivacyPolicy() {
       </Header>
 
       <Main className="lg:max-w-2xl">
-        <div className="card-elevated space-y-6 rounded-2xl p-5">
+        <div className="card-elevated space-y-6 rounded-md p-5">
           <p className="text-muted-foreground text-xs">
-            Last updated: 13 August 2026. This policy covers the hosted Finio app and the
-            optional cloud backup service. If you are using a self-hosted deployment, the person
-            or organization operating that server — not us — controls your data; ask them for
-            their policy.
+            Last updated: 13 August 2026. This policy covers the hosted Finio app and the optional
+            cloud backup service. If you are using a self-hosted deployment, the person or
+            organization operating that server — not us — controls your data; ask them for their
+            policy.
           </p>
 
           <Section title="1. Local-first by default">
             Finio is built to work entirely on your device. Accounts, transactions, budgets,
-            categories, goals, debts, and every other record you create are stored in your
-            browser's local storage. None of this data is transmitted anywhere unless you
-            explicitly turn on cloud backup or cloud sync. Uninstalling the app or clearing site
-            data deletes it, since we never receive a copy in the first place.
+            categories, goals, debts, and every other record you create are stored in your browser's
+            local storage. None of this data is transmitted anywhere unless you explicitly turn on
+            cloud backup or cloud sync. Uninstalling the app or clearing site data deletes it, since
+            we never receive a copy in the first place.
           </Section>
 
           <Section title="2. What we collect if you create a cloud account">
@@ -48,8 +48,8 @@ export default function PrivacyPolicy() {
             <ul className="list-disc space-y-1 pl-5">
               <li>Your name and email address, to create and identify your account.</li>
               <li>
-                A one-time password (OTP) sent to your email to verify it and to support
-                password resets.
+                A one-time password (OTP) sent to your email to verify it and to support password
+                resets.
               </li>
               <li>
                 Your password, which we never store in plain text — only a salted bcrypt hash.
@@ -58,8 +58,7 @@ export default function PrivacyPolicy() {
                 Your backup data. If you enable end-to-end encryption for backups, we only ever
                 receive an opaque encrypted envelope and cannot read its contents. If you leave
                 encryption off, the backup is your finance data in plain JSON, and our server
-                operators can technically access it — treat that setting as a real trust
-                decision.
+                operators can technically access it — treat that setting as a real trust decision.
               </li>
             </ul>
           </Section>
@@ -70,27 +69,28 @@ export default function PrivacyPolicy() {
               <li>No selling, renting, or sharing your data with advertisers or data brokers.</li>
               <li>No behavioral profiling.</li>
             </ul>
-            The only outside party involved in operating the hosted service is the email
-            provider used to deliver OTP and password-reset messages, which sees your email
-            address and the fact that you requested a code — nothing else.
+            The only outside party involved in operating the hosted service is the email provider
+            used to deliver OTP and password-reset messages, which sees your email address and the
+            fact that you requested a code — nothing else.
           </Section>
 
           <Section title="4. Why we process this data">
-            We process account and backup data to provide the service you asked for: creating
-            your account, authenticating you, and storing and restoring your backups. We don't
-            rely on this data for marketing or send you anything beyond transactional emails
-            (OTPs, password resets, and account-related notices).
+            We process account and backup data to provide the service you asked for: creating your
+            account, authenticating you, and storing and restoring your backups. We don't rely on
+            this data for marketing or send you anything beyond transactional emails (OTPs, password
+            resets, and account-related notices).
           </Section>
 
           <Section title="5. How long we keep it">
             <p>
               Your account record is kept for as long as your account exists. Backup files are
-              retained on a rolling basis (30 days by default on the hosted instance; a
-              self-hoster can configure a different window) and older backups are deleted
-              automatically. OTP and password-reset codes expire within minutes and are not
-              reused.
+              retained on a rolling basis (30 days by default on the hosted instance; a self-hoster
+              can configure a different window) and older backups are deleted automatically. OTP and
+              password-reset codes expire within minutes and are not reused.
             </p>
-            <p>Deleting your account immediately and permanently deletes every backup tied to it.</p>
+            <p>
+              Deleting your account immediately and permanently deletes every backup tied to it.
+            </p>
           </Section>
 
           <Section title="6. Your rights">
@@ -105,16 +105,16 @@ export default function PrivacyPolicy() {
                 cloud backup).
               </li>
               <li>
-                <strong>Erasure</strong> — delete your cloud account from Settings; this
-                immediately deletes your account record and every backup on the server. Deleting
-                the app or its site data removes everything stored locally.
+                <strong>Erasure</strong> — delete your cloud account from Settings; this immediately
+                deletes your account record and every backup on the server. Deleting the app or its
+                site data removes everything stored locally.
               </li>
               <li>
                 <strong>Rectification</strong> — update your name or password from Settings.
               </li>
               <li>
-                <strong>Objection / restriction</strong> — stop using cloud backup at any time;
-                the app keeps working fully offline.
+                <strong>Objection / restriction</strong> — stop using cloud backup at any time; the
+                app keeps working fully offline.
               </li>
               <li>
                 You also have the right to lodge a complaint with your local data protection
@@ -124,11 +124,10 @@ export default function PrivacyPolicy() {
           </Section>
 
           <Section title="7. Security">
-            Passwords are hashed with bcrypt, authentication uses short-lived signed tokens
-            (JWT), and cloud backups can be end-to-end encrypted with a passphrase only you
-            know — we never see it and cannot recover it if you lose it. No screen lock or
-            encryption feature makes the app immune to a compromised device; it reduces risk, it
-            doesn't eliminate it.
+            Passwords are hashed with bcrypt, authentication uses short-lived signed tokens (JWT),
+            and cloud backups can be end-to-end encrypted with a passphrase only you know — we never
+            see it and cannot recover it if you lose it. No screen lock or encryption feature makes
+            the app immune to a compromised device; it reduces risk, it doesn't eliminate it.
           </Section>
 
           <Section title="8. Children">
@@ -137,8 +136,8 @@ export default function PrivacyPolicy() {
           </Section>
 
           <Section title="9. Changes to this policy">
-            If this policy changes materially, we'll update the "last updated" date above and,
-            where required, notify account holders by email.
+            If this policy changes materially, we'll update the "last updated" date above and, where
+            required, notify account holders by email.
           </Section>
 
           <Section title="10. Contact">

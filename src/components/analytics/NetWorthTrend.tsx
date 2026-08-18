@@ -61,7 +61,7 @@ export function NetWorthTrend() {
   if (accounts.length === 0) return null;
 
   return (
-    <section className="card-elevated rounded-2xl p-4">
+    <section className="card-elevated rounded-md p-4">
       <div className="mb-1 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Net Worth Over Time</h3>
         <div className="flex gap-1">
@@ -83,7 +83,7 @@ export function NetWorthTrend() {
         <span className="text-lg font-bold">{latest ? money(latest.netWorth) : '—'}</span>
         {change !== 0 && (
           <span
-            className={`inline-flex items-center gap-0.5 text-xs font-medium ${change > 0 ? 'text-emerald-500' : 'text-rose-500'}`}
+            className={`inline-flex items-center gap-0.5 text-xs font-medium ${change > 0 ? 'text-primary' : 'text-destructive'}`}
           >
             {change > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
             {money(Math.abs(change))}
@@ -109,7 +109,13 @@ export function NetWorthTrend() {
               interval="preserveStartEnd"
               minTickGap={24}
             />
-            <YAxis fontSize={10} tickLine={false} axisLine={false} width={50} tickFormatter={money} />
+            <YAxis
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              width={50}
+              tickFormatter={money}
+            />
             <Tooltip
               cursor={{ fill: 'rgba(124,92,255,0.08)' }}
               contentStyle={{
@@ -122,12 +128,12 @@ export function NetWorthTrend() {
               labelStyle={{ color: 'var(--muted-foreground)' }}
             />
             {/* Assets up, liabilities down, net worth as the line that sums them. */}
-            <Bar dataKey="Assets" fill="#16c47f" opacity={0.55} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Liabilities" fill="#ff5f7e" opacity={0.55} radius={[0, 0, 4, 4]} />
+            <Bar dataKey="Assets" fill="#146b54" opacity={0.55} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Liabilities" fill="#c48b7a" opacity={0.55} radius={[0, 0, 4, 4]} />
             <Line
               type="monotone"
               dataKey="Net worth"
-              stroke="#7c5cff"
+              stroke="#146b54"
               strokeWidth={2.5}
               dot={false}
             />

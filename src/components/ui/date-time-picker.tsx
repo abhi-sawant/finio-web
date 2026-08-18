@@ -25,7 +25,7 @@ export interface DateTimePickerProps {
   disabled?: boolean;
 }
 
-const DEFAULT_INPUT_CLASS = 'h-auto px-4 py-3 bg-card rounded-xl';
+const DEFAULT_INPUT_CLASS = 'h-auto px-4 py-3 bg-card rounded-sm';
 
 export function DateTimePicker({
   value,

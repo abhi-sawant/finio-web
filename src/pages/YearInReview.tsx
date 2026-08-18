@@ -12,8 +12,12 @@ import {
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { buildYearInReview } from '@/utils/analytics';
 import { normalizeMonthStartDay } from '@/utils/period';
-import { formatCurrency, formatDate, formatPercentChange, shouldCompactGroup } from '@/utils/formatters';
-import { CategoryIcon } from '@/components/categories/CategoryIcon';
+import {
+  formatCurrency,
+  formatDate,
+  formatPercentChange,
+  shouldCompactGroup,
+} from '@/utils/formatters';
 import { HideAmountsToggle } from '@/components/HideAmountsToggle';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/ui/header';
@@ -34,7 +38,7 @@ function ChangeBadge({ value, invert = false }: { value: number | null; invert?:
   }
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-xs font-medium ${isGood ? 'text-emerald-500' : 'text-rose-500'}`}
+      className={`inline-flex items-center gap-0.5 text-xs font-medium ${isGood ? 'text-primary' : 'text-destructive'}`}
     >
       <Icon size={11} />
       {formatPercentChange(value).replace('+', '')} vs last year
@@ -115,21 +119,19 @@ export default function YearInReview() {
         </div>
 
         {/* Hero */}
-        <div className="card-elevated bg-grad-surface rounded-2xl p-4">
+        <div className="card-elevated bg-grad-surface rounded-md p-4">
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-muted-foreground text-[10px] tracking-wide uppercase">Income</p>
-              <p className="text-sm font-semibold text-emerald-500">
+              <p className="text-primary text-sm font-semibold">
                 {formatCurrency(review.current.income, true, hideAmounts, {
                   forceCompact: heroCompact,
                 })}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
-                Expenses
-              </p>
-              <p className="text-sm font-semibold text-rose-500">
+              <p className="text-muted-foreground text-[10px] tracking-wide uppercase">Expenses</p>
+              <p className="text-destructive text-sm font-semibold">
                 {formatCurrency(review.current.expenses, true, hideAmounts, {
                   forceCompact: heroCompact,
                 })}
@@ -138,7 +140,7 @@ export default function YearInReview() {
             <div>
               <p className="text-muted-foreground text-[10px] tracking-wide uppercase">Net</p>
               <p
-                className={`text-sm font-semibold ${review.current.net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
+                className={`text-sm font-semibold ${review.current.net >= 0 ? 'text-primary' : 'text-destructive'}`}
               >
                 {formatCurrency(review.current.net, true, hideAmounts, {
                   forceCompact: heroCompact,
@@ -148,16 +150,13 @@ export default function YearInReview() {
           </div>
           <div className="border-border mt-3 grid grid-cols-3 gap-3 border-t pt-2 text-center">
             <ChangeBadge value={ratio(review.current.income, review.previous.income)} />
-            <ChangeBadge
-              value={ratio(review.current.expenses, review.previous.expenses)}
-              invert
-            />
+            <ChangeBadge value={ratio(review.current.expenses, review.previous.expenses)} invert />
             <ChangeBadge value={ratio(review.current.net, review.previous.net)} />
           </div>
         </div>
 
         {/* Net worth */}
-        <div className="card-elevated rounded-2xl p-4">
+        <div className="card-elevated rounded-md p-4">
           <h3 className="mb-3 text-sm font-semibold">Net Worth</h3>
           <div className="flex items-center justify-between">
             <div>
@@ -175,7 +174,7 @@ export default function YearInReview() {
             </div>
           </div>
           <p
-            className={`mt-2 text-center text-xs font-medium ${review.netWorthChange >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
+            className={`mt-2 text-center text-xs font-medium ${review.netWorthChange >= 0 ? 'text-primary' : 'text-destructive'}`}
           >
             {review.netWorthChange >= 0 ? '+' : ''}
             {money(review.netWorthChange)} this year
@@ -183,7 +182,7 @@ export default function YearInReview() {
         </div>
 
         {/* Monthly breakdown */}
-        <div className="card-elevated rounded-2xl p-4">
+        <div className="card-elevated rounded-md p-4">
           <h3 className="mb-3 text-sm font-semibold">Spending by Month</h3>
           <div className="flex items-end gap-1.5" style={{ height: 90 }}>
             {review.monthlyBreakdown.map((month) => (
@@ -206,7 +205,7 @@ export default function YearInReview() {
           </div>
           {review.busiestMonth && (
             <p className="text-muted-foreground mt-3 flex items-center justify-center gap-1 text-xs">
-              <Trophy size={12} className="text-amber-500" />
+              <Trophy size={12} className="text-[#c79b4f]" />
               Biggest spend: {review.busiestMonth.label} · {money(review.busiestMonth.expenses)}
             </p>
           )}
@@ -214,25 +213,13 @@ export default function YearInReview() {
 
         {/* Top categories */}
         {review.topCategories.length > 0 && (
-          <div className="card-elevated rounded-2xl p-4">
+          <div className="card-elevated rounded-md p-4">
             <h3 className="mb-3 text-sm font-semibold">Top Categories</h3>
             <ul className="space-y-2.5">
               {review.topCategories.map((c) => {
                 const category = categoryFor(c.categoryId);
                 return (
                   <li key={c.categoryId} className="flex items-center gap-2.5">
-                    <div
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                      style={{
-                        backgroundImage: `linear-gradient(135deg, ${category?.color ?? '#94a3b8'}, ${category?.color ?? '#94a3b8'}cc)`,
-                      }}
-                    >
-                      <CategoryIcon
-                        icon={category?.icon ?? 'circle-ellipsis'}
-                        size={13}
-                        color="white"
-                      />
-                    </div>
                     <span className="min-w-0 flex-1 truncate text-xs font-medium">
                       {category?.name ?? 'Uncategorized'}
                     </span>
@@ -246,7 +233,7 @@ export default function YearInReview() {
 
         {/* Biggest movers */}
         {review.movers.length > 0 && (
-          <div className="card-elevated rounded-2xl p-4">
+          <div className="card-elevated rounded-md p-4">
             <h3 className="mb-3 text-sm font-semibold">Biggest Movers vs Last Year</h3>
             <ul className="space-y-2.5">
               {review.movers.map((mover) => {
@@ -254,23 +241,11 @@ export default function YearInReview() {
                 const isUp = mover.change > 0;
                 return (
                   <li key={mover.categoryId} className="flex items-center gap-2.5">
-                    <div
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                      style={{
-                        backgroundImage: `linear-gradient(135deg, ${category?.color ?? '#94a3b8'}, ${category?.color ?? '#94a3b8'}cc)`,
-                      }}
-                    >
-                      <CategoryIcon
-                        icon={category?.icon ?? 'circle-ellipsis'}
-                        size={13}
-                        color="white"
-                      />
-                    </div>
                     <span className="min-w-0 flex-1 truncate text-xs font-medium">
                       {category?.name ?? 'Uncategorized'}
                     </span>
                     <span
-                      className={`shrink-0 text-xs font-semibold ${isUp ? 'text-rose-500' : 'text-emerald-500'}`}
+                      className={`shrink-0 text-xs font-semibold ${isUp ? 'text-destructive' : 'text-primary'}`}
                     >
                       {isUp ? '+' : '−'}
                       {money(Math.abs(mover.change))}
@@ -284,18 +259,20 @@ export default function YearInReview() {
 
         {/* Biggest single expense */}
         {review.biggestExpense && (
-          <div className="card-elevated rounded-2xl p-4">
+          <div className="card-elevated rounded-md p-4">
             <h3 className="mb-2 text-sm font-semibold">Biggest Single Expense</h3>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">
-                  {review.biggestExpense.note || categoryFor(review.biggestExpense.categoryId)?.name || 'Expense'}
+                  {review.biggestExpense.note ||
+                    categoryFor(review.biggestExpense.categoryId)?.name ||
+                    'Expense'}
                 </p>
                 <p className="text-muted-foreground text-xs">
                   {formatDate(review.biggestExpense.date)}
                 </p>
               </div>
-              <p className="shrink-0 text-sm font-semibold text-rose-500">
+              <p className="text-destructive shrink-0 text-sm font-semibold">
                 {money(review.biggestExpense.amount)}
               </p>
             </div>

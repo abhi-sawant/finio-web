@@ -145,7 +145,12 @@ export async function uploadBackup(): Promise<string> {
     const key = hasUsableSessionKey(config.salt);
     if (!key) throw new Error('Cloud backup is locked — enter your passphrase to continue.');
     const { iv, ciphertext } = await encryptJson(key, payload);
-    const envelope = packEnvelope({ salt: config.salt, iterations: config.iterations, iv, ciphertext });
+    const envelope = packEnvelope({
+      salt: config.salt,
+      iterations: config.iterations,
+      iv,
+      ciphertext,
+    });
     await api.uploadBackup(token, envelope);
   } else {
     await api.uploadBackup(token, payload);

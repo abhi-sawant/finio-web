@@ -37,7 +37,7 @@ export function NumberPad({ value, onChange }: NumberPadProps) {
 
   return (
     <div className="space-y-2">
-      <div className="bg-card flex min-h-16 items-center justify-center rounded-2xl px-4 py-3">
+      <div className="bg-card flex min-h-16 items-center justify-center rounded-md px-4 py-3">
         <span
           className={`font-bold tracking-tight transition-all ${
             display.length > 10 ? 'text-2xl' : 'text-3xl'
@@ -53,7 +53,7 @@ export function NumberPad({ value, onChange }: NumberPadProps) {
             key={btn}
             type="button"
             onClick={() => handlePress(btn)}
-            className="bg-card active:bg-muted flex h-14 items-center justify-center rounded-2xl text-xl font-semibold transition-all active:scale-95 select-none"
+            className="bg-card active:bg-muted flex h-14 items-center justify-center rounded-md text-xl font-semibold transition-all select-none active:scale-95"
           >
             {btn === '⌫' ? (
               <Delete size={20} className="text-muted-foreground" />

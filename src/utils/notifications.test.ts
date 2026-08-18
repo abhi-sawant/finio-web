@@ -52,10 +52,7 @@ describe('selectDueNotifications', () => {
 
   it('returns the oldest reminder first', () => {
     const due = selectDueNotifications(
-      [
-        entry({ id: 'newer', fireAt: NOW - HOUR }),
-        entry({ id: 'older', fireAt: NOW - 5 * HOUR }),
-      ],
+      [entry({ id: 'newer', fireAt: NOW - HOUR }), entry({ id: 'older', fireAt: NOW - 5 * HOUR })],
       new Set(),
       NOW,
     );

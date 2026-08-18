@@ -103,7 +103,7 @@ export function BalanceTrend({ from, to }: Props) {
   const table = sampleForTable(data);
 
   return (
-    <div className="card-elevated rounded-2xl p-4">
+    <div className="card-elevated rounded-md p-4">
       <h3 className="mb-3 text-sm font-semibold">Balance Trend</h3>
       <div
         className="h-44 lg:h-64"
@@ -118,8 +118,8 @@ export function BalanceTrend({ from, to }: Props) {
           <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="balanceStroke" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#7c5cff" />
-                <stop offset="100%" stopColor="#06b6d4" />
+                <stop offset="0%" stopColor="#146b54" />
+                <stop offset="100%" stopColor="#6e8fb0" />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
@@ -130,7 +130,13 @@ export function BalanceTrend({ from, to }: Props) {
               axisLine={false}
               interval={xAxisInterval}
             />
-            <YAxis fontSize={10} tickLine={false} axisLine={false} width={50} tickFormatter={money} />
+            <YAxis
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              width={50}
+              tickFormatter={money}
+            />
             <Tooltip
               cursor={{ stroke: 'rgba(124,92,255,0.25)', strokeWidth: 1 }}
               contentStyle={{

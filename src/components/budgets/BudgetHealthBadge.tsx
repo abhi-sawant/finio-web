@@ -6,9 +6,13 @@ const PRESENTATION: Record<
   BudgetHealth,
   { label: string; Icon: typeof AlertTriangle; className: string }
 > = {
-  over: { label: 'Over budget', Icon: AlertTriangle, className: 'bg-rose-500/15 text-rose-500' },
-  near: { label: 'Near limit', Icon: TrendingUp, className: 'bg-amber-500/15 text-amber-500' },
-  ok: { label: 'On track', Icon: Check, className: 'bg-emerald-500/15 text-emerald-500' },
+  over: {
+    label: 'Over budget',
+    Icon: AlertTriangle,
+    className: 'bg-warning-band text-warning-band-accent',
+  },
+  near: { label: 'Near limit', Icon: TrendingUp, className: 'bg-[#c79b4f]/15 text-[#c79b4f]' },
+  ok: { label: 'On track', Icon: Check, className: 'bg-primary/10 text-primary' },
 };
 
 interface BudgetHealthBadgeProps {
@@ -72,12 +76,8 @@ export function BudgetProgressBar({
         className="h-full rounded-full transition-all"
         style={{
           width: `${Math.min(Math.max(status.percent, 0), 100)}%`,
-          backgroundImage:
-            health === 'over'
-              ? 'var(--grad-danger)'
-              : health === 'near'
-                ? 'var(--grad-warning)'
-                : okFill,
+          backgroundColor:
+            health === 'over' ? 'var(--destructive)' : health === 'near' ? '#c79b4f' : okFill,
         }}
       />
     </div>

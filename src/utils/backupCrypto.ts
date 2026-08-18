@@ -82,7 +82,11 @@ export async function encryptJson(
  * Throws on a wrong key or tampered ciphertext — GCM's authentication tag makes that the natural
  * signal for "incorrect passphrase," with no separate verification step required.
  */
-export async function decryptJson(key: CryptoKey, iv: string, ciphertext: string): Promise<unknown> {
+export async function decryptJson(
+  key: CryptoKey,
+  iv: string,
+  ciphertext: string,
+): Promise<unknown> {
   const plainBuffer = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: fromBase64Url(iv) },
     key,

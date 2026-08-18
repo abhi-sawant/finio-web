@@ -52,7 +52,7 @@ export function CashFlowForecast() {
   const projectedTable = sampleForTable(forecast.points);
 
   return (
-    <section className="card-elevated rounded-2xl p-4">
+    <section className="card-elevated rounded-md p-4">
       <div className="mb-1 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Cash-Flow Forecast</h3>
         <div className="flex gap-1">
@@ -83,8 +83,8 @@ export function CashFlowForecast() {
           <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="forecastFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7c5cff" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#7c5cff" stopOpacity={0} />
+                <stop offset="0%" stopColor="#146b54" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#146b54" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
@@ -96,7 +96,13 @@ export function CashFlowForecast() {
               interval="preserveStartEnd"
               minTickGap={32}
             />
-            <YAxis fontSize={10} tickLine={false} axisLine={false} width={50} tickFormatter={money} />
+            <YAxis
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              width={50}
+              tickFormatter={money}
+            />
             <Tooltip
               cursor={{ stroke: 'rgba(124,92,255,0.25)', strokeWidth: 1 }}
               contentStyle={{
@@ -113,7 +119,7 @@ export function CashFlowForecast() {
             <Area
               type="monotone"
               dataKey="balance"
-              stroke="#7c5cff"
+              stroke="#146b54"
               strokeWidth={2.5}
               fill="url(#forecastFill)"
             />
@@ -136,28 +142,28 @@ export function CashFlowForecast() {
       />
 
       <dl className="mt-3 grid grid-cols-3 gap-2">
-        <div className="bg-muted/40 rounded-xl p-2.5">
+        <div className="bg-muted/40 rounded-sm p-2.5">
           <dt className="text-muted-foreground flex items-center gap-1 text-[10px] tracking-wide uppercase">
             <Wallet size={10} /> Today
           </dt>
           <dd className="mt-0.5 text-xs font-semibold">{money(forecast.startBalance)}</dd>
         </div>
-        <div className="bg-muted/40 rounded-xl p-2.5">
+        <div className="bg-muted/40 rounded-sm p-2.5">
           <dt className="text-muted-foreground text-[10px] tracking-wide uppercase">
             In {days} days
           </dt>
           <dd
-            className={`mt-0.5 text-xs font-semibold ${forecast.endBalance < 0 ? 'text-rose-500' : ''}`}
+            className={`mt-0.5 text-xs font-semibold ${forecast.endBalance < 0 ? 'text-destructive' : ''}`}
           >
             {money(forecast.endBalance)}
           </dd>
         </div>
-        <div className="bg-muted/40 rounded-xl p-2.5">
+        <div className="bg-muted/40 rounded-sm p-2.5">
           <dt className="text-muted-foreground flex items-center gap-1 text-[10px] tracking-wide uppercase">
             <TrendingDown size={10} /> Lowest
           </dt>
           <dd
-            className={`mt-0.5 text-xs font-semibold ${forecast.low && forecast.low.balance < 0 ? 'text-rose-500' : ''}`}
+            className={`mt-0.5 text-xs font-semibold ${forecast.low && forecast.low.balance < 0 ? 'text-destructive' : ''}`}
           >
             {forecast.low ? money(forecast.low.balance) : '—'}
             {forecast.low && (
@@ -170,7 +176,7 @@ export function CashFlowForecast() {
       </dl>
 
       {forecast.shortfallDate && (
-        <p className="mt-3 flex items-start gap-2 rounded-xl bg-rose-500/10 p-2.5 text-xs text-rose-500">
+        <p className="bg-destructive/10 text-destructive mt-3 flex items-start gap-2 rounded-sm p-2.5 text-xs">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" />
           <span>
             At this rate your liquid balance runs out around{' '}
@@ -201,7 +207,7 @@ export function CashFlowForecast() {
                   {flow.note || categoryName(flow.categoryId)}
                 </span>
                 <span
-                  className={`shrink-0 font-semibold ${flow.delta > 0 ? 'text-emerald-500' : 'text-rose-500'}`}
+                  className={`shrink-0 font-semibold ${flow.delta > 0 ? 'text-primary' : 'text-destructive'}`}
                 >
                   {flow.delta > 0 ? '+' : '−'}
                   {money(Math.abs(flow.delta))}

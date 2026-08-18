@@ -15,7 +15,11 @@ const ITERATIONS = 1000;
 
 describe('deriveEncryptionKey', () => {
   it('produces a usable, non-extractable AES-GCM key', async () => {
-    const key = await deriveEncryptionKey('correct horse battery staple', generateBackupSalt(), ITERATIONS);
+    const key = await deriveEncryptionKey(
+      'correct horse battery staple',
+      generateBackupSalt(),
+      ITERATIONS,
+    );
     expect(key.extractable).toBe(false);
     expect(key.algorithm.name).toBe('AES-GCM');
   });
@@ -89,7 +93,10 @@ describe('createVerifier / verifyPassphraseAgainstConfig', () => {
   it('rejects a malformed verifier instead of throwing', async () => {
     const key = await deriveEncryptionKey('my passphrase', generateBackupSalt(), ITERATIONS);
     expect(
-      await verifyPassphraseAgainstConfig(key, { verifierIv: 'not-base64', verifierCiphertext: '???' }),
+      await verifyPassphraseAgainstConfig(key, {
+        verifierIv: 'not-base64',
+        verifierCiphertext: '???',
+      }),
     ).toBe(false);
   });
 });

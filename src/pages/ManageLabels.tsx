@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { COLOR_PALETTE } from '@/data/colorPalette';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,32 +10,7 @@ import { useConfirm } from '@/components/ui/use-confirm';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
 
-const labelColors = [
-  '#6C63FF',
-  '#ef4444',
-  '#f97316',
-  '#fb923c',
-  '#f59e0b',
-  '#fbbf24',
-  '#84cc16',
-  '#22c55e',
-  '#10b981',
-  '#34d399',
-  '#14b8a6',
-  '#06b6d4',
-  '#0ea5e9',
-  '#60a5fa',
-  '#3b82f6',
-  '#8b5cf6',
-  '#a78bfa',
-  '#d946ef',
-  '#ec4899',
-  '#f472b6',
-  '#64748b',
-  '#94a3b8',
-  '#78716c',
-  '#6b7280',
-];
+const labelColors = COLOR_PALETTE;
 
 export default function ManageLabels() {
   const navigate = useNavigate();
@@ -104,7 +80,7 @@ export default function ManageLabels() {
             if (!v) resetForm();
           }}
         >
-          <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-2xl">
+          <DialogContent className="bg-card top-1/4 mx-auto w-11/12 rounded-md">
             <DialogHeader>
               <DialogTitle>{editId ? 'Edit Label' : 'Add Label'}</DialogTitle>
             </DialogHeader>
@@ -114,7 +90,7 @@ export default function ManageLabels() {
                 placeholder="Label name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="bg-muted h-auto rounded-lg px-3 py-2"
+                className="bg-muted h-auto rounded-sm px-3 py-2"
               />
               <div className="flex flex-wrap gap-2">
                 {labelColors.map((c) => (
@@ -129,14 +105,14 @@ export default function ManageLabels() {
               <div className="flex gap-2">
                 <Button
                   onClick={handleSubmit}
-                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                  className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
                 >
                   {editId ? 'Update' : 'Add'}
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={resetForm}
-                  className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                  className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
                 >
                   Cancel
                 </Button>
@@ -146,14 +122,14 @@ export default function ManageLabels() {
         </Dialog>
 
         {/* List */}
-        <div className="space-y-2">
+        <div className="card-elevated divide-border divide-y rounded-md px-4">
           {labels.map((label) => (
-            <div
-              key={label.id}
-              className="bg-card border-border flex items-center justify-between rounded-xl border p-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: label.color }} />
+            <div key={label.id} className="flex items-center justify-between py-3">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: label.color }}
+                />
                 <p className="text-sm font-medium">{label.name}</p>
               </div>
               <div className="flex gap-1">

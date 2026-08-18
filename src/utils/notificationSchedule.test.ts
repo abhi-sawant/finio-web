@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildNotificationSchedule, type NotificationScheduleInput } from './notificationSchedule';
 import { DAILY_LOG_HOUR, NOTIFY_HOUR, type NotificationPrefs } from './notifications';
-import type {
-  Account,
-  Budget,
-  Category,
-  Label,
-  RecurringTransaction,
-  Transaction,
-} from '@/types';
+import type { Account, Budget, Category, Label, RecurringTransaction, Transaction } from '@/types';
 
 /**
  * Built from local components rather than an ISO string, unlike the other suites here: reminder
@@ -80,9 +73,7 @@ function budget(partial: Partial<Budget> & Pick<Budget, 'id'>): Budget {
   };
 }
 
-function tx(
-  partial: Partial<Transaction> & Pick<Transaction, 'amount' | 'date'>,
-): Transaction {
+function tx(partial: Partial<Transaction> & Pick<Transaction, 'amount' | 'date'>): Transaction {
   return {
     id: `tx-${partial.date}-${partial.amount}`,
     type: 'expense',
@@ -208,7 +199,9 @@ describe('buildNotificationSchedule', () => {
       expect(bill).toBeDefined();
 
       const fire = new Date(bill!.fireAt);
-      expect(fire.getDate()).toBe(new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() + 3).getDate());
+      expect(fire.getDate()).toBe(
+        new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() + 3).getDate(),
+      );
       expect(fire.getHours()).toBe(NOTIFY_HOUR);
     });
 

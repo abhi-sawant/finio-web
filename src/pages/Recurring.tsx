@@ -308,8 +308,8 @@ export default function Recurring() {
         )}
 
         {showForm && (
-          <div className="card-elevated space-y-3 rounded-2xl p-4">
-            <div className="bg-muted grid grid-cols-3 gap-2 rounded-xl p-1">
+          <div className="card-elevated space-y-3 rounded-md p-4">
+            <div className="bg-muted grid grid-cols-3 gap-2 rounded-sm p-1">
               {(['expense', 'income', 'transfer'] as const).map((t) => (
                 <button
                   key={t}
@@ -317,7 +317,7 @@ export default function Recurring() {
                     setType(t);
                     setCategoryId('');
                   }}
-                  className={`rounded-lg py-2 text-xs font-medium capitalize transition-all ${
+                  className={`rounded-sm py-2 text-xs font-medium capitalize transition-all ${
                     type === t
                       ? t === 'expense'
                         ? 'bg-grad-danger text-white shadow'
@@ -344,7 +344,7 @@ export default function Recurring() {
                 {type === 'transfer' ? 'From Account' : 'Account'}
               </Label>
               <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-                <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                   <SelectValue placeholder="Account">
                     {accounts.find((a) => a.id === accountId)?.name}
                   </SelectValue>
@@ -365,7 +365,7 @@ export default function Recurring() {
                   To Account
                 </Label>
                 <Select value={toAccountId} onValueChange={(v) => setToAccountId(v ?? '')}>
-                  <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                  <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                     <SelectValue placeholder="Destination">
                       {accounts.find((a) => a.id === toAccountId)?.name}
                     </SelectValue>
@@ -383,7 +383,7 @@ export default function Recurring() {
               </div>
             ) : (
               <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? '')}>
-                <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                   <SelectValue placeholder="Category">
                     {filteredCategories.find((c) => c.id === categoryId)?.name}
                   </SelectValue>
@@ -403,11 +403,11 @@ export default function Recurring() {
               placeholder="Note (e.g., Netflix)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="bg-muted h-auto rounded-lg px-3 py-2"
+              className="bg-muted h-auto rounded-sm px-3 py-2"
             />
 
             <Select value={frequency} onValueChange={(v) => setFrequency(v as RecurrenceFrequency)}>
-              <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+              <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                 <SelectValue placeholder="Frequency">{FREQ_LABEL[frequency]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -426,14 +426,14 @@ export default function Recurring() {
               <DateTimePicker
                 value={startDate}
                 onChange={setStartDate}
-                inputClassName="h-auto px-3 py-2 bg-muted rounded-lg"
+                inputClassName="h-auto px-3 py-2 bg-muted rounded-sm"
               />
             </div>
 
             <div>
               <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Ends</Label>
               <Select value={endMode} onValueChange={(v) => setEndMode((v as EndMode) ?? 'never')}>
-                <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                   <SelectValue>
                     {endMode === 'never'
                       ? 'Never'
@@ -464,7 +464,7 @@ export default function Recurring() {
                   placeholder="Number of occurrences"
                   value={maxOccurrences}
                   onChange={(e) => setMaxOccurrences(e.target.value)}
-                  className="bg-muted mt-2 h-auto rounded-lg px-3 py-2"
+                  className="bg-muted mt-2 h-auto rounded-sm px-3 py-2"
                 />
               )}
             </div>
@@ -478,7 +478,7 @@ export default function Recurring() {
                   value={goalId || 'none'}
                   onValueChange={(v) => setGoalId(v === 'none' ? '' : (v ?? ''))}
                 >
-                  <SelectTrigger className="bg-muted h-auto w-full rounded-lg px-3 py-2">
+                  <SelectTrigger className="bg-muted h-auto w-full rounded-sm px-3 py-2">
                     <SelectValue>
                       {goalId ? goals.find((g) => g.id === goalId)?.name : 'None'}
                     </SelectValue>
@@ -501,14 +501,14 @@ export default function Recurring() {
             <div className="flex gap-2">
               <Button
                 onClick={handleSubmit}
-                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
               >
                 {editingId ? 'Save Changes' : 'Save Rule'}
               </Button>
               <Button
                 variant="secondary"
                 onClick={resetForm}
-                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </Button>
@@ -524,7 +524,7 @@ export default function Recurring() {
             <p className="text-muted-foreground mb-4">No recurring rules yet</p>
             <Button
               onClick={startCreate}
-              className="bg-grad-primary shadow-glow-primary h-auto rounded-xl px-5 py-2.5 text-sm font-medium text-white"
+              className="bg-grad-primary shadow-glow-primary h-auto rounded-sm px-5 py-2.5 text-sm font-medium text-white"
             >
               Create a rule
             </Button>
@@ -534,7 +534,6 @@ export default function Recurring() {
         <div className="space-y-2">
           {recurring.map((r) => {
             const cat = categories.find((c) => c.id === r.categoryId);
-            const color = r.type === 'transfer' ? '#3b82f6' : (cat?.color ?? '#94a3b8');
             const paused = isRulePaused(r);
             const nextDue = nextDueDate(r);
             const fundedGoal = r.goalId ? goals.find((g) => g.id === r.goalId) : undefined;
@@ -552,14 +551,8 @@ export default function Recurring() {
                   : null;
 
             return (
-              <div key={r.id} className="card-elevated rounded-2xl p-3">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-white ${paused ? 'opacity-50' : ''}`}
-                    style={{ backgroundImage: `linear-gradient(135deg, ${color}, ${color}cc)` }}
-                  >
-                    <Repeat size={16} />
-                  </div>
+              <div key={r.id} className="card-elevated rounded-md p-3">
+                <div className={`flex items-center gap-3 ${paused ? 'opacity-50' : ''}`}>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
                       {r.note || cat?.name || 'Recurring'}
@@ -574,10 +567,10 @@ export default function Recurring() {
                   <p
                     className={`shrink-0 text-sm font-semibold ${
                       r.type === 'income'
-                        ? 'text-emerald-500'
+                        ? 'text-primary'
                         : r.type === 'transfer'
-                          ? 'text-blue-500'
-                          : 'text-rose-500'
+                          ? 'text-[#6e8fb0]'
+                          : 'text-destructive'
                     }`}
                   >
                     {r.type === 'income' ? '+' : r.type === 'expense' ? '-' : ''}
@@ -624,7 +617,7 @@ export default function Recurring() {
                       aria-label={paused ? 'Resume rule' : 'Pause rule'}
                     >
                       {paused ? (
-                        <Play size={13} className="text-emerald-500" />
+                        <Play size={13} className="text-primary" />
                       ) : (
                         <Pause size={13} className="text-muted-foreground" />
                       )}
@@ -664,7 +657,7 @@ export default function Recurring() {
 
         {/* Backfill preview — a past start date injects transactions and moves balances. */}
         <Dialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
-          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-md">
+          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-md sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Add past transactions?</DialogTitle>
               <DialogDescription>
@@ -691,7 +684,7 @@ export default function Recurring() {
             <div className="flex flex-col gap-2">
               <Button
                 onClick={() => pending && commit(pending.rule, pending.editingId, false)}
-                className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-lg py-2.5 text-sm font-medium text-white"
+                className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-2.5 text-sm font-medium text-white"
               >
                 Add them
               </Button>
@@ -699,14 +692,14 @@ export default function Recurring() {
                 <Button
                   variant="secondary"
                   onClick={() => pending && commit(pending.rule, pending.editingId, true)}
-                  className="bg-muted h-auto flex-1 rounded-lg py-2.5 text-sm font-medium"
+                  className="bg-muted h-auto flex-1 rounded-sm py-2.5 text-sm font-medium"
                 >
                   Start from today
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={() => setPending(null)}
-                  className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2.5 text-sm font-medium"
+                  className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2.5 text-sm font-medium"
                 >
                   Cancel
                 </Button>

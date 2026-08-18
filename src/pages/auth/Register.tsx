@@ -62,7 +62,7 @@ export default function Register() {
               placeholder="Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="bg-card h-auto w-full rounded-xl py-3 pr-4 pl-11"
+              className="bg-card h-auto w-full rounded-sm py-3 pr-4 pl-11"
               autoComplete="name"
             />
           </div>
@@ -74,7 +74,7 @@ export default function Register() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-card h-auto w-full rounded-xl py-3 pr-4 pl-11"
+              className="bg-card h-auto w-full rounded-sm py-3 pr-4 pl-11"
               autoComplete="email"
             />
           </div>
@@ -86,7 +86,7 @@ export default function Register() {
               placeholder="Password (min 8 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-card h-auto w-full rounded-xl py-3 pr-11 pl-11"
+              className="bg-card h-auto w-full rounded-sm py-3 pr-11 pl-11"
               autoComplete="new-password"
             />
             <Button
@@ -122,7 +122,7 @@ export default function Register() {
           <Button
             type="submit"
             disabled={loading || !agreed}
-            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3 font-semibold text-white disabled:opacity-50"
+            className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-3 font-semibold text-white disabled:opacity-50"
           >
             {loading ? 'Creating account...' : 'Sign Up'}
           </Button>

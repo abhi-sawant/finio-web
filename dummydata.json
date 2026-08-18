@@ -5,7 +5,7 @@
       "name": "Primary Savings",
       "type": "savings",
       "currency": "INR",
-      "color": "#6C63FF",
+      "color": "#146b54",
       "icon": "piggy-bank",
       "balance": 342347,
       "createdAt": "2024-12-01T09:00:00.000Z"
@@ -12777,7 +12777,7 @@
       "id": "cat-10",
       "name": "Freelance",
       "icon": "laptop",
-      "color": "#6C63FF",
+      "color": "#146b54",
       "type": "income"
     },
     {

@@ -45,7 +45,7 @@ export function SpendingHeatmap() {
   );
 
   return (
-    <section className="card-elevated rounded-2xl p-4">
+    <section className="card-elevated rounded-md p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Spending Calendar</h3>
         <div className="flex items-center gap-1">

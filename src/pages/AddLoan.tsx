@@ -12,7 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NumberPad } from '@/components/ui/number-pad';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useConfirm } from '@/components/ui/use-confirm';
 import Header from '@/components/ui/header';
 import Main from '@/components/ui/main';
@@ -124,7 +130,10 @@ export default function AddLoan() {
 
       <Main className="lg:max-w-xl">
         <div>
-          <Label htmlFor="loanName" className="text-muted-foreground mb-1.5 block text-xs font-medium">
+          <Label
+            htmlFor="loanName"
+            className="text-muted-foreground mb-1.5 block text-xs font-medium"
+          >
             Loan Name
           </Label>
           <Input
@@ -133,7 +142,7 @@ export default function AddLoan() {
             placeholder="e.g., Home Loan — HDFC"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="bg-card h-auto rounded-xl px-4 py-3"
+            className="bg-card h-auto rounded-sm px-4 py-3"
           />
         </div>
 
@@ -161,7 +170,7 @@ export default function AddLoan() {
               placeholder="e.g. 8.5"
               value={interestRate}
               onChange={(e) => setInterestRate(e.target.value)}
-              className="bg-card h-auto rounded-xl px-4 py-3"
+              className="bg-card h-auto rounded-sm px-4 py-3"
             />
           </div>
           <div>
@@ -179,13 +188,13 @@ export default function AddLoan() {
               placeholder="e.g. 240"
               value={tenureMonths}
               onChange={(e) => setTenureMonths(e.target.value)}
-              className="bg-card h-auto rounded-xl px-4 py-3"
+              className="bg-card h-auto rounded-sm px-4 py-3"
             />
           </div>
         </div>
 
         {previewEmi > 0 && (
-          <div className="card-elevated bg-grad-primary-soft rounded-2xl p-4 text-center">
+          <div className="card-elevated bg-grad-primary-soft rounded-md p-4 text-center">
             <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
               Estimated EMI
             </p>
@@ -208,7 +217,7 @@ export default function AddLoan() {
             <p className="text-destructive text-xs">Add an account first.</p>
           ) : (
             <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-              <SelectTrigger className="bg-card h-auto w-full rounded-xl px-4 py-3">
+              <SelectTrigger className="bg-card h-auto w-full rounded-sm px-4 py-3">
                 <SelectValue>
                   {openAccounts.find((a) => a.id === accountId)?.name ?? 'Choose account'}
                 </SelectValue>
@@ -225,9 +234,7 @@ export default function AddLoan() {
         </div>
 
         <div>
-          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
-            Category
-          </Label>
+          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Category</Label>
           <div className="scrollbar-hide grid max-h-40 grid-cols-4 gap-2 overflow-y-auto">
             {expenseCategories.map((cat) => {
               const selected = categoryId === cat.id;
@@ -235,18 +242,24 @@ export default function AddLoan() {
                 <button
                   key={cat.id}
                   onClick={() => setCategoryId(cat.id)}
-                  className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition-all ${
-                    selected ? 'ring-grad-primary border-transparent' : 'border-border bg-card hover:bg-muted'
+                  className={`flex flex-col items-center gap-1 rounded-sm border p-2 text-center transition-all ${
+                    selected
+                      ? 'ring-grad-primary border-transparent'
+                      : 'border-border bg-card hover:bg-muted'
                   }`}
                   style={
                     selected
-                      ? { backgroundImage: `linear-gradient(135deg, ${cat.color}22, ${cat.color}11)` }
+                      ? {
+                          backgroundImage: `linear-gradient(135deg, ${cat.color}22, ${cat.color}11)`,
+                        }
                       : undefined
                   }
                 >
                   <div
                     className="flex h-7 w-7 items-center justify-center rounded-full"
-                    style={{ backgroundImage: `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)` }}
+                    style={{
+                      backgroundImage: `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)`,
+                    }}
                   >
                     <CategoryIcon icon={cat.icon} size={14} color="white" />
                   </div>
@@ -260,7 +273,7 @@ export default function AddLoan() {
         <Button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-xl py-3.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-3.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {existing ? 'Update Loan' : 'Add Loan'}
         </Button>

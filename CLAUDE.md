@@ -279,7 +279,7 @@ Enums: `AccountType`, `TransactionType` (expense/income/transfer), `RecurrenceFr
 Configured in [vite.config.ts](vite.config.ts) via `vite-plugin-pwa`, using **`strategies:
 'injectManifest'`** with a hand-written worker at [`src/sw/sw.ts`](src/sw/sw.ts).
 
-- App name: "Finio - Finance Tracker", theme color `#6C63FF`
+- App name: "Finio - Finance Tracker", theme color `#146b54`
 - Manifest icons: 64px, 96px, 192px, 512px, maskable 512px (in `public/`)
 - `shortcuts`: Add Expense, Add Income, Transactions, Budgets (96px icon each — capped at four,
   since Android surfaces 3–4 and silently drops the rest)

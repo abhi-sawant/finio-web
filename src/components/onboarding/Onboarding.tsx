@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { loadSampleData } from '@/data/sampleData';
+import { COLOR_PALETTE } from '@/data/colorPalette';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +29,7 @@ const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string; Icon: Lu
   { value: 'wallet', label: 'Wallet', icon: 'wallet', Icon: Wallet },
 ];
 
-const COLORS = ['#6C63FF', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+const COLORS = COLOR_PALETTE.slice(0, 6);
 
 type Step = 'name' | 'account' | 'balance';
 
@@ -134,7 +135,7 @@ export function Onboarding() {
                   if (e.key === 'Enter' && trimmedName) setStep('account');
                 }}
                 placeholder="Your name"
-                className="bg-card h-auto w-full rounded-xl px-4 py-3"
+                className="bg-card h-auto w-full rounded-sm px-4 py-3"
               />
             </div>
             <Button
@@ -167,7 +168,7 @@ export function Onboarding() {
                 value={accountName}
                 onChange={(e) => setAccountName(e.target.value)}
                 placeholder="e.g. HDFC Savings"
-                className="bg-card h-auto w-full rounded-xl px-4 py-3"
+                className="bg-card h-auto w-full rounded-sm px-4 py-3"
               />
             </div>
 
@@ -179,7 +180,7 @@ export function Onboarding() {
                     key={value}
                     onClick={() => setAccountType(value)}
                     aria-pressed={accountType === value}
-                    className={`flex flex-col items-center gap-1 rounded-xl px-2 py-3 text-xs font-medium transition-all ${
+                    className={`flex flex-col items-center gap-1 rounded-sm px-2 py-3 text-xs font-medium transition-all ${
                       accountType === value
                         ? 'bg-grad-primary text-white shadow'
                         : 'bg-card text-muted-foreground'

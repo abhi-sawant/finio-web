@@ -46,7 +46,10 @@ describe('buildAmortizationSchedule', () => {
   it('each row is internally consistent: opening - principal (- prepayment) = closing', () => {
     const schedule = buildAmortizationSchedule(loan);
     for (const row of schedule) {
-      expect(row.closingBalance).toBeCloseTo(row.openingBalance - row.principal - row.prepayment, 2);
+      expect(row.closingBalance).toBeCloseTo(
+        row.openingBalance - row.principal - row.prepayment,
+        2,
+      );
       expect(row.emi).toBeCloseTo(row.principal + row.interest, 2);
     }
   });

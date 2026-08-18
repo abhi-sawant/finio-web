@@ -306,7 +306,8 @@ export function BackupSection() {
 
   /** Same reasoning as the app lock's toggle: both directions need input, so the switch opens
    *  a dialog rather than writing state optimistically. */
-  const handleToggleBackupEncryption = (next: boolean) => openCryptoDialog(next ? 'set' : 'disable');
+  const handleToggleBackupEncryption = (next: boolean) =>
+    openCryptoDialog(next ? 'set' : 'disable');
 
   const saveBackupPassphrase = async (passphrase: string) => {
     setPassphraseBusy(true);
@@ -338,7 +339,11 @@ export function BackupSection() {
     if (cryptoDialog === 'unlock' || cryptoPhase === 'current') {
       if (!cryptoConfig) return;
       setPassphraseBusy(true);
-      const key = await deriveEncryptionKey(passphraseEntry, cryptoConfig.salt, cryptoConfig.iterations);
+      const key = await deriveEncryptionKey(
+        passphraseEntry,
+        cryptoConfig.salt,
+        cryptoConfig.iterations,
+      );
       const ok = await verifyPassphraseAgainstConfig(key, cryptoConfig);
       setPassphraseBusy(false);
 
@@ -433,7 +438,7 @@ export function BackupSection() {
     <>
       {/* Cloud Backup */}
       {token && (
-        <div className="card-elevated divide-border divide-y rounded-2xl">
+        <div className="card-elevated divide-border divide-y rounded-md">
           <button
             onClick={handleCloudBackup}
             disabled={backingUp}
@@ -457,7 +462,9 @@ export function BackupSection() {
             className="flex w-full items-center gap-3 p-4 disabled:opacity-60"
           >
             <Cloud size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">{restoring ? 'Restoring...' : 'Restore from Cloud'}</span>
+            <span className="text-sm font-medium">
+              {restoring ? 'Restoring...' : 'Restore from Cloud'}
+            </span>
           </button>
           <button onClick={openBackupHistory} className="flex w-full items-center gap-3 p-4">
             <History size={18} className="text-muted-foreground" />
@@ -468,7 +475,7 @@ export function BackupSection() {
 
       {/* Backup Encryption */}
       {token && isBackupCryptoSupported() && (
-        <div className="card-elevated divide-border divide-y rounded-2xl">
+        <div className="card-elevated divide-border divide-y rounded-md">
           <SwitchField
             className="p-4"
             icon={<ShieldCheck size={18} className="text-muted-foreground shrink-0" />}
@@ -485,7 +492,7 @@ export function BackupSection() {
                   onClick={() => openCryptoDialog('unlock')}
                   className="flex w-full items-center gap-3 p-4"
                 >
-                  <LockKeyhole size={18} className="shrink-0 text-amber-500" />
+                  <LockKeyhole size={18} className="shrink-0 text-[#c79b4f]" />
                   <div className="flex-1 text-left">
                     <span className="block text-sm font-medium">Cloud backup locked</span>
                     <span className="text-muted-foreground text-xs">
@@ -555,7 +562,11 @@ export function BackupSection() {
             disabled={passphraseBusy || passphraseEntry.length === 0}
             onClick={handleCryptoPassphraseSubmit}
           >
-            {cryptoDialog === 'disable' ? 'Turn off' : cryptoPhase === 'confirm' ? 'Confirm' : 'Continue'}
+            {cryptoDialog === 'disable'
+              ? 'Turn off'
+              : cryptoPhase === 'confirm'
+                ? 'Confirm'
+                : 'Continue'}
           </Button>
         </div>
       </SecretDialogShell>
@@ -593,7 +604,7 @@ export function BackupSection() {
       </SecretDialogShell>
 
       {/* Data */}
-      <div className="card-elevated divide-border divide-y rounded-2xl">
+      <div className="card-elevated divide-border divide-y rounded-md">
         <SwitchField
           className="p-4"
           icon={<HardDrive size={18} className="text-muted-foreground shrink-0" />}
@@ -614,8 +625,10 @@ export function BackupSection() {
               </p>
             </div>
             <button
-              onClick={backupFolderName ? handleDisconnectBackupFolder : () => setShowFolderSetupInfo(true)}
-              className="bg-muted shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium"
+              onClick={
+                backupFolderName ? handleDisconnectBackupFolder : () => setShowFolderSetupInfo(true)
+              }
+              className="bg-muted shrink-0 rounded-sm px-3 py-1.5 text-xs font-medium"
             >
               {backupFolderName ? 'Disconnect' : 'Choose Folder'}
             </button>
@@ -623,28 +636,28 @@ export function BackupSection() {
         )}
 
         <Dialog open={showFolderSetupInfo} onOpenChange={setShowFolderSetupInfo}>
-          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl">
+          <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-md">
             <DialogHeader>
               <DialogTitle>Set Up Backup Folder</DialogTitle>
               <DialogDescription>
                 In the folder picker that opens next, create a new folder named{' '}
                 <strong className="text-foreground">"Finio"</strong> inside your Downloads folder,
                 then select it. This is the recommended setup — it keeps backups organized in one
-                place and lets Finio automatically keep only the 10 most recent, deleting older
-                ones for you.
+                place and lets Finio automatically keep only the 10 most recent, deleting older ones
+                for you.
               </DialogDescription>
             </DialogHeader>
             <div className="flex gap-2">
               <Button
                 onClick={handleChooseBackupFolder}
-                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                className="bg-grad-primary shadow-glow-primary h-auto flex-1 rounded-sm py-2 text-sm font-medium text-white"
               >
                 Continue
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setShowFolderSetupInfo(false)}
-                className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2 text-sm font-medium"
+                className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2 text-sm font-medium"
               >
                 Cancel
               </Button>
@@ -659,7 +672,10 @@ export function BackupSection() {
           <Upload size={18} className="text-muted-foreground" />
           <span className="text-sm font-medium">Import Data</span>
         </button>
-        <button onClick={() => navigate('/import-csv')} className="flex w-full items-center gap-3 p-4">
+        <button
+          onClick={() => navigate('/import-csv')}
+          className="flex w-full items-center gap-3 p-4"
+        >
           <FileSpreadsheet size={18} className="text-muted-foreground" />
           <div className="flex-1 text-left">
             <p className="text-sm font-medium">Import Bank CSV</p>
@@ -685,7 +701,7 @@ export function BackupSection() {
 
       {/* Import dry-run preview */}
       <Dialog open={preview !== null} onOpenChange={(open) => !open && setPreview(null)}>
-        <DialogContent className="bg-card mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-2xl sm:max-w-md">
+        <DialogContent className="bg-card mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-md sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Review Import</DialogTitle>
             <DialogDescription className="truncate">{preview?.file.name}</DialogDescription>
@@ -721,10 +737,10 @@ export function BackupSection() {
               </ul>
 
               {(preview.report.warnings.length > 0 || preview.report.issues.length > 0) && (
-                <div className="bg-muted/50 space-y-1.5 rounded-xl p-3">
+                <div className="bg-muted/50 space-y-1.5 rounded-sm p-3">
                   {preview.report.warnings.map((warning) => (
                     <p key={warning} className="flex gap-2 text-xs">
-                      <AlertTriangle size={14} className="mt-px shrink-0 text-amber-500" />
+                      <AlertTriangle size={14} className="mt-px shrink-0 text-[#c79b4f]" />
                       <span>{warning}</span>
                     </p>
                   ))}
@@ -743,7 +759,7 @@ export function BackupSection() {
               <div className="flex flex-col gap-2">
                 <Button
                   onClick={() => runImport('merge')}
-                  className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-lg py-2.5 text-sm font-medium text-white"
+                  className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-sm py-2.5 text-sm font-medium text-white"
                 >
                   Merge with existing data
                 </Button>
@@ -751,14 +767,14 @@ export function BackupSection() {
                   <Button
                     variant="secondary"
                     onClick={() => runImport('replace')}
-                    className="text-destructive bg-muted h-auto flex-1 rounded-lg py-2.5 text-sm font-medium"
+                    className="text-destructive bg-muted h-auto flex-1 rounded-sm py-2.5 text-sm font-medium"
                   >
                     Replace everything
                   </Button>
                   <Button
                     variant="secondary"
                     onClick={() => setPreview(null)}
-                    className="bg-muted text-muted-foreground h-auto rounded-lg px-4 py-2.5 text-sm font-medium"
+                    className="bg-muted text-muted-foreground h-auto rounded-sm px-4 py-2.5 text-sm font-medium"
                   >
                     Cancel
                   </Button>
@@ -771,7 +787,7 @@ export function BackupSection() {
 
       {/* Backup history */}
       <Dialog open={showBackupHistory} onOpenChange={setShowBackupHistory}>
-        <DialogContent className="bg-card mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-2xl sm:max-w-md">
+        <DialogContent className="bg-card mx-auto max-h-[70vh] w-11/12 overflow-y-auto rounded-md sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Backup History</DialogTitle>
             <DialogDescription>Every backup version stored on the server.</DialogDescription>
@@ -787,14 +803,16 @@ export function BackupSection() {
                 <li key={backup.backup_date} className="flex items-center justify-between py-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{formatFullDate(backup.backup_date)}</p>
-                    <p className="text-muted-foreground text-xs">{formatFileSize(backup.file_size)}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {formatFileSize(backup.file_size)}
+                    </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     <Button
                       variant="secondary"
                       disabled={busyBackupDate === backup.backup_date}
                       onClick={() => handleRestoreBackupDate(backup.backup_date)}
-                      className="bg-muted h-auto rounded-lg px-3 py-1.5 text-xs font-medium"
+                      className="bg-muted h-auto rounded-sm px-3 py-1.5 text-xs font-medium"
                     >
                       Restore
                     </Button>
@@ -803,7 +821,7 @@ export function BackupSection() {
                       size="icon"
                       disabled={busyBackupDate === backup.backup_date}
                       onClick={() => handleDeleteBackupDate(backup.backup_date)}
-                      className="text-destructive h-8 w-8 rounded-lg"
+                      className="text-destructive h-8 w-8 rounded-sm"
                     >
                       <Trash2 size={15} />
                     </Button>

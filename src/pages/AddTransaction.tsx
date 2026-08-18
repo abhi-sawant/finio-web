@@ -345,12 +345,7 @@ export default function AddTransaction() {
     <>
       {/* Header */}
       <Header innerClassName="lg:max-w-xl">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={goBack}
-          className="h-9 w-9 rounded-full"
-        >
+        <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 rounded-full">
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-base font-semibold">
@@ -372,7 +367,7 @@ export default function AddTransaction() {
 
       <Main className="lg:max-w-xl">
         {/* Type Selector */}
-        <div className="bg-muted grid grid-cols-3 gap-2 rounded-2xl p-1">
+        <div className="bg-muted grid grid-cols-3 gap-2 rounded-md p-1">
           {(['expense', 'income', 'transfer'] as const).map((t) => {
             const isActive = type === t;
             const grad =
@@ -385,7 +380,7 @@ export default function AddTransaction() {
               <button
                 key={t}
                 onClick={() => handleTypeChange(t)}
-                className={`rounded-xl py-2 text-sm font-medium capitalize transition-all ${
+                className={`rounded-sm py-2 text-sm font-medium capitalize transition-all ${
                   isActive ? `${grad} text-white shadow` : 'text-muted-foreground'
                 }`}
               >
@@ -407,7 +402,7 @@ export default function AddTransaction() {
             {type === 'transfer' ? 'From Account' : 'Account'}
           </Label>
           <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
-            <SelectTrigger className="bg-card h-auto w-full rounded-xl px-4 py-3">
+            <SelectTrigger className="bg-card h-auto w-full rounded-sm px-4 py-3">
               <SelectValue placeholder="Select account">
                 {accounts.find((a) => a.id === accountId) && (
                   <span>
@@ -447,7 +442,7 @@ export default function AddTransaction() {
               To Account
             </Label>
             <Select value={toAccountId} onValueChange={(v) => setToAccountId(v ?? '')}>
-              <SelectTrigger className="bg-card h-auto w-full rounded-xl px-4 py-3">
+              <SelectTrigger className="bg-card h-auto w-full rounded-sm px-4 py-3">
                 <SelectValue placeholder="Select account">
                   {accounts.find((a) => a.id === toAccountId) && (
                     <span>
@@ -509,7 +504,7 @@ export default function AddTransaction() {
                       value={row.categoryId}
                       onValueChange={(v) => updateSplitRow(idx, { categoryId: v ?? '' })}
                     >
-                      <SelectTrigger className="bg-card h-auto min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm">
+                      <SelectTrigger className="bg-card h-auto min-w-0 flex-1 rounded-sm px-3 py-2.5 text-sm">
                         <SelectValue placeholder="Category">
                           {filteredCategories.find((c) => c.id === row.categoryId)?.name}
                         </SelectValue>
@@ -528,7 +523,7 @@ export default function AddTransaction() {
                       placeholder="Amount"
                       value={row.amount}
                       onChange={(e) => updateSplitRow(idx, { amount: e.target.value })}
-                      className="bg-card h-auto w-24 shrink-0 rounded-xl px-3 py-2.5 text-sm"
+                      className="bg-card h-auto w-24 shrink-0 rounded-sm px-3 py-2.5 text-sm"
                     />
                     <button
                       type="button"
@@ -549,7 +544,7 @@ export default function AddTransaction() {
                 </button>
                 <p
                   className={`text-xs ${
-                    Math.abs(splitRemaining) < 0.01 ? 'text-muted-foreground' : 'text-rose-500'
+                    Math.abs(splitRemaining) < 0.01 ? 'text-muted-foreground' : 'text-destructive'
                   }`}
                 >
                   {Math.abs(splitRemaining) < 0.01
@@ -567,7 +562,7 @@ export default function AddTransaction() {
                     <button
                       key={cat.id}
                       onClick={() => chooseCategory(cat.id)}
-                      className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition-all ${
+                      className={`flex flex-col items-center gap-1 rounded-sm border p-2 text-center transition-all ${
                         selected
                           ? 'ring-grad-primary border-transparent'
                           : 'border-border bg-card hover:bg-muted'
@@ -607,15 +602,13 @@ export default function AddTransaction() {
 
         {/* Merchant */}
         <div>
-          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">
-            Merchant
-          </Label>
+          <Label className="text-muted-foreground mb-1.5 block text-xs font-medium">Merchant</Label>
           <Input
             type="text"
             placeholder="Add a merchant..."
             value={merchant}
             onChange={(e) => setMerchant(e.target.value)}
-            className="bg-card h-auto rounded-xl px-4 py-3"
+            className="bg-card h-auto rounded-sm px-4 py-3"
             list="merchant-suggestions"
           />
           <datalist id="merchant-suggestions">
@@ -633,7 +626,7 @@ export default function AddTransaction() {
             placeholder="Add a note..."
             value={note}
             onChange={(e) => handleNoteChange(e.target.value)}
-            className="bg-card h-auto rounded-xl px-4 py-3"
+            className="bg-card h-auto rounded-sm px-4 py-3"
             list="note-suggestions"
           />
           <datalist id="note-suggestions">
@@ -693,7 +686,7 @@ export default function AddTransaction() {
         <Button
           onClick={handleSubmit}
           disabled={!amount || !accountId}
-          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-2xl py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="bg-grad-primary shadow-glow-primary h-auto w-full rounded-md py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {existing ? 'Update Transaction' : 'Add Transaction'}
         </Button>

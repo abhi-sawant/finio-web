@@ -5,14 +5,17 @@ import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppLockStore } from '@/store/useAppLockStore';
 import { exportLocalBackup } from '@/services/backup';
-import {
-  isPlatformAuthenticatorAvailable,
-  registerBiometric,
-} from '@/services/appLockBiometric';
+import { isPlatformAuthenticatorAvailable, registerBiometric } from '@/services/appLockBiometric';
 import { clearBackgroundedAt } from '@/services/appLockSession';
 import { SwitchField } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { SecretDialogShell, SecretDialogError } from './SecretDialogShell';
 import {
   derivePinHash,
@@ -184,7 +187,7 @@ export function AppLockSection() {
   };
 
   return (
-    <div className="card-elevated divide-border divide-y rounded-2xl">
+    <div className="card-elevated divide-border divide-y rounded-md">
       {!isPinCryptoSupported() ? (
         <div className="flex items-center gap-3 p-4">
           <Lock size={18} className="text-muted-foreground shrink-0" />
@@ -231,7 +234,7 @@ export function AppLockSection() {
                 </div>
                 <button
                   onClick={() => setShowAutoLockPicker(true)}
-                  className="bg-muted shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium"
+                  className="bg-muted shrink-0 rounded-sm px-3 py-1.5 text-sm font-medium"
                 >
                   {lockConfig?.autoLockMinutes === 0 ? 'Now' : `${lockConfig?.autoLockMinutes}m`}
                 </button>
@@ -258,7 +261,7 @@ export function AppLockSection() {
       )}
 
       <Dialog open={showAutoLockPicker} onOpenChange={setShowAutoLockPicker}>
-        <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-2xl sm:max-w-sm">
+        <DialogContent className="bg-card top-1/3 mx-auto w-11/12 rounded-md sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Auto-lock</DialogTitle>
             <DialogDescription>
@@ -273,7 +276,7 @@ export function AppLockSection() {
                   setAutoLockMinutes(minutes);
                   setShowAutoLockPicker(false);
                 }}
-                className={`rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                className={`rounded-sm px-3 py-2.5 text-left text-sm font-medium transition-colors ${
                   minutes === lockConfig?.autoLockMinutes
                     ? 'bg-grad-primary text-white'
                     : 'bg-muted hover:bg-muted/70'
@@ -293,7 +296,11 @@ export function AppLockSection() {
         onOpenChange={(open) => !open && closeLockDialog()}
         className="max-h-[80vh] overflow-y-auto"
         title={
-          lockDialog === 'disable' ? 'Turn off app lock' : lockDialog === 'change' ? 'Change PIN' : 'Set a PIN'
+          lockDialog === 'disable'
+            ? 'Turn off app lock'
+            : lockDialog === 'change'
+              ? 'Change PIN'
+              : 'Set a PIN'
         }
         description={
           lockDialog === 'disable'
@@ -315,8 +322,10 @@ export function AppLockSection() {
                   key={length}
                   onClick={() => setPinLength(length)}
                   aria-pressed={pinLength === length}
-                  className={`rounded-xl py-3 text-sm font-medium transition-colors ${
-                    pinLength === length ? 'bg-grad-primary text-white' : 'bg-muted hover:bg-muted/70'
+                  className={`rounded-sm py-3 text-sm font-medium transition-colors ${
+                    pinLength === length
+                      ? 'bg-grad-primary text-white'
+                      : 'bg-muted hover:bg-muted/70'
                   }`}
                 >
                   {length} digits
@@ -331,7 +340,11 @@ export function AppLockSection() {
                 </button>
               </p>
             )}
-            <Button size="lg" className="bg-grad-primary w-full text-white" onClick={() => setPinPhase('enter')}>
+            <Button
+              size="lg"
+              className="bg-grad-primary w-full text-white"
+              onClick={() => setPinPhase('enter')}
+            >
               Continue
             </Button>
           </div>

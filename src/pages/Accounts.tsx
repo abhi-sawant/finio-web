@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Plus, CreditCard, Wallet, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { formatCurrency, shouldCompactGroup } from '@/utils/formatters';
@@ -41,6 +41,14 @@ export default function Accounts() {
     () => shouldCompactGroup(archivedAccounts.map((a) => a.balance)),
     [archivedAccounts],
   );
+  const txCountByAccount = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const t of transactions) {
+      if (t.accountId) counts.set(t.accountId, (counts.get(t.accountId) ?? 0) + 1);
+      if (t.toAccountId) counts.set(t.toAccountId, (counts.get(t.toAccountId) ?? 0) + 1);
+    }
+    return counts;
+  }, [transactions]);
 
   const handleDelete = async (account: Account) => {
     const txCount = transactions.filter(
@@ -87,7 +95,7 @@ export default function Accounts() {
           <HideAmountsToggle />
           <button
             onClick={() => navigate('/add-account')}
-            className="bg-grad-primary shadow-glow-primary flex h-9 w-9 items-center justify-center rounded-full text-white"
+            className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-full"
             aria-label="Add account"
           >
             <Plus size={16} />
@@ -96,43 +104,33 @@ export default function Accounts() {
       </Header>
       <Main>
         {/* Summary */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-          <div className="card-elevated bg-grad-primary-soft rounded-2xl p-4">
-            <div className="mb-1 flex items-center gap-1.5">
-              <Wallet size={12} className="text-primary" />
-              <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
-                Net Balance
-              </p>
-            </div>
-            <p className="text-lg font-bold">
-              {formatCurrency(totalBalance, true, hideAmounts)}
-            </p>
-          </div>
+        <div className="card-elevated rounded-md p-4 text-center">
+          <p className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+            Net balance
+          </p>
+          <p className="mt-1 text-3xl font-bold tracking-tight">
+            {formatCurrency(totalBalance, true, hideAmounts)}
+          </p>
           {creditAccounts.length > 0 && (
-            <div className="card-elevated bg-grad-danger-soft rounded-2xl p-4">
-              <div className="mb-1 flex items-center gap-1.5">
-                <CreditCard size={12} className="text-rose-500" />
-                <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
-                  Credit Due
-                </p>
-              </div>
-              <p className="text-lg font-bold text-rose-500">
-                {formatCurrency(creditDue, true, hideAmounts)}
-              </p>
-            </div>
+            <p className="text-muted-foreground mt-1.5 text-xs">
+              {formatCurrency(creditDue, true, hideAmounts)} owed on {creditAccounts.length} card
+              {creditAccounts.length === 1 ? '' : 's'} ·{' '}
+              {formatCurrency(totalBalance - creditDue, true, hideAmounts)} after dues
+            </p>
           )}
         </div>
 
         {/* Regular Accounts */}
         {regularAccounts.length > 0 && (
           <div>
-            <h2 className="text-muted-foreground mb-3 text-sm font-medium">Accounts</h2>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            <h2 className="text-muted-foreground mb-2 text-[11px] font-medium tracking-wide uppercase">
+              Accounts
+            </h2>
+            <div className="card-elevated divide-border divide-y rounded-md px-4">
               {regularAccounts.map((account) => (
                 <AccountCard
                   key={account.id}
                   account={account}
-                  variant="grid"
                   forceCompact={openCompact}
                   onClick={() => navigate(`/edit-account/${account.id}`)}
                   onDelete={() => handleDelete(account)}
@@ -146,13 +144,14 @@ export default function Accounts() {
         {/* Credit Accounts */}
         {creditAccounts.length > 0 && (
           <div>
-            <h2 className="text-muted-foreground mb-3 text-sm font-medium">Credit Cards</h2>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            <h2 className="text-muted-foreground mb-2 text-[11px] font-medium tracking-wide uppercase">
+              Credit cards
+            </h2>
+            <div className="card-elevated divide-border divide-y rounded-md px-4">
               {creditAccounts.map((account) => (
                 <AccountCard
                   key={account.id}
                   account={account}
-                  variant="grid"
                   forceCompact={openCompact}
                   onClick={() => navigate(`/edit-account/${account.id}`)}
                   onDelete={() => handleDelete(account)}
@@ -168,20 +167,20 @@ export default function Accounts() {
           <div>
             <button
               onClick={() => setShowArchived((v) => !v)}
-              className="text-muted-foreground mb-3 flex items-center gap-1 text-sm font-medium"
+              className="text-muted-foreground mb-2 flex items-center gap-1 text-[11px] font-medium tracking-wide uppercase"
               aria-expanded={showArchived}
             >
               {showArchived ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               Archived ({archivedAccounts.length})
             </button>
             {showArchived && (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+              <div className="card-elevated divide-border divide-y rounded-md px-4">
                 {archivedAccounts.map((account) => (
                   <AccountCard
                     key={account.id}
                     account={account}
-                    variant="grid"
                     forceCompact={archivedCompact}
+                    transactionCount={txCountByAccount.get(account.id) ?? 0}
                     onClick={() => navigate(`/edit-account/${account.id}`)}
                     onDelete={() => handleDelete(account)}
                     onToggleArchive={() => handleToggleArchive(account)}
@@ -197,7 +196,7 @@ export default function Accounts() {
             <p className="text-muted-foreground mb-4">No accounts yet</p>
             <button
               onClick={() => navigate('/add-account')}
-              className="bg-grad-primary shadow-glow-primary rounded-xl px-5 py-2.5 text-sm font-medium text-white"
+              className="bg-primary text-primary-foreground rounded-full px-5 py-2.5 text-sm font-medium"
             >
               Add Account
             </button>

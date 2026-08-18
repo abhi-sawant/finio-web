@@ -339,7 +339,8 @@ export function buildYearInReview(input: YearInReviewInput): YearInReview {
 
   // Zero everywhere shouldn't crown January "busiest" — that's just an empty year.
   const busiestMonth = monthlyBreakdown.reduce<MonthTotal | null>(
-    (best, month) => (month.expenses > 0 && (!best || month.expenses > best.expenses) ? month : best),
+    (best, month) =>
+      month.expenses > 0 && (!best || month.expenses > best.expenses) ? month : best,
     null,
   );
 
